@@ -1,0 +1,37 @@
+# Lychee link checker configuration
+# https://lychee.cli.rs/
+
+# Exclude certain link patterns that are commonly problematic in CI
+exclude = [
+    # Localhost and local network references
+    "^https?://localhost.*",
+    "^https?://127\\.0\\.0\\.1.*",
+    "^https?://0\\.0\\.0\\.0.*",
+    "^https?://.*\\.local.*",
+    # Common placeholder URLs
+    "^https?://example\\.com.*",
+    "^https?://.*\\.example.*",
+    # Social media that often blocks bots
+    "^https?://.*twitter\\.com.*",
+    "^https?://.*x\\.com.*",
+]
+
+# Set reasonable timeout and retry values
+timeout = 20
+retry_wait_time = 2
+max_retries = 2
+
+# Accept certain status codes as valid
+accept = [200, 201, 204, 206, 300, 301, 302, 303, 304, 307, 308, 999]
+
+# Follow redirects
+max_redirects = 10
+
+# Set user agent to avoid bot blocking
+user_agent = "Mozilla/5.0 (compatible; lychee link checker)"
+
+# Enable email address checking
+include_mail = true
+
+# Enable checking of fragments/anchors in links (e.g., #section-name)
+include_fragments = true

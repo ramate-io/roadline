@@ -1,0 +1,135 @@
+# Originally based on: https://til.simonwillison.net/github-actions/creating-github-labels
+#
+name: Labels
+
+on:
+  push:
+    paths:
+    - '.github/workflows/labels.yml'
+  workflow_dispatch:
+
+jobs:
+  create-labels:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    env:
+      LABELS_JSON: |
+        [
+          {"name": "event", "color": "3cc225", "description": "A release, demonstration, or similar targeting a date. All issues are justified up to events."},
+          {"name": "release-candidate", "color": "25c2b5", "description": "An intended update to software, documentation, or similar which constitutes a new usable version."},
+          {"name": "feature", "color": "85c98e", "description": "Describes new behavior."},
+          {"name": "bug", "color": "c98f85", "description": "Describes behavior which needs to be fixed."},
+          {"name": "docs", "color": "85b0c9", "description": "Describes important updates to documentation."},
+          {"name": "delivery", "color": "85c9b9", "description": "Describes important updates to delivery mechanisms."},
+          {"name": "validation", "color": "b785c9", "description": "Describes important updates to validation mechanisms."},
+          {"name": "priority:low", "color": "298ef2", "description": "Low-priority issues should not be worked on at the expense of other issues."},
+          {"name": "priority:medium", "color": "f28729", "description": "Medium-priority issues should be worked on sparingly when other issues are available."},
+          {"name": "priority:high", "color": "f22929", "description": "High-priority issues should be worked on at the expense of most other issues."},
+          {"name": "priority:urgent", "color": "c842f5", "description": "Urgent-priority issues should be worked on at the expense of all other issues."}
+        ]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Get latest commit message
+      id: get_commit_msg
+      run: |
+        COMMIT_MSG=""
+        if [ -n "$GITHUB_EVENT_PATH" ]; then
+          # Try push event, then PR event
+          COMMIT_MSG=$(jq -r '.head_commit.message // .commits[0].message // .pull_request.title // .pull_request.body // empty' "$GITHUB_EVENT_PATH")
+        fi
+        # Fallback to git log if still empty and .git exists
+        if [ -z "$COMMIT_MSG" ] && [ -d .git ]; then
+          COMMIT_MSG=$(git log -1 --pretty=%B || true)
+        fi
+        # Always set the env var, even if empty, using multi-line safe syntax
+        echo "GITHUB_COMMIT_MESSAGE<<EOF" >> $GITHUB_ENV
+        echo "${COMMIT_MSG}" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+    - uses: actions/github-script@v7
+      with:
+        script: |
+          const labels = JSON.parse(process.env.LABELS_JSON);
+          const labelNames = labels.map(l => l.name);
+
+          // Helper to robustly detect 'already_exists' error
+          function isAlreadyExistsError(error) {
+            // Directly on the error object
+            if (error && error.code === 'already_exists') return true;
+            // In error.errors array
+            if (Array.isArray(error.errors) && error.errors.some(e => e.code === 'already_exists')) return true;
+            // In error.response.data.errors array
+            if (
+              error.response &&
+              error.response.data &&
+              Array.isArray(error.response.data.errors) &&
+              error.response.data.errors.some(e => e.code === 'already_exists')
+            ) return true;
+            return false;
+          }
+
+          // Remove labels not in LABELS_JSON if on main or if commit message contains debug(ci:labels:deletion)
+          const commitMessage = process.env.GITHUB_COMMIT_MESSAGE || '';
+          console.log(`DEBUG ${commitMessage}`);
+          if (
+            process.env.GITHUB_REF === 'refs/heads/main' ||
+            process.env.GITHUB_REF_NAME === 'main' ||
+            commitMessage.includes('debug(ci:labels:deletion)')
+          ) {
+            console.log('Running deletion');
+            const existingLabels = await github.paginate(github.rest.issues.listLabelsForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+            for (const existing of existingLabels) {
+              if (!labelNames.includes(existing.name)) {
+                try {
+                  await github.rest.issues.deleteLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name: existing.name
+                  });
+                  console.log(`Deleted label '${existing.name}' not in LABELS_JSON.`);
+                } catch (error) {
+                  console.error(`Error deleting label '${existing.name}': ${error}`);
+                  throw error;
+                }
+              }
+            }
+          }
+
+          for (const label of labels) {
+            try {
+              await github.rest.issues.createLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: label.name,
+                description: label.description || '',
+                color: label.color
+              });
+              console.log(`Created label '${label.name}'.`);
+            } catch (error) {
+              if (isAlreadyExistsError(error)) {
+                console.log(`Label '${label.name}' already exists. Attempting to update...`);
+                try {
+                  await github.rest.issues.updateLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name: label.name,
+                    new_name: label.name,
+                    description: label.description || '',
+                    color: label.color
+                  });
+                  console.log(`Updated label '${label.name}'.`);
+                } catch (updateError) {
+                  console.error(`Error updating label '${label.name}': ${updateError}`);
+                  throw updateError;
+                }
+              } else {
+                // Log and throw other errors
+                console.error(`Error creating label '${label.name}': ${error}`);
+                throw error;
+              }
+            }
+          }

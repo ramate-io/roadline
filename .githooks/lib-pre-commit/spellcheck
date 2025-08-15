@@ -1,0 +1,91 @@
+#!/bin/bash
+
+set -e
+
+# Status helper function
+status() {
+    if [ $? -eq 0 ]; then
+        echo "✅ $1"
+    else
+        echo "❌ $1"
+        return 1
+    fi
+}
+
+echo "Running pre-commit hook: Grammar checking with ltex-cli-plus..."
+
+# Check if ltex-cli-plus is available
+if ! command -v ltex-cli-plus &> /dev/null; then
+    echo "❌ ltex-cli-plus command not found. Please install it first."
+    exit 1
+fi
+
+# Get list of tracked prose files, excluding .vale directory
+FILES=$(git ls-files --cached --exclude-standard | grep -E '\.(md|txt|rst|adoc|asciidoc)$' | grep -v '^\.vale/')
+
+if [ -z "$FILES" ]; then
+    echo "📭 No prose files found to check grammar."
+    exit 0
+fi
+
+# Count files for progress
+TOTAL_FILES=$(echo "$FILES" | wc -l | tr -d ' ')
+echo "📝 Found $TOTAL_FILES prose files to check for grammar"
+
+# Check all files for grammar issues using ltex-cli-plus
+echo "🔍 Running grammar and spellcheck on prose files..."
+
+# Create a temporary file to capture output
+TEMP_OUTPUT=$(mktemp)
+trap "rm -f $TEMP_OUTPUT" EXIT
+
+# Set up signal handlers to ensure cleanup and proper exit
+cleanup() {
+    echo ""
+    echo "⚠️  Grammar check interrupted"
+    rm -f "$TEMP_OUTPUT"
+    exit 130
+}
+trap cleanup INT TERM
+
+# Run ltex-cli-plus on all files at once for better performance
+echo "  Checking all files with ltex-cli-plus..."
+
+if ltex-cli-plus --client-configuration=.ltex-ls-plus.json $FILES > "$TEMP_OUTPUT" 2>&1; then
+    echo "✅ No grammar issues found in any files"
+    GRAMMAR_ISSUES=0
+else
+    exit_code=$?
+    if [ $exit_code -eq 3 ]; then
+        echo "❌ Grammar issues found"
+        echo ""
+        echo "Grammar issues detected:"
+        cat "$TEMP_OUTPUT"
+        GRAMMAR_ISSUES=1
+    elif [ $exit_code -eq 130 ]; then
+        # Interrupted by signal
+        echo "⚠️  Grammar check was interrupted"
+        exit 130
+    else
+        echo "⚠️  Error running grammar check (exit code: $exit_code)"
+        echo "Output:"
+        cat "$TEMP_OUTPUT"
+        GRAMMAR_ISSUES=1
+    fi
+fi
+
+if [ $GRAMMAR_ISSUES -gt 0 ]; then
+    echo ""
+    echo "❌ Found grammar issues in $GRAMMAR_ISSUES file(s)."
+    echo "💡 Tips:"
+    echo "   - Review subject-verb agreement"
+    echo "   - Check for sentence fragments"
+    echo "   - Ensure tense consistency"
+    echo "   - Consider using an LSP-enabled editor with ltex-ls-plus for real-time checking"
+    echo "   - Configuration: .ltex-ls-plus.json"
+    exit 1
+else
+    echo "✨ Grammar checking completed successfully!"
+    echo "ℹ️  For inline grammar checking, configure your editor to use ltex-ls-plus with .ltex-ls-plus.json"
+    exit 0
+fi

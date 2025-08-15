@@ -1,0 +1,5 @@
+*.tfstate*
+__pycache__
+*.env
+venv
+target

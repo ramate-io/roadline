@@ -1,0 +1,46 @@
+# This repo has pre-commmit hooks that contributors should always run.
+# This workflow runs the pre-commit hooks on every pushed commit and asserts that it is equivalent to the commit contents that were pushed.
+# This works because the pre-commit hooks are idempotent.
+
+name: Pre-commit Formatting
+
+on:
+  push:
+    branches:
+
+jobs:
+  pre-commit-formatting:
+    uses: ./.github/workflows/nix-command.yml
+    with:
+      command: |
+        # Configure git identity for the CI environment
+        git config user.email "ci@example.com"
+        git config user.name "CI Bot"
+        
+        # Check if repository is clean (should be after checkout)
+        if ! git diff --exit-code || ! git diff --cached --exit-code; then
+          echo "❌ Repository is not clean after checkout"
+          exit 1
+        fi
+        
+        # Stage everything and commit (this runs pre-commit hooks)
+        git add -A
+        git commit --allow-empty -m "CI: Run pre-commit hooks"
+        
+        # Check if hooks left any unstaged changes
+        if ! git diff --exit-code; then
+          echo "❌ Pre-commit hooks modified files. Please commit your changes in the nix shell before pushing."
+          echo ""
+          echo "To fix this:"
+          echo "1. Enter nix shell: nix develop"
+          echo "2. Commit your changes (hooks will run automatically)"
+          echo "3. Push again"
+          echo ""
+          echo "Modified files:"
+          git diff --name-only
+          exit 1
+        fi
+        
+        echo "✅ No changes detected. Pre-commit hooks were properly run locally."
+      nix_flake_path: '.'
+      runner: 'ubuntu-latest'
