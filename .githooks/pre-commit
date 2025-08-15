@@ -1,0 +1,64 @@
+#!/bin/bash
+
+set -e
+
+# Status helper function
+status() {
+    if [ $? -eq 0 ]; then
+        echo "✅ $1"
+    else
+        echo "❌ $1"
+        return 1
+    fi
+}
+
+echo "Running pre-commit hooks..."
+
+# Directory containing pre-commit scripts
+HOOKS_DIR=".githooks/lib-pre-commit"
+
+# Check if hooks directory exists
+if [ ! -d "$HOOKS_DIR" ]; then
+    echo "❌ Pre-commit hooks directory not found: $HOOKS_DIR"
+    exit 1
+fi
+
+# Get all scripts in the hooks directory
+HOOK_SCRIPTS=$(ls -1 "$HOOKS_DIR"/* 2>/dev/null | sort)
+
+if [ -z "$HOOK_SCRIPTS" ]; then
+    echo "📭 No scripts found in $HOOKS_DIR"
+    exit 0
+fi
+
+# Count total scripts for progress reporting
+TOTAL_SCRIPTS=$(echo "$HOOK_SCRIPTS" | wc -l | tr -d ' ')
+CURRENT=0
+FAILED_SCRIPTS=()
+
+# Execute each script
+for script in $HOOK_SCRIPTS; do
+    CURRENT=$((CURRENT + 1))
+    SCRIPT_NAME=$(basename "$script")
+    echo "📝 Running ${SCRIPT_NAME} (${CURRENT}/${TOTAL_SCRIPTS})..."
+    
+    if "$script"; then
+        echo "✅ ${SCRIPT_NAME} completed successfully"
+            else
+        echo "❌ ${SCRIPT_NAME} failed"
+        FAILED_SCRIPTS+=("${SCRIPT_NAME} ❌")
+    fi
+done
+
+# Report results
+echo "✨ Pre-commit hooks complete! Processed ${TOTAL_SCRIPTS} scripts."
+
+if [ ${#FAILED_SCRIPTS[@]} -gt 0 ]; then
+    echo "❌ The following scripts failed:"
+    for script in "${FAILED_SCRIPTS[@]}"; do
+        echo "   - ${script}"
+    done
+    exit 1
+fi
+
+exit 0

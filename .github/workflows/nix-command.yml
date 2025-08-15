@@ -1,0 +1,49 @@
+# This workflow was originally created by Liam Monninger at Movement Labs under the MIT License:
+# https://github.com/movementlabsxyz/movement-migration
+name: Nix Command Runner
+
+on:
+  workflow_call:
+    inputs:
+      command:
+        required: true
+        type: string
+        description: 'Command to run in Nix shell'
+      nix_flake_path:
+        required: false
+        type: string
+        default: '.'
+        description: 'Path to the Nix flake'
+      runner:
+        required: false
+        type: string
+        default: 'ubuntu-latest'
+        description: 'Runner to use for the job'
+    secrets:
+      NIX_ACCESS_TOKEN:
+        required: false
+        description: 'Nix access token for private flakes'
+
+jobs:
+  run-command:
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Enable Nix Flakes
+        run: |
+          mkdir -p ~/.config/nix
+          echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+
+      - name: Run Command in Nix Shell
+        run: |
+          # Write the command to a temporary script file to handle multiline commands
+          cat > /tmp/nix_command.sh << 'EOF'
+          ${{ inputs.command }}
+          EOF
+          chmod +x /tmp/nix_command.sh
+          echo "Running command in Nix shell..."
+          nix develop "${{ inputs.nix_flake_path }}" --command /tmp/nix_command.sh 

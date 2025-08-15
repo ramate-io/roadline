@@ -1,0 +1,55 @@
+#!/bin/bash
+
+set -e
+
+# Status helper function
+status() {
+    if [ $? -eq 0 ]; then
+        echo "✅ $1"
+    else
+        echo "❌ $1"
+        return 1
+    fi
+}
+
+echo "Running pre-commit hook: Checking for broken links with lychee..."
+
+# Check if lychee is available
+if ! command -v lychee &> /dev/null; then
+    echo "❌ lychee command not found. Please ensure you're in the nix development shell."
+    exit 1
+fi
+
+# Find all tracked files that might contain links
+FILES=$(git ls-files --cached --exclude-standard | grep -E '\.(md|txt|rst|adoc|asciidoc|html|htm)$')
+
+if [ -z "$FILES" ]; then
+    echo "📭 No files found that might contain links."
+    exit 0
+fi
+
+# Count files for progress
+TOTAL_FILES=$(echo "$FILES" | wc -l | tr -d ' ')
+echo "📝 Found $TOTAL_FILES files to check for broken links"
+
+# Check if lychee config exists
+if [ ! -f "lychee.toml" ]; then
+    echo "❌ No lychee configuration found. Expected lychee.toml to be committed to the repository."
+    exit 1
+fi
+
+echo "🔍 Running lychee link checker..."
+
+# Run lychee with the committed config file and CI-appropriate options
+if lychee --config lychee.toml --no-progress --format detailed $FILES; then
+    echo "✨ Link checking completed successfully!"
+    exit 0
+else
+    echo "❌ lychee found broken links. Please review and fix the issues above."
+    echo "💡 Tips:"
+    echo "   - Check if URLs are still valid and accessible"
+    echo "   - For false positives, add exclusions to lychee.toml"
+    echo "   - Some sites block automated requests - consider manual verification"
+    echo "   - Use relative links for internal references when possible"
+    exit 1
+fi

@@ -1,0 +1,107 @@
+[workspace]
+
+resolver = "2"
+
+members = [
+
+  "util/roadline/*"
+  
+]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+authors = ["Movement Labs"]
+repository = "www.github.com/movementlabsxyz/ffs"
+homepage = "www.github.com/movementlabsxyz/ffs"
+publish = false
+rust-version = "1.85.0"
+
+[workspace.dependencies]
+anyhow = "1.0"
+async-stream = "0.3.0"
+async-trait = "0.1.71"
+clap = { version = "4.4.10", features = ["derive"] }
+dotenv = "0.15.0"
+futures = "0.3.17"
+serde = "1.0"
+serde_json = "1.0"
+serde_derive = "1.0"
+thiserror = "1.0.50"
+tracing = "0.1.40"
+tracing-appender = "0.2"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-test = "0.2.5"
+tokio = { version = "1.35.1", features = ["full", "tracing"] }
+tokio-stream = "0.1.15"
+hex = { version = "0.4.3", default-features = false, features = [
+  "alloc",
+  "serde",
+] }
+zip = { version = "2.4.2", features = ["flate2"] }
+walkdir = "2.3.2"
+tempfile = "3.5.0"
+itertools = "0.14.0"
+regex = "1.9.0"
+syn = { version = "2.0", features = ["full"] }
+quote = "1.0.23"
+proc-macro2 = "1.0.32"
+proc-macro-error = { version = "1.0.4", features = ["syn-error"] }
+strip-ansi-escapes = "0.2.1"
+cargo_metadata = "0.19.2"
+ignore = "0.4.20"
+convert_case = "0.8.0"
+toml = "0.8.20"
+tonic = "0.12.3"
+tonic-build = { version = "0.12.3", features = ["prost"] }
+tonic-reflection = "0.12.3"
+tonic-web = "0.12.3"
+prost = "0.13.3"
+dioxus = { version = "0.6.3", features = ["fullstack"] }
+wasm-bindgen = "0.2"
+web-sys = "0.3"
+wasm-bindgen-futures = "0.4"
+gloo-timers = { version = "0.2" }
+
+
+# kestrel 
+kestrel = { git = "https://github.com/movementlabsxyz/kestrel.git", rev = "85e2f681ae3e54b29bb18d4ed7ca750116173321" }
+jsonlvar = { git = "https://github.com/movementlabsxyz/kestrel.git", rev = "85e2f681ae3e54b29bb18d4ed7ca750116173321" }
+commander = { git = "https://github.com/movementlabsxyz/kestrel.git", rev = "85e2f681ae3e54b29bb18d4ed7ca750116173321" }
+
+# orfile
+orfile = { git = "https://github.com/movementlabsxyz/orfile.git", rev = "d02299214e5aa202130cd1eb9593ce8064d1ec69" }
+orfile-util = { git = "https://github.com/movementlabsxyz/orfile.git", rev = "d02299214e5aa202130cd1eb9593ce8064d1ec69" }
+orfile-macro = { git = "https://github.com/movementlabsxyz/orfile.git", rev = "d02299214e5aa202130cd1eb9593ce8064d1ec69" }
+
+# docs
+clap-markdown-ext = { git = "https://github.com/movementlabsxyz/clap-markdown-ext.git", rev = "8f54fe424504bf37fb01dc69aaed8166e429fe6a"}
+
+# internal
+ramate-web-components = { workspace = true }
+
+[workspace.lints.clippy]
+debug_assert_with_mut_call = "deny"
+inefficient_to_string = "deny"
+map_flatten = "deny"
+manual_ok_or = "deny"
+doc_link_with_quotes = "deny"
+match_same_arms = "deny"
+semicolon_if_nothing_returned = "deny"
+
+[profile.dev]
+panic = "unwind"
+
+[profile.release.build-override]
+opt-level = 3
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"
