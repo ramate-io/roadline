@@ -1,4 +1,4 @@
-use crate::long_id::LongId;
+use crate::long_id::{LongId, LongIdError};
 use serde::{Serialize, Deserialize};
 
 /// The id of a task.
@@ -16,8 +16,15 @@ impl Id {
     }
 
     /// Creates a new Id from a string, padding with zeros if necessary.
-    pub fn from_string(s: &str) -> Self {
-        Self(LongId::from_string(s))
+    /// Returns an error if the string is longer than 512 bytes.
+    pub fn from_string(s: &str) -> Result<Self, LongIdError> {
+        Ok(Self(LongId::from_string(s)?))
+    }
+
+    /// Creates a new Id from a string, truncating if necessary.
+    /// This method never fails but may lose data for strings longer than 512 bytes.
+    pub fn from_string_truncate(s: &str) -> Self {
+        Self(LongId::from_string_truncate(s))
     }
 
     /// Returns the raw byte array.

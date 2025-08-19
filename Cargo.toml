@@ -19,6 +19,8 @@ homepage = "www.github.com/movementlabsxyz/ffs"
 publish = false
 rust-version = "1.85.0"
 
+
+
 [workspace.dependencies]
 anyhow = "1.0"
 async-stream = "0.3.0"
@@ -91,6 +93,8 @@ manual_ok_or = "deny"
 doc_link_with_quotes = "deny"
 match_same_arms = "deny"
 semicolon_if_nothing_returned = "deny"
+unwrap_used = "warn"
+expect_used = "warn"
 
 [profile.dev]
 panic = "unwind"

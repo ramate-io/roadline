@@ -56,25 +56,34 @@ impl Graph {
 mod tests {
     use super::*;
 
+    // Helper functions for creating test IDs
+    fn task_id(s: &str) -> TaskId {
+        TaskId::from_string(s).expect(&format!("Failed to create TaskId from '{}'", s))
+    }
+
+    fn dep_id(s: &str) -> DependencyId {
+        DependencyId::from_string(s).expect(&format!("Failed to create DependencyId from '{}'", s))
+    }
+
     #[test]
     fn test_add_task() {
         let mut graph = Graph::new();
-        let task_id = TaskId::from_string("task1");
+        let task = task_id("task1");
         
-        graph.add_task(task_id);
+        graph.add_task(task);
         
-        assert!(graph.contains_task(&task_id));
+        assert!(graph.contains_task(&task));
         assert_eq!(graph.task_count(), 1);
     }
 
     #[test]
     fn test_add_dependency() {
         let mut graph = Graph::new();
-        let task1 = TaskId::from_string("task1");
-        let task2 = TaskId::from_string("task2");
-        let dep_id = DependencyId::from_string("dep1");
+        let task1 = task_id("task1");
+        let task2 = task_id("task2");
+        let dep = dep_id("dep1");
         
-        graph.add_dependency(task1, dep_id, task2).unwrap();
+        graph.add_dependency(task1, dep, task2).unwrap();
         
         assert!(graph.contains_task(&task1));
         assert!(graph.contains_task(&task2));
@@ -86,14 +95,14 @@ mod tests {
     #[test]
     fn test_remove_task() {
         let mut graph = Graph::new();
-        let task1 = TaskId::from_string("task1");
-        let task2 = TaskId::from_string("task2");
-        let task3 = TaskId::from_string("task3");
-        let dep_id = DependencyId::from_string("dep1");
+        let task1 = task_id("task1");
+        let task2 = task_id("task2");
+        let task3 = task_id("task3");
+        let dep = dep_id("dep1");
         
         // Create graph: task1 -> task2 -> task3
-        graph.add_dependency(task1, dep_id, task2).unwrap();
-        graph.add_dependency(task2, dep_id, task3).unwrap();
+        graph.add_dependency(task1, dep, task2).unwrap();
+        graph.add_dependency(task2, dep, task3).unwrap();
         
         // Remove task2
         let removed = graph.remove_task(&task2).unwrap();
@@ -111,9 +120,9 @@ mod tests {
     #[test]
     fn test_remove_nonexistent_task() {
         let mut graph = Graph::new();
-        let task_id = TaskId::from_string("nonexistent");
+        let task = task_id("nonexistent");
         
-        let removed = graph.remove_task(&task_id).unwrap();
+        let removed = graph.remove_task(&task).unwrap();
         
         assert!(!removed);
     }
@@ -121,13 +130,13 @@ mod tests {
     #[test]
     fn test_remove_dependency() {
         let mut graph = Graph::new();
-        let task1 = TaskId::from_string("task1");
-        let task2 = TaskId::from_string("task2");
-        let dep_id = DependencyId::from_string("dep1");
+        let task1 = task_id("task1");
+        let task2 = task_id("task2");
+        let dep = dep_id("dep1");
         
-        graph.add_dependency(task1, dep_id, task2).unwrap();
+        graph.add_dependency(task1, dep, task2).unwrap();
         
-        let removed = graph.remove_dependency(&task1, &dep_id, &task2).unwrap();
+        let removed = graph.remove_dependency(&task1, &dep, &task2).unwrap();
         
         assert!(removed);
         assert!(!graph.has_dependency(&task1, &task2));
@@ -137,11 +146,11 @@ mod tests {
     #[test]
     fn test_remove_nonexistent_dependency() {
         let mut graph = Graph::new();
-        let task1 = TaskId::from_string("task1");
-        let task2 = TaskId::from_string("task2");
-        let dep_id = DependencyId::from_string("dep1");
+        let task1 = task_id("task1");
+        let task2 = task_id("task2");
+        let dep = dep_id("dep1");
         
-        let removed = graph.remove_dependency(&task1, &dep_id, &task2).unwrap();
+        let removed = graph.remove_dependency(&task1, &dep, &task2).unwrap();
         
         assert!(!removed);
     }

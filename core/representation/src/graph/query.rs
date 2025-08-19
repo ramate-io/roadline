@@ -92,50 +92,37 @@ impl Graph {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use roadline_util::dependency::id::Id as DependencyId;
+    use crate::graph::test_utils::*;
 
-    fn create_test_graph() -> Graph {
-        let mut graph = Graph::new();
-        let task1 = TaskId::from_string("task1");
-        let task2 = TaskId::from_string("task2");
-        let task3 = TaskId::from_string("task3");
-        let task4 = TaskId::from_string("task4");
-        let dep_id = DependencyId::from_string("dep1");
-        
-        // Create graph: task1 -> task2 -> task3, task4 (isolated)
-        graph.add_dependency(task1, dep_id, task2).unwrap();
-        graph.add_dependency(task2, dep_id, task3).unwrap();
-        graph.add_task(task4);
-        
-        graph
-    }
 
     #[test]
-    fn test_get_predicates() {
-        let graph = create_test_graph();
-        let task1 = TaskId::from_string("task1");
-        let task2 = TaskId::from_string("task2");
-        let task3 = TaskId::from_string("task3");
+    fn test_get_predicates() -> Result<(), anyhow::Error> {
+        let graph = create_test_graph()?;
+        let task1 = TaskId::from_string("task1")?;
+        let task2 = TaskId::from_string("task2")?;
+        let task3 = TaskId::from_string("task3")?;
         
-        let predicates1 = graph.get_predicates(&task1).unwrap();
+        let predicates1 = graph.get_predicates(&task1).ok_or(anyhow::anyhow!("task1 should have predicates"))?;
         assert_eq!(predicates1.len(), 1);
         assert_eq!(predicates1[0].task_id, task2);
         
-        let predicates2 = graph.get_predicates(&task2).unwrap();
+        let predicates2 = graph.get_predicates(&task2).ok_or(anyhow::anyhow!("task2 should have predicates"))?;
         assert_eq!(predicates2.len(), 1);
         assert_eq!(predicates2[0].task_id, task3);
         
-        let predicates3 = graph.get_predicates(&task3).unwrap();
+        let predicates3 = graph.get_predicates(&task3).ok_or(anyhow::anyhow!("task3 should have predicates"))?;
         assert_eq!(predicates3.len(), 0);
+
+        Ok(())
     }
 
     #[test]
-    fn test_get_dependents() {
-        let graph = create_test_graph();
-        let task1 = TaskId::from_string("task1");
-        let task2 = TaskId::from_string("task2");
-        let task3 = TaskId::from_string("task3");
-        let task4 = TaskId::from_string("task4");
+    fn test_get_dependents() -> Result<(), anyhow::Error> {
+        let graph = create_test_graph()?;
+        let task1 = TaskId::from_string("task1")?;
+        let task2 = TaskId::from_string("task2")?;
+        let task3 = TaskId::from_string("task3")?;
+        let task4 = TaskId::from_string("task4")?;
         
         let dependents2 = graph.get_dependents(&task2);
         assert_eq!(dependents2.len(), 1);
@@ -150,15 +137,17 @@ mod tests {
         
         let dependents4 = graph.get_dependents(&task4);
         assert_eq!(dependents4.len(), 0);
+
+        Ok(())
     }
 
     #[test]
-    fn test_get_dependencies() {
-        let graph = create_test_graph();
-        let task1 = TaskId::from_string("task1");
-        let task2 = TaskId::from_string("task2");
-        let task3 = TaskId::from_string("task3");
-        let task4 = TaskId::from_string("task4");
+    fn test_get_dependencies() -> Result<(), anyhow::Error> {
+        let graph = create_test_graph()?;
+        let task1 = TaskId::from_string("task1")?;
+        let task2 = TaskId::from_string("task2")?;
+        let task3 = TaskId::from_string("task3")?;
+        let task4 = TaskId::from_string("task4")?;
         
         let deps1 = graph.get_dependencies(&task1);
         assert_eq!(deps1.len(), 1);
@@ -173,61 +162,73 @@ mod tests {
         
         let deps4 = graph.get_dependencies(&task4);
         assert_eq!(deps4.len(), 0);
+
+        Ok(())
     }
 
     #[test]
-    fn test_task_counts() {
-        let graph = create_test_graph();
+    fn test_task_counts() -> Result<(), anyhow::Error> {
+        let graph = create_test_graph()?;
         
         assert_eq!(graph.task_count(), 4);
         assert_eq!(graph.dependency_count(), 2);
+
+        Ok(())
     }
 
     #[test]
-    fn test_contains_task() {
-        let graph = create_test_graph();
-        let task1 = TaskId::from_string("task1");
-        let nonexistent = TaskId::from_string("nonexistent");
+    fn test_contains_task() -> Result<(), anyhow::Error> {
+        let graph = create_test_graph()?;
+        let task1 = TaskId::from_string("task1")?;
+        let nonexistent = TaskId::from_string("nonexistent")?;
         
         assert!(graph.contains_task(&task1));
         assert!(!graph.contains_task(&nonexistent));
+
+        Ok(())
     }
 
     #[test]
-    fn test_has_dependency() {
-        let graph = create_test_graph();
-        let task1 = TaskId::from_string("task1");
-        let task2 = TaskId::from_string("task2");
-        let task3 = TaskId::from_string("task3");
-        let task4 = TaskId::from_string("task4");
+    fn test_has_dependency() -> Result<(), anyhow::Error> {
+        let graph = create_test_graph()?;
+        let task1 = TaskId::from_string("task1")?;
+        let task2 = TaskId::from_string("task2")?;
+        let task3 = TaskId::from_string("task3")?;
+        let task4 = TaskId::from_string("task4")?;
         
         assert!(graph.has_dependency(&task1, &task2));
         assert!(graph.has_dependency(&task2, &task3));
         assert!(!graph.has_dependency(&task1, &task3)); // Not direct
         assert!(!graph.has_dependency(&task1, &task4));
+
+        Ok(())
     }
 
     #[test]
-    fn test_root_tasks() {
-        let graph = create_test_graph();
-        let task1 = TaskId::from_string("task1");
-        let task4 = TaskId::from_string("task4");
+    fn test_root_tasks() -> Result<(), anyhow::Error> {
+        let graph = create_test_graph()?;
+        let task1 = TaskId::from_string("task1")?;
+        let task4 = TaskId::from_string("task4")?;
         
         let roots = graph.root_tasks();
         assert_eq!(roots.len(), 2);
         assert!(roots.contains(&task1));
         assert!(roots.contains(&task4));
+
+        Ok(())
     }
 
     #[test]
-    fn test_leaf_tasks() {
-        let graph = create_test_graph();
-        let task3 = TaskId::from_string("task3");
-        let task4 = TaskId::from_string("task4");
+    fn test_leaf_tasks() -> Result<(), anyhow::Error> {
+        let graph = create_test_graph()?;
+        let task3 = TaskId::from_string("task3")?;
+        let task4 = TaskId::from_string("task4")?;
         
         let leaves = graph.leaf_tasks();
         assert_eq!(leaves.len(), 2);
         assert!(leaves.contains(&task3));
         assert!(leaves.contains(&task4));
+
+        Ok(())
     }
 }

@@ -68,6 +68,9 @@ pub mod analysis;
 #[cfg(test)]
 pub mod tests;
 
+#[cfg(test)]
+pub mod test_utils;
+
 // Re-export key types for convenience
 // currently this is unnecessary because there aren't any new types
 // pub use mutation::*;

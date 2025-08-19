@@ -1,5 +1,16 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+/// Errors thrown by the [LongId].
+#[derive(Debug, thiserror::Error)]
+pub enum LongIdError {
+	#[error("LongId internal error: {0}")]
+	Internal(#[source] Box<dyn std::error::Error + Send + Sync>),
+	#[error("LongId invalid UTF-8: {0}")]
+	InvalidUtf8(#[source] Box<dyn std::error::Error + Send + Sync>),
+    #[error("Too long: {0}")]
+    TooLong(#[source] Box<dyn std::error::Error + Send + Sync>),
+}
+
 /// A long id is a 512 byte id.
 ///
 /// This is used to identify a task or dependency.
@@ -14,7 +25,23 @@ impl LongId {
     }
 
     /// Creates a new LongId from a string, padding with zeros if necessary.
-    pub fn from_string(s: &str) -> Self {
+    /// Returns an error if the string is longer than 512 bytes.
+    pub fn from_string(s: &str) -> Result<Self, LongIdError> {
+        let src_bytes = s.as_bytes();
+        if src_bytes.len() > 512 {
+            return Err(LongIdError::TooLong(
+                format!("String is {} bytes, maximum is 512", src_bytes.len()).into()
+            ));
+        }
+
+        let mut bytes = [0u8; 512];
+        bytes[..src_bytes.len()].copy_from_slice(src_bytes);
+        Ok(Self(bytes))
+    }
+
+    /// Creates a new LongId from a string, truncating if necessary.
+    /// This method never fails but may lose data for strings longer than 512 bytes.
+    pub fn from_string_truncate(s: &str) -> Self {
         let mut bytes = [0u8; 512];
         let src_bytes = s.as_bytes();
         let copy_len = src_bytes.len().min(512);
@@ -110,7 +137,7 @@ mod tests {
 
     #[test]
     fn test_from_string_short() {
-        let id = LongId::from_string("hello");
+        let id = LongId::from_string("hello").unwrap();
         let bytes = id.as_bytes();
         
         // Check that the string is at the beginning
@@ -122,7 +149,7 @@ mod tests {
 
     #[test]
     fn test_from_string_empty() {
-        let id = LongId::from_string("");
+        let id = LongId::from_string("").unwrap();
         let bytes = id.as_bytes();
         
         // Should be all zeros
@@ -132,7 +159,7 @@ mod tests {
     #[test]
     fn test_from_string_max_length() {
         let long_string = "a".repeat(512);
-        let id = LongId::from_string(&long_string);
+        let id = LongId::from_string(&long_string).unwrap();
         let bytes = id.as_bytes();
         
         // Should be all 'a's
@@ -142,7 +169,22 @@ mod tests {
     #[test]
     fn test_from_string_too_long() {
         let too_long_string = "a".repeat(600);
-        let id = LongId::from_string(&too_long_string);
+        let result = LongId::from_string(&too_long_string);
+        
+        // Should return an error
+        assert!(result.is_err());
+        
+        // Check error message
+        match result.unwrap_err() {
+            LongIdError::TooLong(_) => {}, // Expected
+            other => panic!("Expected TooLong error, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_from_string_truncate() {
+        let too_long_string = "a".repeat(600);
+        let id = LongId::from_string_truncate(&too_long_string);
         let bytes = id.as_bytes();
         
         // Should be truncated to 512 bytes
@@ -151,7 +193,7 @@ mod tests {
 
     #[test]
     fn test_to_string_lossy_simple() {
-        let id = LongId::from_string("test");
+        let id = LongId::from_string("test").unwrap();
         assert_eq!(id.to_string_lossy(), "test");
     }
 
@@ -169,7 +211,7 @@ mod tests {
 
     #[test]
     fn test_to_string_lossy_full_array() {
-        let id = LongId::from_string(&"x".repeat(512));
+        let id = LongId::from_string(&"x".repeat(512)).unwrap();
         let result = id.to_string_lossy();
         assert_eq!(result.len(), 512);
         assert_eq!(result, "x".repeat(512));
@@ -192,23 +234,23 @@ mod tests {
 
     #[test]
     fn test_display_trait() {
-        let id = LongId::from_string("display_test");
+        let id = LongId::from_string("display_test").unwrap();
         let displayed = format!("{}", id);
         assert_eq!(displayed, "display_test");
     }
 
     #[test]
     fn test_as_ref_str() {
-        let id = LongId::from_string("test");
+        let id = LongId::from_string("test").unwrap();
         let s: &str = id.as_ref();
         assert_eq!(s, "invalid_utf8_conversion");
     }
 
     #[test]
     fn test_equality() {
-        let id1 = LongId::from_string("same");
-        let id2 = LongId::from_string("same");
-        let id3 = LongId::from_string("different");
+        let id1 = LongId::from_string("same").unwrap();
+        let id2 = LongId::from_string("same").unwrap();
+        let id3 = LongId::from_string("different").unwrap();
         
         assert_eq!(id1, id2);
         assert_ne!(id1, id3);
@@ -216,9 +258,9 @@ mod tests {
 
     #[test]
     fn test_ordering() {
-        let id1 = LongId::from_string("aaa");
-        let id2 = LongId::from_string("bbb");
-        let id3 = LongId::from_string("aaa");
+        let id1 = LongId::from_string("aaa").unwrap();
+        let id2 = LongId::from_string("bbb").unwrap();
+        let id3 = LongId::from_string("aaa").unwrap();
         
         assert!(id1 < id2);
         assert!(id2 > id1);
@@ -230,8 +272,8 @@ mod tests {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
         
-        let id1 = LongId::from_string("hash_test");
-        let id2 = LongId::from_string("hash_test");
+        let id1 = LongId::from_string("hash_test").unwrap();
+        let id2 = LongId::from_string("hash_test").unwrap();
         
         let mut hasher1 = DefaultHasher::new();
         let mut hasher2 = DefaultHasher::new();
@@ -244,7 +286,7 @@ mod tests {
 
     #[test]
     fn test_copy_clone() {
-        let id1 = LongId::from_string("copy_test");
+        let id1 = LongId::from_string("copy_test").unwrap();
         let id2 = id1; // Copy
         let id3 = id1.clone(); // Clone
         
@@ -255,7 +297,7 @@ mod tests {
 
     #[test]
     fn test_serialize_simple() {
-        let id = LongId::from_string("abc");
+        let id = LongId::from_string("abc").unwrap();
         let json = serde_json::to_string(&id).unwrap();
         
         // Should be a hex string wrapped in quotes
@@ -275,7 +317,7 @@ mod tests {
 
     #[test]
     fn test_deserialize_simple() {
-        let original = LongId::from_string("test");
+        let original = LongId::from_string("test").unwrap();
         let json = serde_json::to_string(&original).unwrap();
         let deserialized: LongId = serde_json::from_str(&json).unwrap();
         
@@ -285,7 +327,7 @@ mod tests {
 
     #[test]
     fn test_serialize_deserialize_full_array() {
-        let original = LongId::from_string(&"z".repeat(512));
+        let original = LongId::from_string(&"z".repeat(512)).unwrap();
         let json = serde_json::to_string(&original).unwrap();
         let deserialized: LongId = serde_json::from_str(&json).unwrap();
         
@@ -355,7 +397,7 @@ mod tests {
         ];
         
         for test_case in test_cases {
-            let original = LongId::from_string(test_case);
+            let original = LongId::from_string(test_case).unwrap();
             let json = serde_json::to_string(&original).unwrap();
             let deserialized: LongId = serde_json::from_str(&json).unwrap();
             
@@ -370,7 +412,7 @@ mod tests {
 
     #[test]
     fn test_debug_format() {
-        let id = LongId::from_string("debug");
+        let id = LongId::from_string("debug").unwrap();
         let debug_str = format!("{:?}", id);
         
         // Should contain "LongId" and show the byte array
@@ -382,16 +424,24 @@ mod tests {
     #[test]
     fn test_edge_cases() {
         // Test with various string lengths around boundaries
-        for len in [0, 1, 255, 256, 511, 512, 513, 1000] {
-            let test_str = if len <= 512 {
-                "a".repeat(len)
-            } else {
-                "a".repeat(len) // Will be truncated
-            };
-            
-            let id = LongId::from_string(&test_str);
+        for len in [0, 1, 255, 256, 511, 512] {
+            let test_str = "a".repeat(len);
+            let id = LongId::from_string(&test_str).unwrap();
             
             // Should never panic
+            let _ = id.to_string_lossy();
+            let _ = format!("{}", id);
+            let _ = serde_json::to_string(&id).unwrap();
+        }
+
+        // Test error cases for strings that are too long
+        for len in [513, 600, 1000] {
+            let test_str = "a".repeat(len);
+            let result = LongId::from_string(&test_str);
+            assert!(result.is_err(), "Expected error for length {}", len);
+            
+            // But truncate should work
+            let id = LongId::from_string_truncate(&test_str);
             let _ = id.to_string_lossy();
             let _ = format!("{}", id);
             let _ = serde_json::to_string(&id).unwrap();

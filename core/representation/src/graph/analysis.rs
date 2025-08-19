@@ -203,136 +203,127 @@ impl Graph {
 mod tests {
     use super::*;
     use roadline_util::dependency::id::Id as DependencyId;
+    use crate::graph::test_utils::*;
 
-    fn create_acyclic_graph() -> Graph {
-        let mut graph = Graph::new();
-        let task1 = TaskId::from_string("task1");
-        let task2 = TaskId::from_string("task2");
-        let task3 = TaskId::from_string("task3");
-        let task4 = TaskId::from_string("task4");
-        let dep_id = DependencyId::from_string("dep1");
-        
-        // Create DAG: task1 -> task2 -> task4, task1 -> task3 -> task4
-        graph.add_dependency(task1, dep_id, task2).unwrap();
-        graph.add_dependency(task1, dep_id, task3).unwrap();
-        graph.add_dependency(task2, dep_id, task4).unwrap();
-        graph.add_dependency(task3, dep_id, task4).unwrap();
-        
-        graph
-    }
-
-    fn create_cyclic_graph() -> Graph {
-        let mut graph = Graph::new();
-        let task1 = TaskId::from_string("task1");
-        let task2 = TaskId::from_string("task2");
-        let task3 = TaskId::from_string("task3");
-        let dep_id = DependencyId::from_string("dep1");
-        
-        // Create cycle: task1 -> task2 -> task3 -> task1
-        graph.add_dependency(task1, dep_id, task2).unwrap();
-        graph.add_dependency(task2, dep_id, task3).unwrap();
-        graph.add_dependency(task3, dep_id, task1).unwrap();
-        
-        graph
+    #[test]
+    fn test_has_cycles_acyclic() -> Result<(), anyhow::Error> {
+        let graph = create_acyclic_graph()?;
+        assert!(!graph.has_cycles()?);
+        Ok(())
     }
 
     #[test]
-    fn test_has_cycles_acyclic() {
-        let graph = create_acyclic_graph();
-        assert!(!graph.has_cycles().unwrap());
+    fn test_has_cycles_cyclic() -> Result<(), anyhow::Error> {
+        let graph = create_cyclic_graph()?;
+        assert!(graph.has_cycles()?);
+        Ok(())
     }
 
     #[test]
-    fn test_has_cycles_cyclic() {
-        let graph = create_cyclic_graph();
-        assert!(graph.has_cycles().unwrap());
-    }
-
-    #[test]
-    fn test_topological_sort_acyclic() {
-        let graph = create_acyclic_graph();
-        let sorted = graph.topological_sort().unwrap();
+    fn test_topological_sort_acyclic() -> Result<(), anyhow::Error> {
+        let graph = create_acyclic_graph()?;
+        let sorted = graph.topological_sort()?;
         
         assert_eq!(sorted.len(), 4);
         
         // task1 should come before task2, task3, and task4
-        let task1_pos = sorted.iter().position(|&t| t == TaskId::from_string("task1")).unwrap();
-        let task2_pos = sorted.iter().position(|&t| t == TaskId::from_string("task2")).unwrap();
-        let task3_pos = sorted.iter().position(|&t| t == TaskId::from_string("task3")).unwrap();
-        let task4_pos = sorted.iter().position(|&t| t == TaskId::from_string("task4")).unwrap();
+        let task1 = TaskId::from_string("task1")?;
+        let task2 = TaskId::from_string("task2")?;
+        let task3 = TaskId::from_string("task3")?;
+        let task4 = TaskId::from_string("task4")?;
+        
+        let task1_pos = sorted.iter().position(|&t| t == task1).ok_or(anyhow::anyhow!("task1 should be in topological sort"))?;
+        let task2_pos = sorted.iter().position(|&t| t == task2).ok_or(anyhow::anyhow!("task2 should be in topological sort"))?;
+        let task3_pos = sorted.iter().position(|&t| t == task3).ok_or(anyhow::anyhow!("task3 should be in topological sort"))?;
+        let task4_pos = sorted.iter().position(|&t| t == task4).ok_or(anyhow::anyhow!("task4 should be in topological sort"))?;
         
         assert!(task1_pos < task2_pos);
         assert!(task1_pos < task3_pos);
         assert!(task2_pos < task4_pos);
         assert!(task3_pos < task4_pos);
+
+        Ok(())
     }
 
     #[test]
-    fn test_topological_sort_cyclic() {
-        let graph = create_cyclic_graph();
+    fn test_topological_sort_cyclic() -> Result<(), anyhow::Error> {
+        let graph = create_cyclic_graph()?;
         let result = graph.topological_sort();
         assert!(result.is_err());
+        Ok(())
     }
 
     #[test]
-    fn test_strongly_connected_components_acyclic() {
-        let graph = create_acyclic_graph();
-        let components = graph.strongly_connected_components().unwrap();
+    fn test_strongly_connected_components_acyclic() -> Result<(), anyhow::Error> {
+        let graph = create_acyclic_graph()?;
+        let components = graph.strongly_connected_components()?;
         
         // In a DAG, each node should be its own SCC
         assert_eq!(components.len(), 4);
         for component in &components {
             assert_eq!(component.len(), 1);
         }
+
+        Ok(())
     }
 
     #[test]
-    fn test_strongly_connected_components_cyclic() {
-        let graph = create_cyclic_graph();
-        let components = graph.strongly_connected_components().unwrap();
+    fn test_strongly_connected_components_cyclic() -> Result<(), anyhow::Error> {
+        let graph = create_cyclic_graph()?;
+        let components = graph.strongly_connected_components()?;
         
         // Should have one component with all three tasks
         assert_eq!(components.len(), 1);
         assert_eq!(components[0].len(), 3);
+
+        Ok(())
     }
 
     #[test]
-    fn test_is_dag() {
-        let acyclic = create_acyclic_graph();
-        let cyclic = create_cyclic_graph();
+    fn test_is_dag() -> Result<(), anyhow::Error> {
+        let acyclic = create_acyclic_graph()?;
+        let cyclic = create_cyclic_graph()?;
         
         assert!(acyclic.is_dag().unwrap());
         assert!(!cyclic.is_dag().unwrap());
+
+        Ok(())
     }
 
     #[test]
-    fn test_find_cycles_acyclic() {
-        let graph = create_acyclic_graph();
-        let cycles = graph.find_cycles().unwrap();
+    fn test_find_cycles_acyclic() -> Result<(), anyhow::Error> {
+        let graph = create_acyclic_graph()?;
+        let cycles = graph.find_cycles()?;
         assert!(cycles.is_empty());
+
+        Ok(())
     }
 
     #[test]
-    fn test_find_cycles_cyclic() {
-        let graph = create_cyclic_graph();
-        let cycles = graph.find_cycles().unwrap();
+    fn test_find_cycles_cyclic() -> Result<(), anyhow::Error> {
+        let graph = create_cyclic_graph()?;
+        let cycles = graph.find_cycles()?;
         
         assert_eq!(cycles.len(), 1);
         assert_eq!(cycles[0].len(), 3);
+
+        Ok(())
     }
 
     #[test]
-    fn test_self_loop_cycle() {
+    fn test_self_loop_cycle() -> Result<(), anyhow::Error> {
         let mut graph = Graph::new();
-        let task1 = TaskId::from_string("task1");
-        let dep_id = DependencyId::from_string("dep1");
+        let task1 = TaskId::from_string("task1")?;
+        let dep_id = DependencyId::from_string("dep1")?;
         
-        graph.add_dependency(task1, dep_id, task1).unwrap();
+        graph.add_dependency(task1, dep_id, task1)?;
         
         assert!(graph.has_cycles().unwrap());
         let cycles = graph.find_cycles().unwrap();
         assert_eq!(cycles.len(), 1);
         assert_eq!(cycles[0].len(), 1);
         assert_eq!(cycles[0][0], task1);
+
+        Ok(())
     }
 }
