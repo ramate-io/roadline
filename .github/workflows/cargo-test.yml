@@ -1,0 +1,15 @@
+# This workflow runs cargo test on every pushed commit.
+
+name: Cargo Test
+
+on:
+  push:
+    branches:
+
+jobs:
+  cargo-test:
+    uses: ./.github/workflows/nix-command.yml
+    with:
+      command: cargo test
+      nix_flake_path: '.'
+      runner: 'ubuntu-latest'

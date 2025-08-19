@@ -1,5 +1,5 @@
 [package]
-name = "roadline-util"
+name = "roadline-representation-core"
 version = { workspace = true }
 edition  = { workspace = true }
 license  = { workspace = true }
@@ -12,11 +12,8 @@ rust-version = { workspace = true }
 [dependencies]
 anyhow = { workspace = true }
 thiserror = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
-chrono = { workspace = true, features = ["serde"] }
-
-[dev-dependencies]
-serde_json = { workspace = true }
+serde = { workspace = true }
+roadline-util = { workspace = true }
 
 [lints]
 workspace = true
