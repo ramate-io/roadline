@@ -14,6 +14,8 @@ use std::collections::BTreeSet;
 
 use serde::{Deserialize, Serialize};
 
+use crate::long_id::LongIdError;
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct Task {
     /// The id of the task is the unique identifier of the task.
@@ -34,6 +36,21 @@ pub struct Task {
 impl Task {
     pub fn new(id: Id, title: Title, subtasks: BTreeSet<EmbeddedSubtask>, summary: Summary) -> Self {
         Self { id, title, subtasks, summary }
+    }
+
+    /// Creates a new test task.
+    #[cfg(test)]
+    pub fn new_test() -> Self {
+        Self { id: Id::new_test(), title: Title::new_test(), subtasks: BTreeSet::new(), summary: Summary::new_test() }
+    }
+
+    /// Construcs with a specified id.
+    pub fn with_id(self, id: Id) -> Self {
+        Self { id, ..self }
+    }
+
+    pub fn test_from_id_string(id: &str) -> Result<Self, LongIdError> {
+        Ok(Self { id: Id::from_string(id)?, title: Title::new_test(), subtasks: BTreeSet::new(), summary: Summary::new_test() })
     }
 
     /// Borrow the [EmbeddedSubtask]s set as a vector of [&Subtask]s.

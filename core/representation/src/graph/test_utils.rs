@@ -4,57 +4,98 @@
 //! to avoid repetitive error handling in test code.
 
 use crate::graph::Graph;
-use roadline_util::task::Id as TaskId;
-use roadline_util::dependency::id::Id as DependencyId;
+use crate::frame::Frame;
+use roadline_util::task::Task;
+use roadline_util::dependency::Dependency;
 
-/// Helper function for creating a basic linear graph for testing.
+/// Test frame with basic linear graph data.
 /// Creates: task1 -> task2 -> task3 -> task4
-pub fn create_linear_graph() -> Result<Graph, anyhow::Error> {
-    let mut graph = Graph::new();
-    let task1 = TaskId::from_string("task1")?;
-    let task2 = TaskId::from_string("task2")?;
-    let task3 = TaskId::from_string("task3")?;
-    let task4 = TaskId::from_string("task4")?;
-    let dep = DependencyId::from_string("dep1")?;
+pub fn create_linear_frame() -> Result<Frame, anyhow::Error> {
+    let mut frame = Frame::new();
     
-    graph.add_dependency(task1, dep, task2).expect("Failed to add dependency");
-    graph.add_dependency(task2, dep, task3).expect("Failed to add dependency");
-    graph.add_dependency(task3, dep, task4).expect("Failed to add dependency");
+    // Add tasks
+    frame.add_task(Task::test_from_id_string("task1")?);
+    frame.add_task(Task::test_from_id_string("task2")?);
+    frame.add_task(Task::test_from_id_string("task3")?);
+    frame.add_task(Task::test_from_id_string("task4")?);
+    
+    // Add dependency
+    frame.add_dependency(Dependency::test_from_id_string("dep1")?);
+    
+    Ok(frame)
+}
+
+/// Creates a linear graph from a frame.
+/// Creates: task1 -> task2 -> task3 -> task4
+pub fn create_linear_graph(frame: &Frame) -> Result<Graph, anyhow::Error> {
+    let mut graph = Graph::new();
+    let dep = &frame.dependencies[0];
+    
+    // task1 -> task2 -> task3 -> task4
+    graph.add_dependency(&frame.tasks[0], dep, &frame.tasks[1])?;
+    graph.add_dependency(&frame.tasks[1], dep, &frame.tasks[2])?;
+    graph.add_dependency(&frame.tasks[2], dep, &frame.tasks[3])?;
     
     Ok(graph)
 }
 
-/// Helper function for creating a branched graph for testing.
+/// Test frame with branched graph data.
 /// Creates: task1 -> [task2, task3] -> task4, task1 -> task5
-pub fn create_branched_graph() -> Result<Graph, anyhow::Error> {
-    let mut graph = Graph::new();
-    let task1 = TaskId::from_string("task1")?;
-    let task2 = TaskId::from_string("task2")?;
-    let task3 = TaskId::from_string("task3")?;
-    let task4 = TaskId::from_string("task4")?;
-    let task5 = TaskId::from_string("task5")?;
-    let dep = DependencyId::from_string("dep1")?;
+pub fn create_branched_frame() -> Result<Frame, anyhow::Error> {
+    let mut frame = Frame::new();
     
-    graph.add_dependency(task1, dep, task2).expect("Failed to add dependency");
-    graph.add_dependency(task1, dep, task3).expect("Failed to add dependency");
-    graph.add_dependency(task1, dep, task5).expect("Failed to add dependency");
-    graph.add_dependency(task2, dep, task4).expect("Failed to add dependency");
-    graph.add_dependency(task3, dep, task4).expect("Failed to add dependency");
+    // Add tasks
+    frame.add_task(Task::test_from_id_string("task1")?);
+    frame.add_task(Task::test_from_id_string("task2")?);
+    frame.add_task(Task::test_from_id_string("task3")?);
+    frame.add_task(Task::test_from_id_string("task4")?);
+    frame.add_task(Task::test_from_id_string("task5")?);
+    
+    // Add dependency
+    frame.add_dependency(Dependency::test_from_id_string("dep1")?);
+    
+    Ok(frame)
+}
+
+/// Creates a branched graph from a frame.
+/// Creates: task1 -> [task2, task3] -> task4, task1 -> task5
+pub fn create_branched_graph(frame: &Frame) -> Result<Graph, anyhow::Error> {
+    let mut graph = Graph::new();
+    let dep = &frame.dependencies[0];
+    
+    // task1 -> [task2, task3, task5]
+    graph.add_dependency(&frame.tasks[0], dep, &frame.tasks[1])?;
+    graph.add_dependency(&frame.tasks[0], dep, &frame.tasks[2])?;
+    graph.add_dependency(&frame.tasks[0], dep, &frame.tasks[4])?;
+    
+    // [task2, task3] -> task4
+    graph.add_dependency(&frame.tasks[1], dep, &frame.tasks[3])?;
+    graph.add_dependency(&frame.tasks[2], dep, &frame.tasks[3])?;
     
     Ok(graph)
 }
 
-/// Helper function for creating a complex test graph.
+/// Test frame with complex graph data.
 /// Creates a graph with multiple levels and branches for comprehensive testing.
-pub fn create_complex_graph() -> Result<Graph, anyhow::Error> {
+pub fn create_complex_frame() -> Result<Frame, anyhow::Error> {
+    let mut frame = Frame::new();
+    
+    // Add 10 tasks
+    for i in 1..=10 {
+        frame.add_task(Task::test_from_id_string(&format!("task{}", i))?);
+    }
+    
+    // Add dependency
+    frame.add_dependency(Dependency::test_from_id_string("dep1")?);
+    
+    Ok(frame)
+}
+
+/// Creates a complex graph from a frame.
+/// Creates a graph with multiple levels and branches for comprehensive testing.
+pub fn create_complex_graph(frame: &Frame) -> Result<Graph, anyhow::Error> {
     let mut graph = Graph::new();
-    
-    // Create tasks
-    let tasks: Vec<TaskId> = (1..=10)
-        .map(|i| TaskId::from_string(&format!("task{}", i)))
-        .collect::<Result<Vec<_>, _>>()?;
-    
-    let dep = DependencyId::from_string("dep1")?;
+    let dep = &frame.dependencies[0];
     
     // Create a complex dependency structure:
     // task1 -> [task2, task3]
@@ -80,57 +121,96 @@ pub fn create_complex_graph() -> Result<Graph, anyhow::Error> {
     ];
     
     for (from_idx, to_idx) in dependencies {
-        graph.add_dependency(tasks[from_idx], dep, tasks[to_idx])
-            .expect("Failed to add dependency");
+        graph.add_dependency(&frame.tasks[from_idx], dep, &frame.tasks[to_idx])?;
     }
     
     Ok(graph)
 }
 
-pub fn create_acyclic_graph() -> Result<Graph, anyhow::Error> {
+/// Test frame for acyclic graph testing.
+pub fn create_acyclic_frame() -> Result<Frame, anyhow::Error> {
+    let mut frame = Frame::new();
+    
+    // Add tasks
+    frame.add_task(Task::test_from_id_string("task1")?);
+    frame.add_task(Task::test_from_id_string("task2")?);
+    frame.add_task(Task::test_from_id_string("task3")?);
+    frame.add_task(Task::test_from_id_string("task4")?);
+    
+    // Add dependency
+    frame.add_dependency(Dependency::test_from_id_string("dep1")?);
+    
+    Ok(frame)
+}
+
+/// Creates an acyclic graph from a frame.
+pub fn create_acyclic_graph(frame: &Frame) -> Result<Graph, anyhow::Error> {
     let mut graph = Graph::new();
-    let task1 = TaskId::from_string("task1")?;
-    let task2 = TaskId::from_string("task2")?;
-    let task3 = TaskId::from_string("task3")?;
-    let task4 = TaskId::from_string("task4")?;
-    let dep_id = DependencyId::from_string("dep1")?;
+    let dep = &frame.dependencies[0];
     
     // Create DAG: task1 -> task2 -> task4, task1 -> task3 -> task4
-    graph.add_dependency(task1, dep_id, task2)?;
-    graph.add_dependency(task1, dep_id, task3)?;
-    graph.add_dependency(task2, dep_id, task4)?;
-    graph.add_dependency(task3, dep_id, task4)?;
+    graph.add_dependency(&frame.tasks[0], dep, &frame.tasks[1])?;
+    graph.add_dependency(&frame.tasks[0], dep, &frame.tasks[2])?;
+    graph.add_dependency(&frame.tasks[1], dep, &frame.tasks[3])?;
+    graph.add_dependency(&frame.tasks[2], dep, &frame.tasks[3])?;
     
     Ok(graph)
 }
 
-pub fn create_cyclic_graph() -> Result<Graph, anyhow::Error> {
+/// Test frame for cyclic graph testing.
+pub fn create_cyclic_frame() -> Result<Frame, anyhow::Error> {
+    let mut frame = Frame::new();
+    
+    // Add tasks
+    frame.add_task(Task::test_from_id_string("task1")?);
+    frame.add_task(Task::test_from_id_string("task2")?);
+    frame.add_task(Task::test_from_id_string("task3")?);
+    
+    // Add dependency
+    frame.add_dependency(Dependency::test_from_id_string("dep1")?);
+    
+    Ok(frame)
+}
+
+/// Creates a cyclic graph from a frame.
+pub fn create_cyclic_graph(frame: &Frame) -> Result<Graph, anyhow::Error> {
     let mut graph = Graph::new();
-    let task1 = TaskId::from_string("task1")?;
-    let task2 = TaskId::from_string("task2")?;
-    let task3 = TaskId::from_string("task3")?;
-    let dep_id = DependencyId::from_string("dep1")?;
+    let dep = &frame.dependencies[0];
     
     // Create cycle: task1 -> task2 -> task3 -> task1
-    graph.add_dependency(task1, dep_id, task2)?;
-    graph.add_dependency(task2, dep_id, task3)?;
-    graph.add_dependency(task3, dep_id, task1)?;
+    graph.add_dependency(&frame.tasks[0], dep, &frame.tasks[1])?;
+    graph.add_dependency(&frame.tasks[1], dep, &frame.tasks[2])?;
+    graph.add_dependency(&frame.tasks[2], dep, &frame.tasks[0])?;
     
     Ok(graph)
 }
 
-pub fn create_test_graph() -> Result<Graph, anyhow::Error> {
+/// Test frame for basic graph testing.
+pub fn create_test_frame() -> Result<Frame, anyhow::Error> {
+    let mut frame = Frame::new();
+    
+    // Add tasks
+    frame.add_task(Task::test_from_id_string("task1")?);
+    frame.add_task(Task::test_from_id_string("task2")?);
+    frame.add_task(Task::test_from_id_string("task3")?);
+    frame.add_task(Task::test_from_id_string("task4")?);
+    
+    // Add dependency
+    frame.add_dependency(Dependency::test_from_id_string("dep1")?);
+    
+    Ok(frame)
+}
+
+/// Creates a test graph from a frame.
+/// Creates: task1 -> task2 -> task3, task4 (isolated)
+pub fn create_test_graph(frame: &Frame) -> Result<Graph, anyhow::Error> {
     let mut graph = Graph::new();
-    let task1 = TaskId::from_string("task1")?;
-    let task2 = TaskId::from_string("task2")?;
-    let task3 = TaskId::from_string("task3")?;
-    let task4 = TaskId::from_string("task4")?;
-    let dep_id = DependencyId::from_string("dep1")?;
+    let dep = &frame.dependencies[0];
     
     // Create graph: task1 -> task2 -> task3, task4 (isolated)
-    graph.add_dependency(task1, dep_id, task2)?;
-    graph.add_dependency(task2, dep_id, task3)?;
-    graph.add_task(task4);
+    graph.add_dependency(&frame.tasks[0], dep, &frame.tasks[1])?;
+    graph.add_dependency(&frame.tasks[1], dep, &frame.tasks[2])?;
+    graph.add_task(&frame.tasks[3]);
     
     Ok(graph)
 }

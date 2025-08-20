@@ -16,3 +16,10 @@ impl AsRef<str> for Title {
         &self.text
     }
 }
+
+impl Title {
+    /// Creates a new test title.
+    pub fn new_test() -> Self {
+        Self { text: "Test Title".to_string() }
+    }
+}

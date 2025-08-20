@@ -15,3 +15,10 @@ impl AsRef<str> for Summary {
         &self.text
     }
 }
+
+impl Summary {
+    /// Creates a new test summary.
+    pub fn new_test() -> Self {
+        Self { text: "Test Summary".to_string() }
+    }
+}
