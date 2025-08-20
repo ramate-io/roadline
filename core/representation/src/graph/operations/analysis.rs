@@ -11,7 +11,7 @@ impl Graph {
         let mut colors: HashMap<TaskId, Color> = HashMap::new();
         
         // Initialize all nodes as white
-        for task_id in self.task_ids() {
+        for  task_id in self.task_ids() {
             colors.insert(*task_id, Color::White);
         }
         
@@ -40,7 +40,7 @@ impl Graph {
             Ok(false)
         }
         
-        for task_id in self.task_ids().copied().collect::<Vec<_>>() {
+        for  task_id in self.task_ids().copied().collect::<Vec<_>>() {
             if colors[&task_id] == Color::White {
                 if dfs_cycle_check(self, task_id, &mut colors)? {
                     return Ok(true);
@@ -61,7 +61,7 @@ impl Graph {
         
         // Calculate in-degrees
         let mut in_degrees: HashMap<TaskId, usize> = HashMap::new();
-        for task_id in self.task_ids() {
+        for  task_id in self.task_ids() {
             in_degrees.insert(*task_id, 0);
         }
         
@@ -153,7 +153,7 @@ impl Graph {
             }
         }
 
-        for task_id in self.task_ids().copied().collect::<Vec<_>>() {
+        for  task_id in self.task_ids().copied().collect::<Vec<_>>() {
             if !indices.contains_key(&task_id) {
                 strongconnect(
                     self,
@@ -227,10 +227,10 @@ mod tests {
         assert_eq!(sorted.len(), 4);
         
         // task1 should come before task2, task3, and task4
-        let task1 = TaskId::from_string("task1")?;
-        let task2 = TaskId::from_string("task2")?;
-        let task3 = TaskId::from_string("task3")?;
-        let task4 = TaskId::from_string("task4")?;
+        let task1 = TaskId::new(1);
+        let task2 = TaskId::new(2);
+        let task3 = TaskId::new(3);
+        let task4 = TaskId::new(4);
         
         let task1_pos = sorted.iter().position(|&t| t == task1).ok_or(anyhow::anyhow!("task1 should be in topological sort"))?;
         let task2_pos = sorted.iter().position(|&t| t == task2).ok_or(anyhow::anyhow!("task2 should be in topological sort"))?;
@@ -313,10 +313,10 @@ mod tests {
     #[test]
     fn test_self_loop_cycle() -> Result<(), anyhow::Error> {
         let mut graph = Graph::new();
-        let task1 = TaskId::from_string("task1")?;
-        let dep_id = DependencyId::from_string("dep1")?;
+        let task1 = TaskId::new(1);
+        let dependency_id = DependencyId::new(1);
         
-        graph.add_dependency(task1, dep_id, task1)?;
+        graph.add_dependency(task1, dependency_id, task1)?;
         
         assert!(graph.has_cycles().unwrap());
         let cycles = graph.find_cycles().unwrap();

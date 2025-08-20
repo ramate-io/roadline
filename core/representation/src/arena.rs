@@ -18,6 +18,22 @@ impl Arena {
     pub fn with_capacity(capacity: usize) -> Self {
         Self { tasks: HashMap::with_capacity(capacity), dependencies: HashMap::with_capacity(capacity) }
     }
+
+    pub fn add_task(&mut self, task: Task) {
+        self.tasks.insert(*task.id(), task);
+    }
+
+    pub fn add_dependency(&mut self, dependency: Dependency) {
+        self.dependencies.insert(*dependency.id(), dependency);
+    }
+
+    pub fn tasks(&self) -> &HashMap<TaskId, Task> {
+        &self.tasks
+    }
+
+    pub fn dependencies(&self) -> &HashMap<DependencyId, Dependency> {
+        &self.dependencies
+    }
 }
 
 impl Default for Arena {

@@ -8,4 +8,9 @@ impl Date {
     pub fn new(date: DateTime<Utc>) -> Self {
         Self(date)
     }
+    
+    /// Returns the inner DateTime<Utc> value.
+    pub fn inner(&self) -> DateTime<Utc> {
+        self.0
+    }
 }

@@ -1,17 +1,17 @@
-use super::TargetDate;
+use crate::duration::Duration;
 
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct End(TargetDate);
+pub struct End(Duration);
 
-impl From<TargetDate> for End {
-    fn from(target_date: TargetDate) -> Self {
-        Self(target_date)
+impl From<Duration> for End {
+    fn from(duration: Duration) -> Self {
+        Self(duration)
     }
 }
 
-impl From<End> for TargetDate {
+impl From<End> for Duration {
     fn from(end: End) -> Self {
         end.0
     }
@@ -19,6 +19,6 @@ impl From<End> for TargetDate {
 
 impl End {
     pub fn new_test() -> Self {
-        Self(TargetDate::new_test())
+        Self(Duration::new_test())
     }
 }

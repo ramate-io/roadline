@@ -16,7 +16,7 @@ use std::collections::BTreeSet;
 
 use serde::{Deserialize, Serialize};
 
-use crate::long_id::LongIdError;
+use crate::short_id::ShortIdError;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct Task {
@@ -24,6 +24,8 @@ pub struct Task {
     pub id: Id,
     /// The title of the task is the main title of the task.
     pub title: Title,
+    /// Which tasks the task depends on.
+    pub depends_on: BTreeSet<Id>,
     /// The subtasks of the task are a small finite set of subtasks and is non-recursive.
     /// 
     /// The should be embedded within the task structure.
@@ -38,13 +40,13 @@ pub struct Task {
 }
 
 impl Task {
-    pub fn new(id: Id, title: Title, subtasks: BTreeSet<EmbeddedSubtask>, summary: Summary, range: Range) -> Self {
-        Self { id, title, subtasks, summary, range }
+    pub fn new(id: Id, title: Title, depends_on: BTreeSet<Id>, subtasks: BTreeSet<EmbeddedSubtask>, summary: Summary, range: Range) -> Self {
+        Self { id, title, depends_on, subtasks, summary, range }
     }
 
     /// Creates a new test task.
     pub fn new_test() -> Self {
-        Self { id: Id::new_test(), title: Title::new_test(), subtasks: BTreeSet::new(), summary: Summary::new_test(), range: Range::new_test() }
+        Self { id: Id::new_test(), title: Title::new_test(), depends_on: BTreeSet::new(), subtasks: BTreeSet::new(), summary: Summary::new_test(), range: Range::new_test() }
     }
 
     /// Construcs with a specified id.
@@ -53,8 +55,8 @@ impl Task {
     }
 
     /// Creates a new test task from a string id.
-    pub fn test_from_id_string(id: &str) -> Result<Self, LongIdError> {
-       Ok(Self::new_test().with_id(Id::from_string(id)?))
+    pub fn test_from_id(id: u8) -> Result<Self, ShortIdError> {
+       Ok(Self::new_test().with_id(Id::new(id)))
     }
 
     /// Borrow the [EmbeddedSubtask]s set as a vector of [&Subtask]s.
@@ -72,5 +74,13 @@ impl Task {
 
     pub fn title(&self) -> &Title {
         &self.title
+    }
+
+    pub fn depends_on(&self) -> &BTreeSet<Id> {
+        &self.depends_on
+    }
+
+    pub fn dependencies(&self) -> &BTreeSet<Id> {
+        &self.depends_on
     }
 }

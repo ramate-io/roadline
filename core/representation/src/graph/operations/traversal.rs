@@ -142,7 +142,7 @@ mod tests {
     #[test]
     fn test_dfs_linear_graph() -> Result<(), anyhow::Error> {
         let graph = create_linear_graph()?;
-        let task1 = TaskId::from_string("task1")?;
+        let task1 = TaskId::new(1);
         
         let mut visited = Vec::new();
         let mut depths = Vec::new();
@@ -164,7 +164,7 @@ mod tests {
     #[test]
     fn test_bfs_linear_graph() -> Result<(), anyhow::Error> {
         let graph = create_linear_graph()?;
-        let task1 = TaskId::from_string("task1")?;
+        let task1 = TaskId::new(1);
         
         let mut visited = Vec::new();
         let mut depths = Vec::new();
@@ -185,7 +185,7 @@ mod tests {
     #[test]
     fn test_dfs_branched_graph() -> Result<(), anyhow::Error> {
         let graph = create_branched_graph()?;
-        let task1 = TaskId::from_string("task1")?;
+        let task1 = TaskId::new(1);
         
         let mut visited = Vec::new();
         
@@ -203,7 +203,7 @@ mod tests {
     #[test]
     fn test_bfs_branched_graph() -> Result<(), anyhow::Error> {
         let graph = create_branched_graph()?;
-        let task1 = TaskId::from_string("task1")?;
+        let task1 = TaskId::new(1);
         
         let mut visited = Vec::new();
         let mut depths = Vec::new();
@@ -227,7 +227,7 @@ mod tests {
     #[test]
     fn test_dfs_nonexistent_task() -> Result<(), anyhow::Error> {
         let graph = create_linear_graph()?;
-        let nonexistent = TaskId::from_string("nonexistent")?;
+        let nonexistent = TaskId::new(100);
         
         let result = graph.dfs(&nonexistent, |_task_id, _depth| Ok(()));
         assert!(result.is_err());
@@ -238,7 +238,7 @@ mod tests {
     #[test]
     fn test_reachable_tasks() -> Result<(), anyhow::Error> {
         let graph = create_linear_graph()?;
-        let task1 = TaskId::from_string("task1")?;
+        let task1 = TaskId::new(1);
         
         let reachable = graph.reachable_tasks(&task1)?;
         assert_eq!(reachable.len(), 4);
@@ -249,8 +249,8 @@ mod tests {
     #[test]
     fn test_shortest_path_linear() -> Result<(), anyhow::Error> {
         let graph = create_linear_graph()?;
-        let task1 = TaskId::from_string("task1")?;
-        let task4 = TaskId::from_string("task4")?;
+        let task1 = TaskId::new(1);
+        let task4 = TaskId::new(4);
         
         let path = graph.shortest_path(&task1, &task4).unwrap().unwrap();
         assert_eq!(path.len(), 4);
@@ -263,7 +263,7 @@ mod tests {
     #[test]
     fn test_shortest_path_same_task() -> Result<(), anyhow::Error> {
         let graph = create_linear_graph()?;
-        let task1 = TaskId::from_string("task1")?;
+        let task1 = TaskId::new(1);
         
         let path = graph.shortest_path(&task1, &task1).unwrap().unwrap();
         assert_eq!(path, vec![task1]);
@@ -274,8 +274,8 @@ mod tests {
     #[test]
     fn test_shortest_path_no_path() -> Result<(), anyhow::Error> {
         let graph = create_linear_graph()?;
-        let task1 = TaskId::from_string("task1")?;
-        let task4 = TaskId::from_string("task4")?;
+        let task1 = TaskId::new(1);
+        let task4 = TaskId::new(4);
         
         // Try to find path in reverse direction (should fail)
         let path = graph.shortest_path(&task4, &task1).unwrap();
@@ -287,8 +287,8 @@ mod tests {
     #[test]
     fn test_shortest_path_nonexistent_task() -> Result<(), anyhow::Error> {
         let graph = create_linear_graph()?;
-        let task1 = TaskId::from_string("task1")?;
-        let nonexistent = TaskId::from_string("nonexistent")?;
+        let task1 = TaskId::new(1);
+        let nonexistent = TaskId::new(100);
         
         let result = graph.shortest_path(&task1, &nonexistent);
         assert!(result.is_err());

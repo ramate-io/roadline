@@ -8,4 +8,9 @@ impl End {
     pub fn new(date: Date) -> Self {
         Self(date)
     }
+    
+    /// Returns the inner Date value.
+    pub fn inner(&self) -> Date {
+        self.0
+    }
 }

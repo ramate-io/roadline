@@ -11,11 +11,11 @@ use roadline_util::dependency::id::Id as DependencyId;
 /// Creates: task1 -> task2 -> task3 -> task4
 pub fn create_linear_graph() -> Result<Graph, anyhow::Error> {
     let mut graph = Graph::new();
-    let task1 = TaskId::from_string("task1")?;
-    let task2 = TaskId::from_string("task2")?;
-    let task3 = TaskId::from_string("task3")?;
-    let task4 = TaskId::from_string("task4")?;
-    let dep = DependencyId::from_string("dep1")?;
+    let task1 = TaskId::new(1);
+    let task2 = TaskId::new(2);
+    let task3 = TaskId::new(3);
+    let task4 = TaskId::new(4);
+    let dep = DependencyId::new(1);
     
     graph.add_dependency(task1, dep, task2).expect("Failed to add dependency");
     graph.add_dependency(task2, dep, task3).expect("Failed to add dependency");
@@ -28,12 +28,12 @@ pub fn create_linear_graph() -> Result<Graph, anyhow::Error> {
 /// Creates: task1 -> [task2, task3] -> task4, task1 -> task5
 pub fn create_branched_graph() -> Result<Graph, anyhow::Error> {
     let mut graph = Graph::new();
-    let task1 = TaskId::from_string("task1")?;
-    let task2 = TaskId::from_string("task2")?;
-    let task3 = TaskId::from_string("task3")?;
-    let task4 = TaskId::from_string("task4")?;
-    let task5 = TaskId::from_string("task5")?;
-    let dep = DependencyId::from_string("dep1")?;
+    let task1 = TaskId::new(1);
+    let task2 = TaskId::new(2);
+    let task3 = TaskId::new(3);
+    let task4 = TaskId::new(4);
+    let task5 = TaskId::new(5);
+    let dep = DependencyId::new(1);
     
     graph.add_dependency(task1, dep, task2).expect("Failed to add dependency");
     graph.add_dependency(task1, dep, task3).expect("Failed to add dependency");
@@ -51,10 +51,10 @@ pub fn create_complex_graph() -> Result<Graph, anyhow::Error> {
     
     // Create tasks
     let tasks: Vec<TaskId> = (1..=10)
-        .map(|i| TaskId::from_string(&format!("task{}", i)))
-        .collect::<Result<Vec<_>, _>>()?;
+        .map(|i| TaskId::new(i))
+        .collect::<Vec<_>>();
     
-    let dep = DependencyId::from_string("dep1")?;
+    let dep = DependencyId::new(1);
     
     // Create a complex dependency structure:
     // task1 -> [task2, task3]
@@ -89,47 +89,47 @@ pub fn create_complex_graph() -> Result<Graph, anyhow::Error> {
 
 pub fn create_acyclic_graph() -> Result<Graph, anyhow::Error> {
     let mut graph = Graph::new();
-    let task1 = TaskId::from_string("task1")?;
-    let task2 = TaskId::from_string("task2")?;
-    let task3 = TaskId::from_string("task3")?;
-    let task4 = TaskId::from_string("task4")?;
-    let dep_id = DependencyId::from_string("dep1")?;
+    let task1 = TaskId::new(1);
+    let task2 = TaskId::new(2);
+    let task3 = TaskId::new(3);
+    let task4 = TaskId::new(4);
+    let  dep = DependencyId::new(1);
     
     // Create DAG: task1 -> task2 -> task4, task1 -> task3 -> task4
-    graph.add_dependency(task1, dep_id, task2)?;
-    graph.add_dependency(task1, dep_id, task3)?;
-    graph.add_dependency(task2, dep_id, task4)?;
-    graph.add_dependency(task3, dep_id, task4)?;
+    graph.add_dependency(task1,  dep, task2)?;
+    graph.add_dependency(task1,  dep, task3)?;
+    graph.add_dependency(task2,  dep, task4)?;
+    graph.add_dependency(task3,  dep, task4)?;
     
     Ok(graph)
 }
 
 pub fn create_cyclic_graph() -> Result<Graph, anyhow::Error> {
     let mut graph = Graph::new();
-    let task1 = TaskId::from_string("task1")?;
-    let task2 = TaskId::from_string("task2")?;
-    let task3 = TaskId::from_string("task3")?;
-    let dep_id = DependencyId::from_string("dep1")?;
+    let task1 = TaskId::new(1);
+    let task2 = TaskId::new(2);
+    let task3 = TaskId::new(3);
+    let  dep = DependencyId::new(1);
     
     // Create cycle: task1 -> task2 -> task3 -> task1
-    graph.add_dependency(task1, dep_id, task2)?;
-    graph.add_dependency(task2, dep_id, task3)?;
-    graph.add_dependency(task3, dep_id, task1)?;
+    graph.add_dependency(task1,  dep, task2)?;
+    graph.add_dependency(task2,  dep, task3)?;
+    graph.add_dependency(task3,  dep, task1)?;
     
     Ok(graph)
 }
 
 pub fn create_test_graph() -> Result<Graph, anyhow::Error> {
     let mut graph = Graph::new();
-    let task1 = TaskId::from_string("task1")?;
-    let task2 = TaskId::from_string("task2")?;
-    let task3 = TaskId::from_string("task3")?;
-    let task4 = TaskId::from_string("task4")?;
-    let dep_id = DependencyId::from_string("dep1")?;
+    let task1 = TaskId::new(1);
+    let task2 = TaskId::new(2);
+    let task3 = TaskId::new(3);
+    let task4 = TaskId::new(4);
+    let  dep = DependencyId::new(1);
     
     // Create graph: task1 -> task2 -> task3, task4 (isolated)
-    graph.add_dependency(task1, dep_id, task2)?;
-    graph.add_dependency(task2, dep_id, task3)?;
+    graph.add_dependency(task1,  dep, task2)?;
+    graph.add_dependency(task2,  dep, task3)?;
     graph.add_task(task4);
     
     Ok(graph)

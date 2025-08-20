@@ -12,8 +12,8 @@ pub mod predicate;
 pub use predicate::Predicate;
 
 use roadline_util::task::Id as TaskId;
-use crate::arena::Arena;
 use std::collections::HashMap;
+use crate::arena::Arena;
 
 use serde::{Deserialize, Serialize};
 
@@ -33,7 +33,7 @@ pub enum GraphError {
 /// While this graph merely represents the structure of relationships between tasks. 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Graph {
-    /// The arena of the graph is the collection of tasks and dependencies that are used to construct the graph.
+    /// The arena of the graph is the arena of the tasks and dependencies.
     pub arena: Arena,
     /// The facts of the graph are the predicates that relate tasks to each other.
     pub facts: HashMap<TaskId, Vec<Predicate>>,
@@ -54,6 +54,11 @@ impl Graph {
             arena: Arena::with_capacity(capacity),
             facts: HashMap::with_capacity(capacity),
         }
+    }
+
+    /// Borrows the arena of the graph.
+    pub fn arena(&self) -> &Arena {
+        &self.arena
     }
 }
 

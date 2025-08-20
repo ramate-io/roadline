@@ -1,6 +1,6 @@
 pub mod id;
 pub use id::Id;
-use crate::long_id::LongIdError;
+use crate::short_id::ShortIdError;
 
 use serde::{Deserialize, Serialize};
 
@@ -11,7 +11,11 @@ pub struct Dependency {
 
 impl Dependency {
     
-    pub fn test_from_id_string(id: &str) -> Result<Self, LongIdError> {
-        Ok(Self { id: Id::from_string(id)? })
+    pub fn test_from_id(id: u8) -> Result<Self, ShortIdError> {
+        Ok(Self { id: Id::new(id) })
+    }
+
+    pub fn id(&self) -> &Id {
+        &self.id
     }
 }

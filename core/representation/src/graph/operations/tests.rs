@@ -24,14 +24,14 @@ mod integration_tests {
         let leaves = graph.leaf_tasks();
         
         assert_eq!(roots.len(), 1);
-        assert!(roots.contains(&TaskId::from_string("task1")?));
+        assert!(roots.contains(&TaskId::new(1)));
         
         assert_eq!(leaves.len(), 1);
-        assert!(leaves.contains(&TaskId::from_string("task10")?));
+        assert!(leaves.contains(&TaskId::new(10)));
         
         // Test specific dependencies
-        let task1 = TaskId::from_string("task1")?;
-        let task5 = TaskId::from_string("task5")?;
+        let task1 = TaskId::new(1);
+        let task5 = TaskId::new(5);
         
         let task1_deps = graph.get_dependencies(&task1);
         assert_eq!(task1_deps.len(), 2);
@@ -45,7 +45,7 @@ mod integration_tests {
     #[test]
     fn test_traversal_completeness() -> Result<(), anyhow::Error> {
         let graph = create_complex_graph()?;
-        let start_task = TaskId::from_string("task1")?;
+        let start_task = TaskId::new(1);
         
         // Test DFS visits all reachable nodes
         let mut dfs_visited = Vec::new();
@@ -83,9 +83,9 @@ mod integration_tests {
     #[test]
     fn test_path_finding() -> Result<(), anyhow::Error> {
         let graph = create_complex_graph()?;
-        let task1 = TaskId::from_string("task1")?;
-        let task10 = TaskId::from_string("task10")?;
-        let task5 = TaskId::from_string("task5")?;
+        let task1 = TaskId::new(1);
+        let task10 = TaskId::new(10);
+        let task5 = TaskId::new(5);
         
         // Test path from start to end
         let path = graph.shortest_path(&task1, &task10)?.unwrap();
@@ -117,11 +117,11 @@ mod integration_tests {
         assert_eq!(topo_order.len(), 10);
         
         // task1 should come before all others
-        let task1_pos = topo_order.iter().position(|t| *t == TaskId::from_string("task1").unwrap()).unwrap();
+        let task1_pos = topo_order.iter().position(|t| *t == TaskId::new(1)).ok_or(anyhow::anyhow!("task1 not found"))?;
         assert_eq!(task1_pos, 0);
         
         // task10 should come last
-        let task10_pos = topo_order.iter().position(|t| *t == TaskId::from_string("task10").unwrap()).unwrap();
+        let task10_pos = topo_order.iter().position(|t| *t == TaskId::new(10)).ok_or(anyhow::anyhow!("task10 not found"))?;
         assert_eq!(task10_pos, 9);
         
         // Verify topological property: if A -> B, then A comes before B in ordering
@@ -140,26 +140,26 @@ mod integration_tests {
         let initial_count = graph.task_count();
         
         // Test adding a new task
-        let new_task = TaskId::from_string("new_task")?;
+        let new_task = TaskId::new(11);
         graph.add_task(new_task);
         assert_eq!(graph.task_count(), initial_count + 1);
         assert!(graph.contains_task(&new_task));
         
         // Test adding dependency to new task
-        let task1 = TaskId::from_string("task1")?;
-        let dep_id = DependencyId::from_string("new_dep")?;
-        graph.add_dependency(task1, dep_id, new_task).unwrap();
+        let task1 = TaskId::new(1);
+        let  dep = DependencyId::new(1);
+        graph.add_dependency(task1,  dep, new_task).unwrap();
         assert!(graph.has_dependency(&task1, &new_task));
         
         // Test removing dependency
-        let task2 = TaskId::from_string("task2")?;
-        let old_dep_id = DependencyId::from_string("dep1")?;
-        let removed = graph.remove_dependency(&task1, &old_dep_id, &task2).unwrap();
+        let task2 = TaskId::new(2);
+        let old_dep = DependencyId::new(1);
+        let removed = graph.remove_dependency(&task1, &old_dep, &task2).unwrap();
         assert!(removed);
         assert!(!graph.has_dependency(&task1, &task2));
         
         // Test removing task
-        let task5 = TaskId::from_string("task5")?;
+        let task5 = TaskId::new(5);
         let dependents_before = graph.get_dependents(&task5);
         assert!(!dependents_before.is_empty());
         
@@ -168,7 +168,7 @@ mod integration_tests {
         assert!(!graph.contains_task(&task5));
         
         // All references to task5 should be gone
-        for task_id in graph.task_ids() {
+        for  task_id in graph.task_ids() {
             let deps = graph.get_dependencies(task_id);
             assert!(!deps.contains(&task5));
         }
@@ -191,14 +191,14 @@ mod integration_tests {
         // Test with a graph that has cycles
         let mut cyclic_graph = Graph::new();
         let tasks: Vec<TaskId> = (1..=4)
-            .map(|i| TaskId::from_string(&format!("task{}", i)))
-            .collect::<Result<Vec<_>, _>>()?;
-        let dep_id = DependencyId::from_string("dep1")?;
+            .map(|i| TaskId::new(i))
+            .collect::<Vec<_>>();
+        let  dep = DependencyId::new(1);
         
         // Create cycle: task1 -> task2 -> task3 -> task1, plus task4 isolated
-        cyclic_graph.add_dependency(tasks[0], dep_id, tasks[1])?;
-        cyclic_graph.add_dependency(tasks[1], dep_id, tasks[2])?;
-        cyclic_graph.add_dependency(tasks[2], dep_id, tasks[0])?;
+        cyclic_graph.add_dependency(tasks[0],  dep, tasks[1])?;
+        cyclic_graph.add_dependency(tasks[1],  dep, tasks[2])?;
+        cyclic_graph.add_dependency(tasks[2],  dep, tasks[0])?;
         cyclic_graph.add_task(tasks[3]);
         
         let cyclic_components = cyclic_graph.strongly_connected_components()?;
@@ -213,8 +213,8 @@ mod integration_tests {
     #[test]
     fn test_error_handling() -> Result<(), anyhow::Error> {
         let graph = create_complex_graph()?;
-        let nonexistent = TaskId::from_string("nonexistent")?;
-        let task1 = TaskId::from_string("task1")?;
+        let nonexistent = TaskId::new(100);
+        let task1 = TaskId::new(1);
         
         // Test DFS with nonexistent task
         let result = graph.dfs(&nonexistent, |_task_id, _depth| Ok(()));
@@ -240,13 +240,13 @@ mod integration_tests {
     #[test]
     fn test_reachability() -> Result<(), anyhow::Error> {
         let graph = create_complex_graph()?;
-        let task1 = TaskId::from_string("task1")?;
+        let task1 = TaskId::new(1);
         
         let reachable = graph.reachable_tasks(&task1)?;
         assert_eq!(reachable.len(), 10); // All tasks reachable from task1
         
         // Test reachability from intermediate node
-        let task5 = TaskId::from_string("task5")?;
+        let task5 = TaskId::new(5);
         let reachable_from_5 = graph.reachable_tasks(&task5)?;
         assert!(reachable_from_5.len() < 10); // Fewer tasks reachable from task5
         
@@ -261,7 +261,7 @@ mod integration_tests {
         let graph = create_complex_graph()?;
         
         // Test that predicates are consistent
-        for task_id in graph.task_ids() {
+        for  task_id in graph.task_ids() {
             let predicates = graph.get_predicates(task_id);
             if let Some(preds) = predicates {
                 for predicate in preds {
@@ -269,13 +269,13 @@ mod integration_tests {
                     assert!(graph.contains_task(&predicate.task_id));
                     
                     // The dependency should be detectable via has_dependency
-                    assert!(graph.has_dependency(task_id, &predicate.task_id));
+                    assert!(graph.has_dependency(&predicate.task_id, &predicate.task_id));
                 }
             }
         }
         
         // Test dependency/dependent symmetry
-        for task_id in graph.task_ids() {
+        for  task_id in graph.task_ids() {
             let dependencies = graph.get_dependencies(task_id);
             for dep_task in dependencies {
                 let dependents = graph.get_dependents(&dep_task);
@@ -309,7 +309,7 @@ mod integration_tests {
     #[test]
     fn test_single_task_graph() -> Result<(), anyhow::Error> {
         let mut graph = Graph::new();
-        let task = TaskId::from_string("single_task")?;
+        let task = TaskId::new(1);
         graph.add_task(task);
         
         assert_eq!(graph.task_count(), 1);
