@@ -4,4 +4,4 @@
 pub mod graph;
 pub mod reified;
 pub mod algebra;
-pub mod frame;
+pub mod arena;
