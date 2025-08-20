@@ -1,4 +1,4 @@
-use super::{Graph, GraphError, Predicate};
+use super::{Graph, GraphError, Predicate, GraphTask};
 use roadline_util::task::Task;
 use roadline_util::dependency::Dependency;
 
@@ -9,7 +9,7 @@ impl<'a> Graph<'a> {
     /// any outgoing relationships. The task reference must live at least
     /// as long as the graph.
     pub fn add_task(&mut self, task: &'a Task) {
-        self.facts.entry(task).or_insert_with(Vec::new);
+        self.facts.push(GraphTask::new(task));
     }
 
     /// Adds a dependency relationship between two tasks.
@@ -24,21 +24,16 @@ impl<'a> Graph<'a> {
     /// * `to_task` - The task that is depended upon
     pub fn add_dependency(
         &mut self, 
-        from_task: &'a Task, 
+        from_task: &'a mut GraphTask<'a>, 
         dependency: &'a Dependency, 
-        to_task: &'a Task
+        to_task: &'a GraphTask<'a>
     ) -> Result<(), GraphError> {
         let predicate = Predicate {
             dependency,
-            task: to_task,
+            graph_task: to_task,
         };
         
-        self.facts.entry(from_task)
-            .or_insert_with(Vec::new)
-            .push(predicate);
-        
-        // Ensure the target task exists in the graph
-        self.facts.entry(to_task).or_insert_with(Vec::new);
+        from_task.add_fact(predicate);
         
         Ok(())
     }
@@ -48,16 +43,16 @@ impl<'a> Graph<'a> {
     /// This removes the task as a subject (source of dependencies) and also
     /// removes all references to this task from other tasks' predicates.
     /// The graph structure is updated to maintain consistency.
-    pub fn remove_task(&mut self, task: &Task) -> Result<bool, GraphError> {
-        // Remove the task itself
-        let removed = self.facts.remove(task).is_some();
+    pub fn remove_task(&mut self, task: &'a GraphTask<'a>) -> Result<bool, GraphError> {
+
+        self.facts.retain(|graph_task| graph_task.task != task.task);
         
         // Remove all references to this task from other tasks' predicates
-        for predicates in self.facts.values_mut() {
-            predicates.retain(|predicate| predicate.task != task);
+        for graph_task in self.facts.iter_mut() {   
+            graph_task.facts.retain(|predicate| predicate.graph_task != task);
         }
-        
-        Ok(removed)
+
+        Ok(true)
     }
 
     /// Removes a specific dependency between two tasks.
@@ -67,19 +62,15 @@ impl<'a> Graph<'a> {
     /// the same tasks (via different dependencies) are preserved.
     pub fn remove_dependency(
         &mut self, 
-        from_task: &Task, 
-        dependency: &Dependency, 
-        to_task: &Task
+        from_task: &'a mut GraphTask<'a>, 
+        dependency: &'a Dependency, 
+        to_task: &'a GraphTask<'a>
     ) -> Result<bool, GraphError> {
-        if let Some(predicates) = self.facts.get_mut(from_task) {
-            let initial_len = predicates.len();
-            predicates.retain(|predicate| {
-                !(predicate.dependency == dependency && predicate.task == to_task)
+        let initial_len = from_task.facts.len();
+        from_task.facts.retain(|predicate| {
+            !(predicate.dependency == dependency && predicate.graph_task == to_task)
             });
-            Ok(initial_len != predicates.len())
-        } else {
-            Ok(false)
-        }
+        Ok(initial_len != from_task.facts.len())
     }
 }
 

@@ -34,10 +34,8 @@
 //! - `traversal`: DFS, BFS, and path-finding algorithms
 //! - `analysis`: Cycle detection, topological sorting, and structural analysis
 
-use crate::frame::Frame;
 use roadline_util::task::Task;
 use roadline_util::dependency::Dependency;
-use std::collections::HashMap;
 use thiserror::Error;
 
 /// Error types for Graph operations
@@ -57,6 +55,36 @@ pub enum GraphError {
     OperationFailed(#[from] anyhow::Error),
 }
 
+/// A GraphTask is a task that has been added to the graph.
+/// 
+/// It contains the task itself and its dependencies.
+/// 
+/// This avoids having to look up adjacent tasks in the graph to find dependencies, 
+/// while still keeping the graph structure borrow-safe and efficient.
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
+pub struct GraphTask<'a> {
+    pub task: &'a Task,
+    pub facts: Vec<Predicate<'a>>,
+}
+
+impl<'a> GraphTask<'a> {
+    pub fn new(task: &'a Task) -> Self {
+        Self { task, facts: Vec::new() }
+    }
+
+    pub fn task(&self) -> &'a Task {
+        self.task
+    }
+
+    pub fn add_fact(&mut self, fact: Predicate<'a>) {
+        self.facts.push(fact);
+    }
+
+    pub fn facts(&self) -> impl Iterator<Item = &Predicate<'a>> {
+        self.facts.iter()
+    }
+}
+
 /// A predicate represents the right side of a dependency relationship.
 /// 
 /// In the triple (subject_task, dependency, predicate_task), this struct
@@ -68,7 +96,21 @@ pub struct Predicate<'a> {
     /// The dependency that defines the relationship type/semantics
     pub dependency: &'a Dependency,
     /// The target task in this dependency relationship
-    pub task: &'a Task,
+    pub graph_task: &'a GraphTask<'a>,
+}
+
+impl<'a> Predicate<'a> {
+    pub fn new(dependency: &'a Dependency, graph_task: &'a GraphTask<'a>) -> Self {
+        Self { dependency, graph_task }
+    }
+
+    pub fn dependency(&self) -> &'a Dependency {
+        self.dependency
+    }
+
+    pub fn graph_task(&self) -> &'a GraphTask<'a> {
+        self.graph_task
+    }
 }
 
 /// A Graph represents task dependency relationships using borrowed references.
@@ -106,7 +148,7 @@ pub struct Graph<'a> {
     /// 
     /// Structure: subject_task -> [(dependency, target_task), ...]
     /// This allows efficient lookup of "what does this task depend on?"
-    pub facts: HashMap<&'a Task, Vec<Predicate<'a>>>,
+    pub facts: Vec<GraphTask<'a>>,
 }
 
 impl<'a> Graph<'a> {
@@ -117,7 +159,7 @@ impl<'a> Graph<'a> {
     /// starts with no relationships and can be built incrementally.
     pub fn new() -> Self {
         Self {
-            facts: HashMap::new(),
+            facts: Vec::new(),
         }
     }
 
@@ -131,27 +173,10 @@ impl<'a> Graph<'a> {
     /// * `capacity` - Expected number of tasks that will have outgoing dependencies
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
-            facts: HashMap::with_capacity(capacity),
+            facts: Vec::with_capacity(capacity),
         }
     }
 
-    /// Reads a frame into the graph.
-    /// 
-    /// This function reads a frame of tasks and dependencies and constructs a graph
-    /// that describes the relationships between them.
-    /// 
-    /// # Arguments
-    /// * `frame` - The frame to read from
-    pub fn from_frame(frame: &'a Frame) -> Self {
-        let mut graph = Self::new();
-
-        // add all tasks to the graph
-        for task in frame.tasks() {
-            graph.add_task(task);
-        }
-
-        graph
-    }
 }
 
 impl<'a> Default for Graph<'a> {
