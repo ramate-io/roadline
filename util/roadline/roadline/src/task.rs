@@ -3,12 +3,14 @@ pub mod id;
 pub mod subtask;
 pub mod title;
 pub mod embedded_subtask;
+pub mod range;
 
 pub use id::Id;
 pub use title::Title;
 pub use subtask::Subtask;
 pub use summary::Summary;
 pub use embedded_subtask::EmbeddedSubtask;
+pub use range::Range;
 
 use std::collections::BTreeSet;
 
@@ -31,17 +33,18 @@ pub struct Task {
     pub subtasks: BTreeSet<EmbeddedSubtask>,
     /// The summary of the task is a short summary of the task and its subtasks.
     pub summary: Summary,
+    /// The range of the task is the start and end date of the task.
+    pub range: Range,
 }
 
 impl Task {
-    pub fn new(id: Id, title: Title, subtasks: BTreeSet<EmbeddedSubtask>, summary: Summary) -> Self {
-        Self { id, title, subtasks, summary }
+    pub fn new(id: Id, title: Title, subtasks: BTreeSet<EmbeddedSubtask>, summary: Summary, range: Range) -> Self {
+        Self { id, title, subtasks, summary, range }
     }
 
     /// Creates a new test task.
-    #[cfg(test)]
     pub fn new_test() -> Self {
-        Self { id: Id::new_test(), title: Title::new_test(), subtasks: BTreeSet::new(), summary: Summary::new_test() }
+        Self { id: Id::new_test(), title: Title::new_test(), subtasks: BTreeSet::new(), summary: Summary::new_test(), range: Range::new_test() }
     }
 
     /// Construcs with a specified id.
@@ -49,8 +52,9 @@ impl Task {
         Self { id, ..self }
     }
 
+    /// Creates a new test task from a string id.
     pub fn test_from_id_string(id: &str) -> Result<Self, LongIdError> {
-        Ok(Self { id: Id::from_string(id)?, title: Title::new_test(), subtasks: BTreeSet::new(), summary: Summary::new_test() })
+       Ok(Self::new_test().with_id(Id::from_string(id)?))
     }
 
     /// Borrow the [EmbeddedSubtask]s set as a vector of [&Subtask]s.

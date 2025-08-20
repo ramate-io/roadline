@@ -37,7 +37,6 @@ impl Id {
         self.0.to_string_lossy()
     }
 
-    #[cfg(test)]
     pub fn new_test() -> Self {
         Self(LongId::new_test())
     }

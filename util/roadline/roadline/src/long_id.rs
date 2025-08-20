@@ -61,7 +61,7 @@ impl LongId {
         String::from_utf8_lossy(&self.0[..end]).to_string()
     }
 
-    #[cfg(test)]
+    /// Creates a new test LongId.
     pub fn new_test() -> Self {
         Self([0u8; 512])
     }
