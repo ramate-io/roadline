@@ -60,6 +60,11 @@ impl LongId {
         let end = self.0.iter().position(|&b| b == 0).unwrap_or(512);
         String::from_utf8_lossy(&self.0[..end]).to_string()
     }
+
+    #[cfg(test)]
+    pub fn new_test() -> Self {
+        Self([0u8; 512])
+    }
 }
 
 impl Serialize for LongId {
