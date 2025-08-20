@@ -43,6 +43,8 @@ use thiserror::Error;
 /// Error types for Graph operations
 #[derive(Error, Debug)]
 pub enum GraphError {
+    #[error("Internal error: {0:?}")]
+    Internal(Box<dyn std::error::Error + Send + Sync>),
     #[error("Task not found in graph: {0:?}")]
     TaskNotFound(String),
     #[error("Dependency not found: {0:?}")]
