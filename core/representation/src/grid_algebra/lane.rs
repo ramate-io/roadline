@@ -14,6 +14,10 @@ impl LaneId {
     pub fn new(id: ShortId) -> Self {
         Self(id)
     }
+
+    pub fn value(&self) -> u8 {
+        self.0.into()
+    }
 }
 
 impl From<u8> for LaneId {

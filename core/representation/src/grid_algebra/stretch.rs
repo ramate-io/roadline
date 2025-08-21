@@ -38,6 +38,10 @@ impl StretchRange {
     pub fn overlaps(&self, other: &StretchRange) -> bool {
         self.start < other.end && other.start < self.end
     }
+
+    pub fn seconds(&self, unit: StretchUnit) -> (u64, u64) {
+        (self.start as u64 * unit.seconds(), self.end as u64 * unit.seconds())
+    }
 }
 
 /// The stretch unit is the unit of time that the stretch is measured in. 
@@ -139,6 +143,12 @@ impl StretchUnit {
             Self::Days => Self::Days, // Can't go smaller
         }
     }
+
+    /// Moves to the nth unit down. 
+    pub fn down(&self, n: u8) -> Self {
+        let seconds = self.seconds() * n as u64;
+        Self::from_average_seconds(seconds)
+    }
 }
 
 
@@ -182,5 +192,21 @@ impl Stretch {
 
     pub fn overlaps(&self, other: &Stretch) -> bool {
         self.unit == other.unit && self.range.overlaps(&other.range)
+    }
+
+    pub fn seconds(&self) -> (u64, u64) {
+        self.range.seconds(self.unit)
+    }
+
+    /// Scales to the new unit. 
+    pub fn scale(&self, unit: StretchUnit) -> (u64, u64) {
+        // get the start and end in seconds
+        let (start, end) = self.seconds();
+
+        // convert the start and end to the new unit
+        let start = start / unit.seconds();
+        let end = end / unit.seconds();
+
+        (start, end)
     }
 }
