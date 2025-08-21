@@ -9,32 +9,32 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-/// Error types for Algebra operations
+/// Error types for RangeAlgebra operations
 #[derive(Error, Debug)]
-pub enum AlgebraError {
+pub enum RangeAlgebraError {
     #[error("Graph error: {0}")]
     Graph(#[from] crate::graph::GraphError),
     #[error("Task {task_id:?} not found in graph")]
-    TaskNotFound {  task_id: TaskId },
+    TaskNotFound { task_id: TaskId },
     #[error("Task {task_id:?} has invalid range specification")]
-    InvalidRange {  task_id: TaskId },
+    InvalidRange { task_id: TaskId },
     #[error("Task {task_id:?} references non-existent task {reference_id:?} in its range")]
-    InvalidReference {  task_id: TaskId, reference_id: TaskId },
+    InvalidReference { task_id: TaskId, reference_id: TaskId },
     #[error("Root task {task_id:?} must reference itself with +0 offset")]
-    InvalidRootRange {  task_id: TaskId },
+    InvalidRootRange { task_id: TaskId },
     #[error("Task {task_id:?} dependency not satisfied: dependency {dependency_id:?} must end before task starts")]
-    TooEarlyForDependency {  task_id: TaskId, dependency_id: TaskId },
+    TooEarlyForDependency { task_id: TaskId, dependency_id: TaskId },
     #[error("No root tasks found in graph")]
     NoRootTasks,
     #[error("Root task {task_id:?} has invalid offset: {offset:?}. Only root tasks can self-reference their start date")]
-    OnlyRootTasksCanSelfReference {  task_id: TaskId, offset: std::time::Duration },
+    OnlyRootTasksCanSelfReference { task_id: TaskId, offset: std::time::Duration },
     #[error("Multiple errors occurred: {}", format_multiple_errors(.errors))]
-    Multiple { errors: Vec<AlgebraError> },
+    Multiple { errors: Vec<RangeAlgebraError> },
     #[error("Graph contains cycles: {}", format_cycles(.cycles))]
     GraphHasCycles { cycles: Vec<Vec<TaskId>> },
 }
 
-fn format_multiple_errors(errors: &[AlgebraError]) -> String {
+fn format_multiple_errors(errors: &[RangeAlgebraError]) -> String {
     errors.iter()
         .enumerate()
         .map(|(i, e)| format!("{}. {}", i + 1, e))
@@ -58,16 +58,18 @@ fn add_duration_to_date(date: Date, duration: std::time::Duration) -> Date {
     Date::new(datetime + duration_chrono)
 }
 
-/// A structure used to compute and store  the span algebra of a graph.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Algebra {
-    /// The graph of the algebra is the graph of the tasks and dependencies.
-    pub graph: Graph,
-    /// The spans of the algebra are the spans of time for the tasks in the graph.
-    pub spans: HashMap<TaskId, Span>,
+/// A mutable structure used to compute the range algebra of a graph.
+/// Does not provide access to computed spans to prevent modification.
+/// Must be consumed to create a `RangeAlgebra` for safe access to spans.
+#[derive(Debug)]
+pub struct PreRangeAlgebra {
+    /// The graph of tasks and dependencies.
+    graph: Graph,
+    /// Internal spans storage - not accessible externally.
+    spans: HashMap<TaskId, Span>,
 }
 
-impl Algebra {
+impl PreRangeAlgebra {
     pub fn new(graph: Graph) -> Self {
         Self { 
             graph, 
@@ -90,7 +92,9 @@ impl Algebra {
         &mut self.graph
     }
 
-    /// Fills the spans for all tasks in the graph based on their range specifications.
+    /// Computes the spans for all tasks in the graph and returns an immutable RangeAlgebra.
+    /// 
+    /// This method consumes the PreRangeAlgebra to ensure spans cannot be modified after computation.
     /// 
     /// Algorithm:
     /// 1. Check that the graph is a DAG (no cycles)
@@ -100,15 +104,15 @@ impl Algebra {
     ///    b. Compute start date based on reference task
     ///    c. Compute end date by adding duration to start date
     ///    d. Validate that all dependencies end before this task starts
-    /// 4. Store computed spans
-    pub fn fill_spans(&mut self, root_date: Date) -> Result<(), AlgebraError> {
+    /// 4. Store computed spans and return immutable RangeAlgebra
+    pub fn compute(mut self, root_date: Date) -> Result<RangeAlgebra, RangeAlgebraError> {
         // Clear existing spans
         self.spans.clear();
         
         // Ensure graph is a DAG by checking for cycles
         let cycles = self.graph.find_cycles()?;
         if !cycles.is_empty() {
-            return Err(AlgebraError::GraphHasCycles { cycles });
+            return Err(RangeAlgebraError::GraphHasCycles { cycles });
         }
         
         // Get topological ordering 
@@ -116,24 +120,28 @@ impl Algebra {
         
         // Process tasks in topological order, collecting all errors
         let mut errors = Vec::new();
-        for  task_id in topo_order {
-            if let Err(e) = self.compute_task_span( task_id, root_date) {
+        for task_id in topo_order {
+            if let Err(e) = self.compute_task_span(task_id, root_date) {
                 errors.push(e);
             }
         }
         
         // Return all collected errors if any occurred
         if !errors.is_empty() {
-            return Err(AlgebraError::Multiple { errors });
+            return Err(RangeAlgebraError::Multiple { errors });
         }
         
-        Ok(())
+        // Consume self and return immutable RangeAlgebra
+        Ok(RangeAlgebra {
+            graph: self.graph,
+            spans: self.spans,
+        })
     }
     
     /// Computes the span for a single task based on its range specification.
-    fn compute_task_span(&mut self,  task_id: TaskId, root_date: Date) -> Result<(), AlgebraError> {
-        let task = self.graph().arena().tasks().get(& task_id)
-            .ok_or(AlgebraError::TaskNotFound {  task_id })?;
+    fn compute_task_span(&mut self, task_id: TaskId, root_date: Date) -> Result<(), RangeAlgebraError> {
+        let task = self.graph().arena().tasks().get(&task_id)
+            .ok_or(RangeAlgebraError::TaskNotFound { task_id })?;
         // Extract range components
         let start_target_date = task.range.start.clone().into(); // Convert Start to TargetDate
         let start_duration: roadline_util::duration::Duration = task.range.start.duration().clone().into(); // Convert Start to Duration
@@ -143,11 +151,11 @@ impl Algebra {
         // Compute start date
         let start_date = if task.is_root() {
             // Root tasks will ignore the reference and simply offset from the root date
-            // This has the sid-effect of allowing self-reference, which some users may prefer. 
+            // This has the side-effect of allowing self-reference, which some users may prefer. 
             add_duration_to_date(root_date, start_duration.into())
         } else {
             // For non-root tasks, use the reference and offset
-            self.compute_non_root_start_date(&start_target_date, & task_id)?
+            self.compute_non_root_start_date(&start_target_date, &task_id)?
         };
         
         // Compute end date by adding duration to start date
@@ -161,7 +169,7 @@ impl Algebra {
             span::Start::new(start_date),
             span::End::new(end_date),
         );
-        self.spans.insert( task_id, span);
+        self.spans.insert(task_id, span);
         
         Ok(())
     }
@@ -171,20 +179,20 @@ impl Algebra {
         &self, 
         target_date: &roadline_util::task::range::TargetDate, 
         task_id: &TaskId,
-    ) -> Result<Date, AlgebraError> {
+    ) -> Result<Date, RangeAlgebraError> {
         let reference_id: TaskId = target_date.point_of_reference.clone().into();
         let duration: roadline_util::duration::Duration = target_date.duration.clone().into(); // Convert to Duration
         let duration: std::time::Duration = duration.into(); // Convert to std::time::Duration
         
         // Handle root tasks with zero offset
-        if reference_id == * task_id {
-            return Err(AlgebraError::OnlyRootTasksCanSelfReference {  task_id: * task_id, offset: duration });
+        if reference_id == *task_id {
+            return Err(RangeAlgebraError::OnlyRootTasksCanSelfReference { task_id: *task_id, offset: duration });
         }
         
         // For non-root tasks, find the referenced task's end date
         let reference_span = self.spans.get(&reference_id)
-            .ok_or(AlgebraError::InvalidReference { 
-                 task_id: * task_id, 
+            .ok_or(RangeAlgebraError::InvalidReference { 
+                task_id: *task_id, 
                 reference_id 
             })?;
         
@@ -194,37 +202,79 @@ impl Algebra {
     }
     
     /// Validates that all dependencies of a task end before the task starts.
-    fn validate_dependencies(&self, task: &Task, task_start_date: Date) -> Result<(), AlgebraError> {
-        let  task_id = *task.id();
+    fn validate_dependencies(&self, task: &Task, task_start_date: Date) -> Result<(), RangeAlgebraError> {
+        let task_id = *task.id();
         
         // Check dependencies from the graph, collecting all errors
-        let dependencies = self.graph.get_dependencies(& task_id);
+        let dependencies = self.graph.get_dependencies(&task_id);
         let mut errors = Vec::new();
         
-        for  dep_id in dependencies {
-            let dep_span = match self.spans.get(& dep_id) {
+        for dep_id in dependencies {
+            let dep_span = match self.spans.get(&dep_id) {
                 Some(span) => span,
                 None => {
-                    errors.push(AlgebraError::TaskNotFound {  task_id:  dep_id });
+                    errors.push(RangeAlgebraError::TaskNotFound { task_id: dep_id });
                     continue;
                 }
             };
             
             // Dependency must end before or at the same time as task starts
             if dep_span.end.inner().inner() > task_start_date.inner() {
-                errors.push(AlgebraError::TooEarlyForDependency { 
-                     task_id, 
-                    dependency_id:  dep_id 
+                errors.push(RangeAlgebraError::TooEarlyForDependency { 
+                    task_id, 
+                    dependency_id: dep_id 
                 });
             }
         }
         
         // Return all collected errors if any occurred
         if !errors.is_empty() {
-            return Err(AlgebraError::Multiple { errors });
+            return Err(RangeAlgebraError::Multiple { errors });
         }
         
         Ok(())
+    }
+}
+
+/// An immutable structure containing the computed range algebra of a graph.
+/// Provides safe read-only access to computed spans.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RangeAlgebra {
+    /// The graph of tasks and dependencies.
+    graph: Graph,
+    /// The computed spans for all tasks in the graph.
+    spans: HashMap<TaskId, Span>,
+}
+
+impl RangeAlgebra {
+    /// Get a reference to the graph.
+    pub fn graph(&self) -> &Graph {
+        &self.graph
+    }
+
+    /// Get a reference to all computed spans.
+    pub fn spans(&self) -> &HashMap<TaskId, Span> {
+        &self.spans
+    }
+
+    /// Get the span for a specific task.
+    pub fn span(&self, task_id: &TaskId) -> Option<&Span> {
+        self.spans.get(task_id)
+    }
+
+    /// Get all task IDs that have computed spans.
+    pub fn task_ids(&self) -> impl Iterator<Item = &TaskId> {
+        self.spans.keys()
+    }
+
+    /// Get the number of tasks with computed spans.
+    pub fn task_count(&self) -> usize {
+        self.spans.len()
+    }
+
+    /// Check if a task has a computed span.
+    pub fn has_span(&self, task_id: &TaskId) -> bool {
+        self.spans.contains_key(task_id)
     }
 }
 
@@ -347,9 +397,14 @@ mod tests {
     #[test]
     fn test_simple_valid_graph() -> Result<(), anyhow::Error> {
         let graph = create_simple_valid_test_graph()?;
-        let mut algebra = Algebra::new(graph);
+        let pre_algebra = PreRangeAlgebra::new(graph);
         let root_date = test_date("2021-01-01T00:00:00Z");
-        algebra.fill_spans(root_date)?;
+        let algebra = pre_algebra.compute(root_date)?;
+
+        // Verify we can access spans
+        assert_eq!(algebra.task_count(), 2);
+        assert!(algebra.has_span(&TaskId::new(1)));
+        assert!(algebra.has_span(&TaskId::new(2)));
 
         Ok(())
     }
@@ -357,9 +412,15 @@ mod tests {
     #[test]
     fn test_complex_valid_graph() -> Result<(), anyhow::Error> {
         let graph = create_complex_valid_test_graph()?;
-        let mut algebra = Algebra::new(graph);
+        let pre_algebra = PreRangeAlgebra::new(graph);
         let root_date = test_date("2021-01-01T00:00:00Z");
-        algebra.fill_spans(root_date)?;
+        let algebra = pre_algebra.compute(root_date)?;
+
+        // Verify we can access spans
+        assert_eq!(algebra.task_count(), 4);
+        for i in 1..=4 {
+            assert!(algebra.has_span(&TaskId::new(i)));
+        }
 
         Ok(())
     }
@@ -367,24 +428,24 @@ mod tests {
     #[test]
     fn test_simple_invalid_graph() -> Result<(), anyhow::Error> {
         let graph = create_simple_invalid_test_graph()?;
-        let mut algebra = Algebra::new(graph);
+        let pre_algebra = PreRangeAlgebra::new(graph);
         let root_date = test_date("2021-01-01T00:00:00Z");
-        match algebra.fill_spans(root_date) {
+        match pre_algebra.compute(root_date) {
             Ok(_) => panic!("Expected error, got Ok"),
-            Err(AlgebraError::Multiple { errors }) => {
+            Err(RangeAlgebraError::Multiple { errors }) => {
                 assert_eq!(errors.len(), 1);
                 match &errors[0] {
-                    AlgebraError::Multiple { errors: inner_errors } => {
+                    RangeAlgebraError::Multiple { errors: inner_errors } => {
                         assert_eq!(inner_errors.len(), 1);
                         match &inner_errors[0] {
-                            AlgebraError::TooEarlyForDependency { task_id, dependency_id } => {
+                            RangeAlgebraError::TooEarlyForDependency { task_id, dependency_id } => {
                                 assert_eq!(*task_id, TaskId::new(3));
                                 assert_eq!(*dependency_id, TaskId::new(2));
                             }
                             e => panic!("Unexpected inner error: {:?}", e),
                         }
                     }
-                    AlgebraError::TooEarlyForDependency { task_id, dependency_id } => {
+                    RangeAlgebraError::TooEarlyForDependency { task_id, dependency_id } => {
                         assert_eq!(*task_id, TaskId::new(3));
                         assert_eq!(*dependency_id, TaskId::new(2));
                     }
@@ -417,22 +478,22 @@ mod tests {
         let task4 = create_test_task_with_dependencies(4, 1, 2, 5, BTreeSet::from_iter([2]))?;
         graph.add(task4)?;
         
-        let mut algebra = Algebra::new(graph);
+        let pre_algebra = PreRangeAlgebra::new(graph);
         let root_date = test_date("2021-01-01T00:00:00Z");
         
-        match algebra.fill_spans(root_date) {
+        match pre_algebra.compute(root_date) {
             Ok(_) => panic!("Expected errors, got Ok"),
-            Err(AlgebraError::Multiple { errors }) => {
+            Err(RangeAlgebraError::Multiple { errors }) => {
                 // Should have multiple task errors (T3 and T4 both failing)
                 assert_eq!(errors.len(), 2);
                 
                 // Each should be a dependency validation error
                 for error in &errors {
                     match error {
-                        AlgebraError::Multiple { errors: inner_errors } => {
+                        RangeAlgebraError::Multiple { errors: inner_errors } => {
                             assert_eq!(inner_errors.len(), 1);
                             match &inner_errors[0] {
-                                AlgebraError::TooEarlyForDependency { task_id, dependency_id } => {
+                                RangeAlgebraError::TooEarlyForDependency { task_id, dependency_id } => {
                                     assert!(*task_id == TaskId::new(3) || *task_id == TaskId::new(4));
                                     assert_eq!(*dependency_id, TaskId::new(2));
                                 }
@@ -469,12 +530,12 @@ mod tests {
         graph.add(task4)?;
         graph.add(task5)?;
         
-        let mut algebra = Algebra::new(graph);
+        let pre_algebra = PreRangeAlgebra::new(graph);
         let root_date = test_date("2021-01-01T00:00:00Z");
         
-        match algebra.fill_spans(root_date) {
+        match pre_algebra.compute(root_date) {
             Ok(_) => panic!("Expected cycle error, got Ok"),
-            Err(AlgebraError::GraphHasCycles { cycles }) => {
+            Err(RangeAlgebraError::GraphHasCycles { cycles }) => {
                 // Should detect cycles (exact number depends on cycle detection algorithm)
                 assert!(!cycles.is_empty());
                 println!("Detected cycles: {:?}", cycles);
@@ -484,6 +545,27 @@ mod tests {
 
         Ok(())
     }
-   
 
+    #[test]
+    fn test_immutable_api_safety() -> Result<(), anyhow::Error> {
+        let graph = create_simple_valid_test_graph()?;
+        let pre_algebra = PreRangeAlgebra::new(graph);
+        let root_date = test_date("2021-01-01T00:00:00Z");
+        let algebra = pre_algebra.compute(root_date)?;
+
+        // Verify immutable access works
+        let task1_span = algebra.span(&TaskId::new(1)).unwrap();
+        let task2_span = algebra.span(&TaskId::new(2)).unwrap();
+
+        // Verify spans are computed correctly (T2 starts after T1 ends)
+        assert!(task2_span.start.inner().inner() >= task1_span.end.inner().inner());
+
+        // Test iteration over task IDs
+        let task_ids: Vec<_> = algebra.task_ids().cloned().collect();
+        assert_eq!(task_ids.len(), 2);
+        assert!(task_ids.contains(&TaskId::new(1)));
+        assert!(task_ids.contains(&TaskId::new(2)));
+
+        Ok(())
+    }
 }
