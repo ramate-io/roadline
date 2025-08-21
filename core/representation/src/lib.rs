@@ -5,3 +5,4 @@ pub mod graph;
 pub mod reified;
 pub mod range_algebra;
 pub mod arena;
+pub mod grid_algebra;
