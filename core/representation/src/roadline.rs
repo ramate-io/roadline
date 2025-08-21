@@ -19,48 +19,33 @@ use thiserror::Error;
 /// Comprehensive error type for the Roadline builder
 #[derive(Debug, Error)]
 pub enum RoadlineBuilderError {
-    // === Graph Errors ===
-    #[error("Task already exists in graph: {task_id:?}")]
-    TaskAlreadyExists { task_id: TaskId },
+    // === Graph Layer Errors ===
+    #[error("Graph error: {source}")]
+    Graph {
+        #[from]
+        source: GraphError,
+    },
     
-    #[error("Circular dependency detected: {task_id:?} cannot depend on itself")]
-    CircularDependency { task_id: TaskId },
+    // === Range Algebra Layer Errors ===
+    #[error("Range algebra error: {source}")]
+    RangeAlgebra {
+        #[from]
+        source: RangeAlgebraError,
+    },
     
-    #[error("Invalid dependency: task {from:?} → {to:?} (dependency target not found)")]
-    InvalidDependency { from: TaskId, to: TaskId },
+    // === Grid Algebra Layer Errors ===
+    #[error("Grid algebra error: {source}")]
+    GridAlgebra {
+        #[from]
+        source: GridAlgebraError,
+    },
     
-    // === Range Algebra Errors ===
-    #[error("Graph contains cycles: {cycles:?}")]
-    GraphHasCycles { cycles: Vec<Vec<TaskId>> },
-    
-    #[error("Task dependency constraint violated: {task_id:?} → {dependency:?} (dependency must end before task starts)")]
-    DependencyConstraintViolated { task_id: TaskId, dependency: TaskId },
-    
-    #[error("Task not found in range calculation: {task_id:?}")]
-    TaskNotFoundInRange { task_id: TaskId },
-    
-    #[error("Multiple range algebra errors: {error_count} errors detected")]
-    MultipleRangeErrors { error_count: usize, first_error: String },
-    
-    #[error("No tasks found in range algebra - empty graph")]
-    NoTasksInRange,
-    
-    // === Grid Algebra Errors ===
-    #[error("Failed to determine time scale unit from task durations")]
-    TimeScaleDeterminationFailed,
-    
-    #[error("Lane assignment failed: unable to place task {task_id:?} in available lanes")]
-    LaneAssignmentFailed { task_id: TaskId },
-    
-    #[error("Grid computation failed: {reason}")]
-    GridComputationFailed { reason: String },
-    
-    // === Reified Errors ===
-    #[error("Task not found in reified layer: {task_id:?}")]
-    TaskNotFoundInReified { task_id: TaskId },
-    
-    #[error("Dependency connection not found: {dependency_id:?}")]
-    DependencyNotFoundInReified { dependency_id: DependencyId },
+    // === Reified Layer Errors ===
+    #[error("Reified layer error: {source}")]
+    Reified {
+        #[from]
+        source: ReifiedError,
+    },
     
     // === Builder-specific Errors ===
     #[error("Date parsing error: {message}")]
@@ -94,81 +79,7 @@ impl std::fmt::Display for BuilderSummary {
     }
 }
 
-impl RoadlineBuilderError {
-    /// Map GraphError to specific RoadlineBuilderError variants
-    fn from_graph_error(error: GraphError) -> Self {
-        match error {
-            GraphError::Internal(boxed_error) => {
-                Self::InternalError {
-                    stage: "graph".to_string(),
-                    message: boxed_error.to_string(),
-                }
-            }
-        }
-    }
 
-    /// Map RangeAlgebraError to specific RoadlineBuilderError variants  
-    fn from_range_algebra_error(error: RangeAlgebraError) -> Self {
-        match error {
-            RangeAlgebraError::Graph(graph_error) => Self::from_graph_error(graph_error),
-            RangeAlgebraError::TaskNotFound { task_id } => Self::TaskNotFoundInRange { task_id },
-            RangeAlgebraError::InvalidRange { task_id } => Self::InternalError {
-                stage: "range_algebra".to_string(),
-                message: format!("Invalid range specification for task {:?}", task_id),
-            },
-            RangeAlgebraError::InvalidReference { task_id, reference_id } => Self::InternalError {
-                stage: "range_algebra".to_string(),
-                message: format!("Task {:?} references non-existent task {:?}", task_id, reference_id),
-            },
-            RangeAlgebraError::InvalidRootRange { task_id } => Self::InternalError {
-                stage: "range_algebra".to_string(),
-                message: format!("Root task {:?} must reference itself with +0 offset", task_id),
-            },
-            RangeAlgebraError::TooEarlyForDependency { task_id, dependency_id } => {
-                Self::DependencyConstraintViolated { task_id, dependency: dependency_id }
-            },
-            RangeAlgebraError::NoRootTasks => Self::NoTasksInRange,
-            RangeAlgebraError::OnlyRootTasksCanSelfReference { task_id, .. } => Self::InternalError {
-                stage: "range_algebra".to_string(),
-                message: format!("Task {:?} cannot self-reference - only root tasks can", task_id),
-            },
-            RangeAlgebraError::Multiple { errors } => {
-                let first_error = errors.first()
-                    .map(|e| e.to_string())
-                    .unwrap_or_else(|| "Unknown error".to_string());
-                Self::MultipleRangeErrors {
-                    error_count: errors.len(),
-                    first_error,
-                }
-            },
-            RangeAlgebraError::GraphHasCycles { cycles } => Self::GraphHasCycles { cycles },
-            RangeAlgebraError::InvalidDate { date } => Self::DateParsing { message: date },
-        }
-    }
-
-    /// Map GridAlgebraError to specific RoadlineBuilderError variants
-    fn from_grid_algebra_error(error: GridAlgebraError) -> Self {
-        match error {
-            GridAlgebraError::TaskNotFound { task_id } => Self::TaskNotFoundInRange { task_id },
-            GridAlgebraError::NoTasks => Self::NoTasksInRange,
-            GridAlgebraError::InvalidTimeRange { start, end } => Self::InternalError {
-                stage: "grid_algebra".to_string(),
-                message: format!("Invalid time range: {:?} to {:?}", start, end),
-            },
-            GridAlgebraError::LaneAssignmentFailed { task_id } => Self::LaneAssignmentFailed { task_id },
-        }
-    }
-
-    /// Map ReifiedError to specific RoadlineBuilderError variants
-    fn from_reified_error(error: ReifiedError) -> Self {
-        match error {
-            ReifiedError::TaskNotFound { task_id } => Self::TaskNotFoundInReified { task_id },
-            ReifiedError::DependencyNotFound { dependency_id } => {
-                Self::DependencyNotFoundInReified { dependency_id }
-            },
-        }
-    }
-}
 
 /// Builder for creating Roadline representations.
 /// 
@@ -354,8 +265,7 @@ impl RoadlineBuilder {
 
     /// Add a single task to the graph.
     pub fn add_task(&mut self, task: Task) -> Result<&mut Self, RoadlineBuilderError> {
-        self.graph.add(task)
-            .map_err(RoadlineBuilderError::from_graph_error)?;
+        self.graph.add(task)?;
         Ok(self)
     }
 
@@ -382,8 +292,7 @@ impl RoadlineBuilder {
     /// # }
     /// ```
     pub fn task(mut self, task: Task) -> Result<Self, RoadlineBuilderError> {
-        self.graph.add(task)
-            .map_err(RoadlineBuilderError::from_graph_error)?;
+        self.graph.add(task)?;
         Ok(self)
     }
 
@@ -403,8 +312,7 @@ impl RoadlineBuilder {
     /// ```
     pub fn tasks(mut self, tasks: impl IntoIterator<Item = Task>) -> Result<Self, RoadlineBuilderError> {
         for task in tasks {
-            self.graph.add(task)
-                .map_err(RoadlineBuilderError::from_graph_error)?;
+            self.graph.add(task)?;
         }
         Ok(self)
     }
@@ -414,7 +322,7 @@ impl RoadlineBuilder {
     pub fn try_task(mut self, task: Task) -> (Self, Option<RoadlineBuilderError>) {
         match self.graph.add(task) {
             Ok(()) => (self, None),
-            Err(e) => (self, Some(RoadlineBuilderError::from_graph_error(e))),
+            Err(e) => (self, Some(e.into())),
         }
     }
 
@@ -473,18 +381,15 @@ impl RoadlineBuilder {
 
         // Step 1: Build the range algebra (temporal positioning)
         let range_algebra = PreRangeAlgebra::new(self.graph)
-            .compute(self.root_date)
-            .map_err(RoadlineBuilderError::from_range_algebra_error)?;
+            .compute(self.root_date)?;
 
         // Step 2: Build the grid algebra (discrete placement)
         let grid_algebra = PreGridAlgebra::new(range_algebra)
-            .compute()
-            .map_err(RoadlineBuilderError::from_grid_algebra_error)?;
+            .compute()?;
 
         // Step 3: Reify to visual coordinates (continuous + connections)
         let reified = PreReified::with_config(grid_algebra, self.config)
-            .compute()
-            .map_err(RoadlineBuilderError::from_reified_error)?;
+            .compute()?;
 
         Ok(Roadline::new(reified))
     }
@@ -797,6 +702,41 @@ mod tests {
         let task = create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::new()).unwrap();
         builder_with_tasks.add_task(task).unwrap();
         assert!(builder_with_tasks.validate().is_ok());
+    }
+
+    #[test]
+    fn test_error_wrapping_preserves_information() -> Result<(), anyhow::Error> {
+        use std::collections::BTreeSet;
+        
+        // Create a cycle: task1 -> task2 -> task1 (circular dependency)
+        let mut builder = RoadlineBuilder::new();
+        let task1 = create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::from_iter([2]))?; // Depends on 2
+        let task2 = create_test_task_with_dependencies(2, 1, 5 * 24 * 60 * 60, 10 * 24 * 60 * 60, BTreeSet::from_iter([1]))?; // Depends on 1 - CYCLE!
+        
+        builder.add_task(task1)?;
+        builder.add_task(task2)?;
+        
+        // This should fail during build() with a range algebra error that gets wrapped
+        let result = builder.build();
+        assert!(result.is_err());
+        
+        let error = result.unwrap_err();
+        // Verify it's a RangeAlgebra error variant that wraps the original error
+        match &error {
+            RoadlineBuilderError::RangeAlgebra { source } => {
+                // The original error information is preserved 
+                let error_str = source.to_string();
+                assert!(error_str.contains("cycle") || error_str.contains("circular"), 
+                       "Expected cycle error, got: {}", error_str);
+            },
+            other => panic!("Expected RangeAlgebra error, got: {:?}", other),
+        }
+        
+        // Test that the error chain is accessible
+        let chain = std::error::Error::source(&error);
+        assert!(chain.is_some(), "Error should have a source");
+        
+        Ok(())
     }
 
     #[test]
