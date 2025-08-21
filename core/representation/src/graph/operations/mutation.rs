@@ -1,4 +1,5 @@
 use crate::graph::{Graph, GraphError, Predicate};
+use roadline_util::dependency::Dependency;
 use roadline_util::task::Id as TaskId;
 use roadline_util::dependency::id::Id as DependencyId;
 use roadline_util::task::Task;
@@ -11,13 +12,12 @@ impl Graph {
 
     /// Adds a task to the graph and arena, adding all of its internal dependencies.
     pub fn add(&mut self,  task: Task) -> Result<(), GraphError> {
-        // dependencies are currently meaningless, so we just use the 0 id
-        let dep_id = DependencyId::new(0);
-        let task_id = *task.id();
-
+       
         // for each dependency in the task, add a dependency to the graph
         for from_task_id in task.dependencies() {
-            self.add_dependency(*from_task_id, dep_id, task_id)?;
+            let dep = Dependency::new(*from_task_id, *task.id());
+            self.add_dependency(*from_task_id, *dep.id(),*task.id())?;
+            self.arena.add_dependency(dep);
         }
 
         self.arena.add_task(task);
@@ -89,7 +89,7 @@ mod tests {
         let mut graph = Graph::new();
         let task1 =  TaskId::new(1);
         let task2 =  TaskId::new(2);
-        let dep =  DependencyId::new(1);
+        let dep =  DependencyId::from_u8(1, 2);
         
         graph.add_dependency(task1, dep, task2).unwrap();
         
@@ -106,7 +106,7 @@ mod tests {
         let task1 =  TaskId::new(1);
         let task2 =  TaskId::new(2);
         let task3 =  TaskId::new(3);
-        let dep =  DependencyId::new(1);
+        let dep =  DependencyId::from_u8(1, 2);
         
         // Create graph: task1 -> task2 -> task3
         graph.add_dependency(task1, dep, task2).unwrap();
@@ -140,7 +140,7 @@ mod tests {
         let mut graph = Graph::new();
         let task1 =  TaskId::new(1);
         let task2 =  TaskId::new(2);
-        let dep =  DependencyId::new(1);
+        let dep =  DependencyId::from_u8(1, 2);
         
         graph.add_dependency(task1, dep, task2).unwrap();
         
@@ -156,7 +156,7 @@ mod tests {
         let mut graph = Graph::new();
         let task1 =  TaskId::new(1);
         let task2 =  TaskId::new(2);
-        let dep =  DependencyId::new(1);
+        let dep =  DependencyId::from_u8(1, 2);
         
         let removed = graph.remove_dependency(&task1, &dep, &task2).unwrap();
         

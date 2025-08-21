@@ -147,13 +147,13 @@ mod integration_tests {
         
         // Test adding dependency to new task
         let task1 = TaskId::new(1);
-        let  dep = DependencyId::new(1);
+        let  dep = DependencyId::from_u8(1, 2);
         graph.add_dependency(task1,  dep, new_task).unwrap();
         assert!(graph.has_dependency(&task1, &new_task));
         
         // Test removing dependency
         let task2 = TaskId::new(2);
-        let old_dep = DependencyId::new(1);
+        let old_dep = DependencyId::from_u8(1, 2);
         let removed = graph.remove_dependency(&task1, &old_dep, &task2).unwrap();
         assert!(removed);
         assert!(!graph.has_dependency(&task1, &task2));
@@ -193,7 +193,7 @@ mod integration_tests {
         let tasks: Vec<TaskId> = (1..=4)
             .map(|i| TaskId::new(i))
             .collect::<Vec<_>>();
-        let  dep = DependencyId::new(1);
+        let  dep = DependencyId::from_u8(1, 2);
         
         // Create cycle: task1 -> task2 -> task3 -> task1, plus task4 isolated
         cyclic_graph.add_dependency(tasks[0],  dep, tasks[1])?;

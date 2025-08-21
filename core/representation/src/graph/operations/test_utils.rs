@@ -15,7 +15,7 @@ pub fn create_linear_graph() -> Result<Graph, anyhow::Error> {
     let task2 = TaskId::new(2);
     let task3 = TaskId::new(3);
     let task4 = TaskId::new(4);
-    let dep = DependencyId::new(1);
+    let dep = DependencyId::from_u8(1, 2);
     
     graph.add_dependency(task1, dep, task2).expect("Failed to add dependency");
     graph.add_dependency(task2, dep, task3).expect("Failed to add dependency");
@@ -33,7 +33,7 @@ pub fn create_branched_graph() -> Result<Graph, anyhow::Error> {
     let task3 = TaskId::new(3);
     let task4 = TaskId::new(4);
     let task5 = TaskId::new(5);
-    let dep = DependencyId::new(1);
+    let dep = DependencyId::from_u8(1, 2);
     
     graph.add_dependency(task1, dep, task2).expect("Failed to add dependency");
     graph.add_dependency(task1, dep, task3).expect("Failed to add dependency");
@@ -54,7 +54,7 @@ pub fn create_complex_graph() -> Result<Graph, anyhow::Error> {
         .map(|i| TaskId::new(i))
         .collect::<Vec<_>>();
     
-    let dep = DependencyId::new(1);
+    let dep = DependencyId::from_u8(1, 2);
     
     // Create a complex dependency structure:
     // task1 -> [task2, task3]
@@ -93,7 +93,7 @@ pub fn create_acyclic_graph() -> Result<Graph, anyhow::Error> {
     let task2 = TaskId::new(2);
     let task3 = TaskId::new(3);
     let task4 = TaskId::new(4);
-    let  dep = DependencyId::new(1);
+    let  dep = DependencyId::from_u8(1, 2);
     
     // Create DAG: task1 -> task2 -> task4, task1 -> task3 -> task4
     graph.add_dependency(task1,  dep, task2)?;
@@ -109,7 +109,7 @@ pub fn create_cyclic_graph() -> Result<Graph, anyhow::Error> {
     let task1 = TaskId::new(1);
     let task2 = TaskId::new(2);
     let task3 = TaskId::new(3);
-    let  dep = DependencyId::new(1);
+    let  dep = DependencyId::from_u8(1, 2);
     
     // Create cycle: task1 -> task2 -> task3 -> task1
     graph.add_dependency(task1,  dep, task2)?;
@@ -125,7 +125,7 @@ pub fn create_test_graph() -> Result<Graph, anyhow::Error> {
     let task2 = TaskId::new(2);
     let task3 = TaskId::new(3);
     let task4 = TaskId::new(4);
-    let  dep = DependencyId::new(1);
+    let  dep = DependencyId::from_u8(1, 2);
     
     // Create graph: task1 -> task2 -> task3, task4 (isolated)
     graph.add_dependency(task1,  dep, task2)?;
