@@ -12,11 +12,15 @@ impl Graph {
 
     /// Adds a task to the graph and arena, adding all of its internal dependencies.
     pub fn add(&mut self,  task: Task) -> Result<(), GraphError> {
-       
+        let task_id = *task.id();
+        
+        // Ensure the task exists in the facts map
+        self.add_task(task_id);
+        
         // for each dependency in the task, add a dependency to the graph
         for from_task_id in task.dependencies() {
-            let dep = Dependency::new(*from_task_id, *task.id());
-            self.add_dependency(*from_task_id, *dep.id(),*task.id())?;
+            let dep = Dependency::new(*from_task_id, task_id);
+            self.add_dependency(*from_task_id, *dep.id(), task_id)?;
             self.arena.add_dependency(dep);
         }
 
