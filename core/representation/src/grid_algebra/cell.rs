@@ -12,3 +12,20 @@ pub struct Cell {
     lane: LaneId,
 }
 
+impl Cell {
+    pub fn new(stretch: Stretch, lane: LaneId) -> Self {
+        Self { stretch, lane }
+    }
+
+    pub fn stretch(&self) -> &Stretch {
+        &self.stretch
+    }
+
+    pub fn lane(&self) -> &LaneId {
+        &self.lane
+    }
+
+    pub fn lane_id(&self) -> u8 {
+        self.lane.into()
+    }
+}

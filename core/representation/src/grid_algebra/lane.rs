@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 /// thus the same size as the maximum number of lanes. 
 /// 
 /// ShortId is also still positional, so it can be used as a lane index. 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct LaneId(ShortId);
 
 impl LaneId {
