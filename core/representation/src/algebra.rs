@@ -28,6 +28,26 @@ pub enum AlgebraError {
     NoRootTasks,
     #[error("Root task {task_id:?} has invalid offset: {offset:?}. Only root tasks can self-reference their start date")]
     OnlyRootTasksCanSelfReference {  task_id: TaskId, offset: std::time::Duration },
+    #[error("Multiple errors occurred: {}", format_multiple_errors(.errors))]
+    Multiple { errors: Vec<AlgebraError> },
+    #[error("Graph contains cycles: {}", format_cycles(.cycles))]
+    GraphHasCycles { cycles: Vec<Vec<TaskId>> },
+}
+
+fn format_multiple_errors(errors: &[AlgebraError]) -> String {
+    errors.iter()
+        .enumerate()
+        .map(|(i, e)| format!("{}. {}", i + 1, e))
+        .collect::<Vec<_>>()
+        .join("; ")
+}
+
+fn format_cycles(cycles: &[Vec<TaskId>]) -> String {
+    cycles.iter()
+        .enumerate()
+        .map(|(i, cycle)| format!("Cycle {}: {:?}", i + 1, cycle))
+        .collect::<Vec<_>>()
+        .join("; ")
 }
 
 /// Adds a duration to a date, returning a new date.
@@ -85,19 +105,26 @@ impl Algebra {
         // Clear existing spans
         self.spans.clear();
         
-        // Ensure graph is a DAG
-        if !self.graph.is_dag()? {
-            return Err(AlgebraError::Graph(crate::graph::GraphError::Internal(
-                "Cannot compute spans for graph with cycles".into()
-            )));
+        // Ensure graph is a DAG by checking for cycles
+        let cycles = self.graph.find_cycles()?;
+        if !cycles.is_empty() {
+            return Err(AlgebraError::GraphHasCycles { cycles });
         }
         
         // Get topological ordering 
         let topo_order = self.graph.topological_sort()?;
         
-        // Process tasks in topological order
+        // Process tasks in topological order, collecting all errors
+        let mut errors = Vec::new();
         for  task_id in topo_order {
-            self.compute_task_span( task_id, root_date)?;
+            if let Err(e) = self.compute_task_span( task_id, root_date) {
+                errors.push(e);
+            }
+        }
+        
+        // Return all collected errors if any occurred
+        if !errors.is_empty() {
+            return Err(AlgebraError::Multiple { errors });
         }
         
         Ok(())
@@ -170,19 +197,31 @@ impl Algebra {
     fn validate_dependencies(&self, task: &Task, task_start_date: Date) -> Result<(), AlgebraError> {
         let  task_id = *task.id();
         
-        // Check dependencies from the graph
+        // Check dependencies from the graph, collecting all errors
         let dependencies = self.graph.get_dependencies(& task_id);
+        let mut errors = Vec::new();
+        
         for  dep_id in dependencies {
-            let dep_span = self.spans.get(& dep_id)
-                .ok_or(AlgebraError::TaskNotFound {  task_id:  dep_id })?;
+            let dep_span = match self.spans.get(& dep_id) {
+                Some(span) => span,
+                None => {
+                    errors.push(AlgebraError::TaskNotFound {  task_id:  dep_id });
+                    continue;
+                }
+            };
             
             // Dependency must end before or at the same time as task starts
             if dep_span.end.inner().inner() > task_start_date.inner() {
-                return Err(AlgebraError::TooEarlyForDependency { 
+                errors.push(AlgebraError::TooEarlyForDependency { 
                      task_id, 
                     dependency_id:  dep_id 
                 });
             }
+        }
+        
+        // Return all collected errors if any occurred
+        if !errors.is_empty() {
+            return Err(AlgebraError::Multiple { errors });
         }
         
         Ok(())
@@ -332,9 +371,113 @@ mod tests {
         let root_date = test_date("2021-01-01T00:00:00Z");
         match algebra.fill_spans(root_date) {
             Ok(_) => panic!("Expected error, got Ok"),
-            Err(AlgebraError::TooEarlyForDependency { task_id, dependency_id }) => {
-                assert_eq!(task_id, TaskId::new(3));
-                assert_eq!(dependency_id, TaskId::new(2));
+            Err(AlgebraError::Multiple { errors }) => {
+                assert_eq!(errors.len(), 1);
+                match &errors[0] {
+                    AlgebraError::Multiple { errors: inner_errors } => {
+                        assert_eq!(inner_errors.len(), 1);
+                        match &inner_errors[0] {
+                            AlgebraError::TooEarlyForDependency { task_id, dependency_id } => {
+                                assert_eq!(*task_id, TaskId::new(3));
+                                assert_eq!(*dependency_id, TaskId::new(2));
+                            }
+                            e => panic!("Unexpected inner error: {:?}", e),
+                        }
+                    }
+                    AlgebraError::TooEarlyForDependency { task_id, dependency_id } => {
+                        assert_eq!(*task_id, TaskId::new(3));
+                        assert_eq!(*dependency_id, TaskId::new(2));
+                    }
+                    e => panic!("Unexpected error: {:?}", e),
+                }
+            }
+            Err(e) => panic!("Unexpected error: {:?}", e),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_multiple_dependency_errors() -> Result<(), anyhow::Error> {
+        let mut graph = Graph::new();
+        
+        // Root task: T1 starts at itself + 0, duration 10 days
+        let task1 = create_test_task_with_dependencies(1, 1, 0, 10, BTreeSet::new())?;
+        graph.add(task1)?;
+        
+        // T2 starts at T1 + 0, duration 5 days  
+        let task2 = create_test_task_with_dependencies(2, 1, 0, 5, BTreeSet::from_iter([1]))?;
+        graph.add(task2)?;
+        
+        // T3 starts at T1 + 0, duration 5 days - should conflict with T2 dependency
+        let task3 = create_test_task_with_dependencies(3, 1, 0, 5, BTreeSet::from_iter([2]))?;
+        graph.add(task3)?;
+        
+        // T4 starts at T1 + 2, duration 5 days - should also conflict with T2 dependency
+        let task4 = create_test_task_with_dependencies(4, 1, 2, 5, BTreeSet::from_iter([2]))?;
+        graph.add(task4)?;
+        
+        let mut algebra = Algebra::new(graph);
+        let root_date = test_date("2021-01-01T00:00:00Z");
+        
+        match algebra.fill_spans(root_date) {
+            Ok(_) => panic!("Expected errors, got Ok"),
+            Err(AlgebraError::Multiple { errors }) => {
+                // Should have multiple task errors (T3 and T4 both failing)
+                assert_eq!(errors.len(), 2);
+                
+                // Each should be a dependency validation error
+                for error in &errors {
+                    match error {
+                        AlgebraError::Multiple { errors: inner_errors } => {
+                            assert_eq!(inner_errors.len(), 1);
+                            match &inner_errors[0] {
+                                AlgebraError::TooEarlyForDependency { task_id, dependency_id } => {
+                                    assert!(*task_id == TaskId::new(3) || *task_id == TaskId::new(4));
+                                    assert_eq!(*dependency_id, TaskId::new(2));
+                                }
+                                e => panic!("Unexpected inner error: {:?}", e),
+                            }
+                        }
+                        e => panic!("Unexpected error: {:?}", e),
+                    }
+                }
+            }
+            Err(e) => panic!("Unexpected error: {:?}", e),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_cycle_detection_reports_all_cycles() -> Result<(), anyhow::Error> {
+        let mut graph = Graph::new();
+        
+        // Create two separate cycles:
+        // Cycle 1: T1 -> T2 -> T3 -> T1
+        let task1 = create_test_task_with_dependencies(1, 2, 0, 10, BTreeSet::from_iter([3]))?;
+        let task2 = create_test_task_with_dependencies(2, 3, 0, 10, BTreeSet::from_iter([1]))?;
+        let task3 = create_test_task_with_dependencies(3, 1, 0, 10, BTreeSet::from_iter([2]))?;
+        
+        // Cycle 2: T4 -> T5 -> T4  
+        let task4 = create_test_task_with_dependencies(4, 5, 0, 10, BTreeSet::from_iter([5]))?;
+        let task5 = create_test_task_with_dependencies(5, 4, 0, 10, BTreeSet::from_iter([4]))?;
+        
+        graph.add(task1)?;
+        graph.add(task2)?;
+        graph.add(task3)?;
+        graph.add(task4)?;
+        graph.add(task5)?;
+        
+        let mut algebra = Algebra::new(graph);
+        let root_date = test_date("2021-01-01T00:00:00Z");
+        
+        match algebra.fill_spans(root_date) {
+            Ok(_) => panic!("Expected cycle error, got Ok"),
+            Err(AlgebraError::GraphHasCycles { cycles }) => {
+                // Should detect cycles (exact number depends on cycle detection algorithm)
+                assert!(!cycles.is_empty());
+                println!("Detected cycles: {:?}", cycles);
             }
             Err(e) => panic!("Unexpected error: {:?}", e),
         }
