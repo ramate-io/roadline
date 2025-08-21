@@ -58,4 +58,37 @@ impl DownLane {
 
         Self::new(lane, padding, range)
     }
+
+    pub fn lane_id(&self) -> LaneId {
+        self.lane_id
+    }
+
+    pub fn padding(&self) -> &DownLanePadding {
+        &self.padding
+    }
+
+    pub fn range(&self) -> &DownLaneRange {
+        &self.range
+    }
+
+    /// Get the midpoint of this lane (for connection points)
+    pub fn midpoint(&self) -> ReifiedUnit {
+        let start_val = self.range.start.value();
+        let end_val = self.range.end.value();
+        ReifiedUnit::new((start_val + end_val) / 2)
+    }
+}
+
+impl DownLaneRange {
+    pub fn new(start: ReifiedUnit, end: ReifiedUnit) -> Self {
+        Self { start, end }
+    }
+
+    pub fn start(&self) -> ReifiedUnit {
+        self.start
+    }
+
+    pub fn end(&self) -> ReifiedUnit {
+        self.end
+    }
 }

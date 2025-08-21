@@ -61,11 +61,36 @@ impl DownStretch {
         let unit = stretch.unit().down(1);
         let (start, end) = stretch.scale(unit);
 
+        // subtract the trim from the end
+        let end = end as u16 - trim.value().value();
+
         let down_stretch = DownStretchRange::new(
             ReifiedUnit::new(start as u16),
             ReifiedUnit::new(end as u16),
         );
 
         Self::new(stretch, trim, down_stretch)
+    }
+
+    pub fn stretch(&self) -> &Stretch {
+        &self.stretch
+    }
+
+    pub fn trim(&self) -> &Trim {
+        &self.trim
+    }
+
+    pub fn down_stretch(&self) -> &DownStretchRange {
+        &self.down_stretch
+    }
+
+    /// Get the connection point at the end of this stretch (right edge, for outgoing connections)
+    pub fn outgoing_connection_point(&self) -> ReifiedUnit {
+        self.down_stretch.end()
+    }
+
+    /// Get the connection point at the start of this stretch (left edge, for incoming connections)
+    pub fn incoming_connection_point(&self) -> ReifiedUnit {
+        self.down_stretch.start()
     }
 }
