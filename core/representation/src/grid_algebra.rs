@@ -152,12 +152,13 @@ impl PreGridAlgebra {
         let mut lane_assignments = HashMap::new();
         let mut lane_occupancy: Vec<Vec<(TaskId, StretchRange)>> = Vec::new();
 
-        // Sort root tasks by start time for consistent layout
+        // Sort root tasks by start time, then by TaskId for deterministic layout
         let mut roots: Vec<TaskId> = graph.root_tasks();
         roots.sort_by_key(|&task_id| {
-            task_stretches.get(&task_id)
+            let start_time = task_stretches.get(&task_id)
                 .map(|stretch| stretch.start())
-                .unwrap_or(0)
+                .unwrap_or(0);
+            (start_time, task_id) // Secondary sort by TaskId for determinism
         });
 
         // Calculate maximum width for each root's subtree
@@ -189,12 +190,12 @@ impl PreGridAlgebra {
     /// Calculates the maximum width of a subtree rooted at the given task using BFS.
     /// This determines how many lanes the subtree might need at its widest level.
     fn calculate_subtree_max_width(&self, root: TaskId, task_stretches: &HashMap<TaskId, Stretch>) -> usize {
-        use std::collections::{VecDeque, HashMap as StdHashMap};
+        use std::collections::{VecDeque, BTreeMap, BTreeSet};
         
         let graph = self.range_algebra.graph();
         let mut queue = VecDeque::new();
-        let mut level_counts: StdHashMap<usize, Vec<TaskId>> = StdHashMap::new();
-        let mut visited = std::collections::HashSet::new();
+        let mut level_counts: BTreeMap<usize, Vec<TaskId>> = BTreeMap::new();
+        let mut visited = BTreeSet::new();
         
         // Start BFS from root
         queue.push_back((root, 0)); // (task_id, depth)
@@ -204,8 +205,10 @@ impl PreGridAlgebra {
             // Add task to its level
             level_counts.entry(depth).or_insert_with(Vec::new).push(task_id);
             
-            // Add children to queue
-            let dependents = graph.get_dependents(&task_id);
+            // Add children to queue in deterministic order
+            let mut dependents = graph.get_dependents(&task_id);
+            dependents.sort(); // Sort by TaskId for deterministic order
+            
             for dependent in dependents {
                 if !visited.contains(&dependent) {
                     visited.insert(dependent);
@@ -217,6 +220,7 @@ impl PreGridAlgebra {
         // Calculate maximum width considering temporal overlaps
         let mut max_width = 1; // At least 1 for the root
         
+        // Process levels in deterministic order
         for (_, tasks_at_level) in level_counts {
             if tasks_at_level.is_empty() {
                 continue;
@@ -287,7 +291,9 @@ impl PreGridAlgebra {
             .ok_or(GridAlgebraError::TaskNotFound { task_id })?;
 
         // For tasks with multiple dependencies, prefer median of parent lanes
-        let dependencies = self.range_algebra.graph().get_dependencies(&task_id);
+        let mut dependencies = self.range_algebra.graph().get_dependencies(&task_id);
+        dependencies.sort(); // Sort for deterministic behavior
+        
         let preferred_lane = if dependencies.len() > 1 {
             let mut parent_lanes: Vec<usize> = dependencies.iter()
                 .filter_map(|&dep_id| assignments.get(&dep_id))
@@ -318,7 +324,9 @@ impl PreGridAlgebra {
         occupancy[lane_index].push((task_id, *task_stretch.range()));
 
         // Recursively assign dependents, preferring this lane
-        let dependents = self.range_algebra.graph().get_dependents(&task_id);
+        let mut dependents = self.range_algebra.graph().get_dependents(&task_id);
+        dependents.sort(); // Sort for deterministic behavior
+        
         for dependent in dependents {
             self.dfs_assign_lane(
                 dependent,
@@ -734,6 +742,150 @@ mod tests {
         println!("Lane assignments: T1={}, T2={}, T3={}, T4={}, T5={}", 
                  task1_lane, task2_lane, task3_lane, task4_lane, task5_lane);
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_determinism_stress_test() -> Result<(), anyhow::Error> {
+        const ITERATIONS: usize = 50;
+        
+        println!("Running determinism stress test with {} iterations...", ITERATIONS);
+        
+        // Store results from first iteration to compare against
+        let mut baseline_results: Option<(
+            Vec<(TaskId, u8)>, // simple grid
+            Vec<(TaskId, u8)>, // parallel lanes
+            Vec<(TaskId, u8)>, // dependency locality
+            Vec<(TaskId, u8)>, // subtree spacing
+        )> = None;
+        
+        for i in 0..ITERATIONS {
+            if i % 10 == 0 {
+                println!("  Iteration {}/{}", i + 1, ITERATIONS);
+            }
+            
+            // Test 1: Simple grid computation
+            let simple_results = {
+                let mut graph = Graph::new();
+                let task1 = create_test_task_with_dependencies(1, 1, 0, 10, BTreeSet::new())?;
+                let task2 = create_test_task_with_dependencies(2, 1, 5, 10, BTreeSet::from_iter([1]))?;
+                graph.add(task1)?;
+                graph.add(task2)?;
+                
+                let range_algebra = PreRangeAlgebra::new(graph).compute(test_date("2021-01-01T00:00:00Z"))?;
+                let grid_algebra = PreGridAlgebra::new(range_algebra).compute()?;
+                
+                let mut results = vec![];
+                for task_id in [TaskId::new(1), TaskId::new(2)] {
+                    if let Some(cell) = grid_algebra.task_cell(&task_id) {
+                        results.push((task_id, u8::from(cell.lane_id())));
+                    }
+                }
+                results.sort();
+                results
+            };
+            
+            // Test 2: Parallel lane assignment
+            let parallel_results = {
+                let mut graph = Graph::new();
+                // Root task: T1
+                let task1 = create_test_task_with_dependencies(1, 1, 0, 30, BTreeSet::new())?;
+                graph.add(task1)?;
+                
+                // T2 and T3 both depend on T1 and overlap in time
+                let task2 = create_test_task_with_dependencies(2, 1, 0, 15, BTreeSet::from_iter([1]))?;
+                graph.add(task2)?;
+                
+                let task3 = create_test_task_with_dependencies(3, 1, 5, 15, BTreeSet::from_iter([1]))?;
+                graph.add(task3)?;
+                
+                // T4 depends on both T2 and T3, starts after both complete
+                let task4 = create_test_task_with_dependencies(4, 3, 0, 10, BTreeSet::from_iter([2, 3]))?;
+                graph.add(task4)?;
+                
+                let range_algebra = PreRangeAlgebra::new(graph).compute(test_date("2021-01-01T00:00:00Z"))?;
+                let grid_algebra = PreGridAlgebra::new(range_algebra).compute()?;
+                
+                let mut results = vec![];
+                for task_id in [TaskId::new(1), TaskId::new(2), TaskId::new(3), TaskId::new(4)] {
+                    if let Some(cell) = grid_algebra.task_cell(&task_id) {
+                        results.push((task_id, u8::from(cell.lane_id())));
+                    }
+                }
+                results.sort();
+                results
+            };
+            
+            // Test 3: Dependency locality
+            let locality_results = {
+                let mut graph = Graph::new();
+                let task1 = create_test_task_with_dependencies(1, 1, 0, 5, BTreeSet::new())?;
+                let task2 = create_test_task_with_dependencies(2, 1, 5, 5, BTreeSet::from_iter([1]))?;
+                graph.add(task1)?;
+                graph.add(task2)?;
+                
+                let range_algebra = PreRangeAlgebra::new(graph).compute(test_date("2021-01-01T00:00:00Z"))?;
+                let grid_algebra = PreGridAlgebra::new(range_algebra).compute()?;
+                
+                let mut results = vec![];
+                for task_id in [TaskId::new(1), TaskId::new(2)] {
+                    if let Some(cell) = grid_algebra.task_cell(&task_id) {
+                        results.push((task_id, u8::from(cell.lane_id())));
+                    }
+                }
+                results.sort();
+                results
+            };
+            
+            // Test 4: Subtree width-based spacing
+            let subtree_results = {
+                let mut graph = Graph::new();
+                let task1 = create_test_task_with_dependencies(1, 1, 0, 30, BTreeSet::new())?;
+                let task2 = create_test_task_with_dependencies(2, 1, 0, 15, BTreeSet::from_iter([1]))?;
+                let task3 = create_test_task_with_dependencies(3, 1, 5, 15, BTreeSet::from_iter([1]))?;
+                let task4 = create_test_task_with_dependencies(4, 4, 0, 20, BTreeSet::new())?;
+                let task5 = create_test_task_with_dependencies(5, 4, 0, 10, BTreeSet::from_iter([4]))?;
+                graph.add(task1)?;
+                graph.add(task2)?;
+                graph.add(task3)?;
+                graph.add(task4)?;
+                graph.add(task5)?;
+                
+                let range_algebra = PreRangeAlgebra::new(graph).compute(test_date("2021-01-01T00:00:00Z"))?;
+                let grid_algebra = PreGridAlgebra::new(range_algebra).compute()?;
+                
+                let mut results = vec![];
+                for task_id in [TaskId::new(1), TaskId::new(2), TaskId::new(3), TaskId::new(4), TaskId::new(5)] {
+                    if let Some(cell) = grid_algebra.task_cell(&task_id) {
+                        results.push((task_id, u8::from(cell.lane_id())));
+                    }
+                }
+                results.sort();
+                results
+            };
+            
+            let current_results = (simple_results, parallel_results, locality_results, subtree_results);
+            
+            if let Some(ref baseline) = baseline_results {
+                assert_eq!(current_results.0, baseline.0, 
+                    "Simple grid results differ at iteration {}: {:?} vs {:?}", i, current_results.0, baseline.0);
+                assert_eq!(current_results.1, baseline.1, 
+                    "Parallel lane results differ at iteration {}: {:?} vs {:?}", i, current_results.1, baseline.1);
+                assert_eq!(current_results.2, baseline.2, 
+                    "Dependency locality results differ at iteration {}: {:?} vs {:?}", i, current_results.2, baseline.2);
+                assert_eq!(current_results.3, baseline.3, 
+                    "Subtree spacing results differ at iteration {}: {:?} vs {:?}", i, current_results.3, baseline.3);
+            } else {
+                baseline_results = Some(current_results);
+                println!("  Baseline established:");
+                println!("    Simple: {:?}", baseline_results.as_ref().unwrap().0);
+                println!("    Parallel: {:?}", baseline_results.as_ref().unwrap().1);
+                println!("    Locality: {:?}", baseline_results.as_ref().unwrap().2);
+                println!("    Subtree: {:?}", baseline_results.as_ref().unwrap().3);
+            }
+        }
+        
+        println!("✅ All {} iterations produced identical results - algorithm is deterministic!", ITERATIONS);
         Ok(())
     }
 }
