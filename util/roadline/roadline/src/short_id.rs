@@ -28,3 +28,15 @@ impl ShortId {
         Self(0)
     }
 }
+
+impl From<u8> for ShortId {
+    fn from(byte: u8) -> Self {
+        Self::new(byte)
+    }
+}
+
+impl From<ShortId> for u8 {
+    fn from(id: ShortId) -> Self {
+        id.0
+    }
+}

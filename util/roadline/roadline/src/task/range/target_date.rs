@@ -11,8 +11,17 @@ pub struct TargetDate {
     pub duration: Duration,
 }
 
+
 impl TargetDate {
     pub fn new_test() -> Self {
         Self { point_of_reference: PointOfReference::new_test(), duration: Duration::new_test() }
+    }
+
+    pub fn duration(&self) -> &Duration {
+        &self.duration
+    }
+
+    pub fn point_of_reference(&self) -> &PointOfReference {
+        &self.point_of_reference
     }
 }

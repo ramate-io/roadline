@@ -72,15 +72,51 @@ impl Task {
         &self.id
     }
 
+    pub fn id_mut(&mut self) -> &mut Id {
+        &mut self.id
+    }
+
     pub fn title(&self) -> &Title {
         &self.title
+    }
+
+    pub fn title_mut(&mut self) -> &mut Title { 
+        &mut self.title
     }
 
     pub fn depends_on(&self) -> &BTreeSet<Id> {
         &self.depends_on
     }
 
+    pub fn depends_on_mut(&mut self) -> &mut BTreeSet<Id> {
+        &mut self.depends_on
+    }
+
     pub fn dependencies(&self) -> &BTreeSet<Id> {
         &self.depends_on
+    }
+
+    pub fn dependencies_mut(&mut self) -> &mut BTreeSet<Id> {
+        &mut self.depends_on
+    }
+
+    pub fn subtasks_mut(&mut self) -> &mut BTreeSet<EmbeddedSubtask> {
+        &mut self.subtasks
+    }
+
+    pub fn summary_mut(&mut self) -> &mut Summary {
+        &mut self.summary
+    }
+
+    pub fn range(&self) -> &Range {
+        &self.range
+    }
+
+    pub fn range_mut(&mut self) -> &mut Range {
+        &mut self.range
+    }
+
+    pub fn is_root(&self) -> bool {
+        self.depends_on.is_empty()
     }
 }

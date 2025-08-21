@@ -16,8 +16,8 @@ impl Graph {
         let task_id = *task.id();
 
         // for each dependency in the task, add a dependency to the graph
-        for to_task_id in task.dependencies() {
-            self.add_dependency(task_id, dep_id, *to_task_id)?;
+        for from_task_id in task.dependencies() {
+            self.add_dependency(*from_task_id, dep_id, task_id)?;
         }
 
         self.arena.add_task(task);

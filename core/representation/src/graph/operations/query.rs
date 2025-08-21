@@ -11,6 +11,14 @@ impl Graph {
     /// Gets all tasks that depend on the given task.
     pub fn get_dependents(&self,  task_id: &TaskId) -> Vec<TaskId> {
         self.facts
+            .get( task_id)
+            .map(|predicates| predicates.iter().map(|p| p. task_id).collect())
+            .unwrap_or_default()
+    }
+
+    /// Gets all tasks that the given task depends on.
+    pub fn get_dependencies(&self,  task_id: &TaskId) -> Vec<TaskId> {
+        self.facts
             .iter()
             .filter_map(|(from_task, predicates)| {
                 if predicates.iter().any(|p| &p. task_id ==  task_id) {
@@ -20,14 +28,6 @@ impl Graph {
                 }
             })
             .collect()
-    }
-
-    /// Gets all tasks that the given task depends on.
-    pub fn get_dependencies(&self,  task_id: &TaskId) -> Vec<TaskId> {
-        self.facts
-            .get( task_id)
-            .map(|predicates| predicates.iter().map(|p| p. task_id).collect())
-            .unwrap_or_default()
     }
 
     /// Returns all task IDs in the graph.
@@ -124,16 +124,16 @@ mod tests {
         let task3 = TaskId::new(3);
         let task4 = TaskId::new(4);
         
+        let dependents1 = graph.get_dependents(&task1);
+        assert_eq!(dependents1.len(), 1);
+        assert!(dependents1.contains(&task2));
+        
         let dependents2 = graph.get_dependents(&task2);
         assert_eq!(dependents2.len(), 1);
-        assert!(dependents2.contains(&task1));
+        assert!(dependents2.contains(&task3));
         
         let dependents3 = graph.get_dependents(&task3);
-        assert_eq!(dependents3.len(), 1);
-        assert!(dependents3.contains(&task2));
-        
-        let dependents1 = graph.get_dependents(&task1);
-        assert_eq!(dependents1.len(), 0);
+        assert_eq!(dependents3.len(), 0);
         
         let dependents4 = graph.get_dependents(&task4);
         assert_eq!(dependents4.len(), 0);
@@ -150,15 +150,15 @@ mod tests {
         let task4 = TaskId::new(4);
         
         let deps1 = graph.get_dependencies(&task1);
-        assert_eq!(deps1.len(), 1);
-        assert!(deps1.contains(&task2));
+        assert_eq!(deps1.len(), 0);
         
         let deps2 = graph.get_dependencies(&task2);
         assert_eq!(deps2.len(), 1);
-        assert!(deps2.contains(&task3));
+        assert!(deps2.contains(&task1));
         
         let deps3 = graph.get_dependencies(&task3);
-        assert_eq!(deps3.len(), 0);
+        assert_eq!(deps3.len(), 1);
+        assert!(deps3.contains(&task2));
         
         let deps4 = graph.get_dependencies(&task4);
         assert_eq!(deps4.len(), 0);

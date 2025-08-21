@@ -34,10 +34,10 @@ mod integration_tests {
         let task5 = TaskId::new(5);
         
         let task1_deps = graph.get_dependencies(&task1);
-        assert_eq!(task1_deps.len(), 2);
+        assert_eq!(task1_deps.len(), 0); // task1 is the root, has no dependencies
         
         let task5_dependents = graph.get_dependents(&task5);
-        assert_eq!(task5_dependents.len(), 2); // task2 and task3
+        assert_eq!(task5_dependents.len(), 2); // task7 and task8
         
         Ok(())
     }
@@ -269,7 +269,7 @@ mod integration_tests {
                     assert!(graph.contains_task(&predicate.task_id));
                     
                     // The dependency should be detectable via has_dependency
-                    assert!(graph.has_dependency(&predicate.task_id, &predicate.task_id));
+                    assert!(graph.has_dependency(&task_id, &predicate.task_id));
                 }
             }
         }

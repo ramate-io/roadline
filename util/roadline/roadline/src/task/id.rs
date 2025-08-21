@@ -19,3 +19,15 @@ impl Id {
         Self(ShortId::new_test())
     }
 }
+
+impl From<u8> for Id {
+    fn from(byte: u8) -> Self {
+        Self::new(byte)
+    }
+}
+
+impl From<Id> for u8 {
+    fn from(id: Id) -> Self {
+        id.0.into()
+    }
+}
