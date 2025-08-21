@@ -314,12 +314,12 @@ mod tests {
     fn test_self_loop_cycle() -> Result<(), anyhow::Error> {
         let mut graph = Graph::new();
         let task1 = TaskId::new(1);
-        let dependency_id = DependencyId::new(1);
+        let dependency_id = DependencyId::from_u8(1, 1);
         
         graph.add_dependency(task1, dependency_id, task1)?;
         
-        assert!(graph.has_cycles().unwrap());
-        let cycles = graph.find_cycles().unwrap();
+        assert!(graph.has_cycles()?);
+        let cycles = graph.find_cycles()?;
         assert_eq!(cycles.len(), 1);
         assert_eq!(cycles[0].len(), 1);
         assert_eq!(cycles[0][0], task1);

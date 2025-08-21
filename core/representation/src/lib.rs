@@ -6,3 +6,4 @@ pub mod reified;
 pub mod range_algebra;
 pub mod grid_algebra;
 pub mod arena;
+pub mod roadline;

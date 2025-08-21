@@ -32,6 +32,8 @@ pub enum RangeAlgebraError {
     Multiple { errors: Vec<RangeAlgebraError> },
     #[error("Graph contains cycles: {}", format_cycles(.cycles))]
     GraphHasCycles { cycles: Vec<Vec<TaskId>> },
+    #[error("Invalid date: {date:?}")]
+    InvalidDate { date: String },
 }
 
 fn format_multiple_errors(errors: &[RangeAlgebraError]) -> String {
