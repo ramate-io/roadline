@@ -5,7 +5,8 @@ resolver = "2"
 members = [
 
   "util/roadline/*",
-  "core/representation"
+  "core/representation",
+  "core/renderer/*"
   
 ]
 
@@ -84,6 +85,7 @@ clap-markdown-ext = { git = "https://github.com/movementlabsxyz/clap-markdown-ex
 
 # internal
 roadline-util = { path = "util/roadline/roadline" }
+roadline-representation-core = { path = "core/representation" }
 
 [workspace.lints.clippy]
 debug_assert_with_mut_call = "deny"

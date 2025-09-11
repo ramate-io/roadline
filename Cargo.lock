@@ -163,6 +163,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "roadline-bevy-renderer"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "roadline-representation-core",
+ "roadline-util",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "roadline-representation-core"
 version = "0.0.1"
 dependencies = [
