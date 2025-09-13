@@ -78,8 +78,9 @@ impl RoadlineRenderer {
 	pub fn get_visual_bounds(&self, app: &App) -> Option<(f32, f32, f32, f32)> {
 		if let Some(reified) = app.world().get_resource::<Roadline>() {
 			let (max_x, max_y) = reified.visual_bounds();
-			let pixel_max_x = max_x.value() as f32 * 8000.000000;
-			let pixel_max_y = max_y.value() as f32 * 20.423;
+			let pixels_per_unit = 50.0; // Same as in systems.rs
+			let pixel_max_x = max_x.value() as f32 * pixels_per_unit;
+			let pixel_max_y = max_y.value() as f32 * pixels_per_unit;
 
 			// Return (min_x, max_x, min_y, max_y)
 			Some((0.0, pixel_max_x, 0.0, pixel_max_y))
@@ -90,46 +91,47 @@ impl RoadlineRenderer {
 
 	/// Center the camera on the rendered content
 	pub fn center_camera(&self, app: &mut App) {
-		if let Some((min_x, max_x, min_y, max_y)) = self.get_visual_bounds(app) {
-			let center_x = (min_x + max_x) / 2.0;
-			let center_y = (min_y + max_y) / 2.0;
+		// Since we now position content around (0,0), just center the camera at origin
+		let center_x = 0.0;
+		let center_y = 0.0;
+		println!("Centering camera at origin: ({:.1}, {:.1})", center_x, center_y);
 
-			// Update camera position
-			let mut camera_query =
-				app.world_mut().query_filtered::<&mut Transform, With<Camera2d>>();
-			for mut transform in camera_query.iter_mut(app.world_mut()) {
-				transform.translation.x = center_x;
-				transform.translation.y = center_y;
-			}
+		// Update camera position
+		let mut camera_query =
+			app.world_mut().query_filtered::<&mut Transform, With<Camera2d>>();
+		for mut transform in camera_query.iter_mut(app.world_mut()) {
+			transform.translation.x = center_x;
+			transform.translation.y = center_y;
 		}
 	}
 
 	/// Fit the camera to show all content with some padding
 	pub fn fit_camera_to_content(&self, app: &mut App, padding_ratio: f32) {
 		if let Some((min_x, max_x, min_y, max_y)) = self.get_visual_bounds(app) {
-			println!("min_x: {}, max_x: {}, min_y: {}, max_y: {}", min_x, max_x, min_y, max_y);
+			println!(
+				"Visual bounds: min_x: {}, max_x: {}, min_y: {}, max_y: {}",
+				min_x, max_x, min_y, max_y
+			);
+
 			let content_width = max_x - min_x;
 			let content_height = max_y - min_y;
 
-			// The width is fraction of the total units needed for one unit of rendering width * 1000 for buffering
-			let padded_width = ((1.0 / content_width) + padding_ratio) * 1000.0;
-			let padded_height = ((1.0 / content_height) + padding_ratio) * 1000.0;
+			// Simple scaling: just use a reasonable scale that should show everything
+			let scale = 0.5; // Start with a simple fixed scale to see if content appears
 
-			// Assume a default viewport size for scaling calculation
-			let viewport_width = 1024.0;
-			let viewport_height = 768.0;
+			println!(
+				"Content size: {}x{}, Using fixed scale: {}",
+				content_width, content_height, scale
+			);
 
-			//  let scale_x = viewport_width / padded_width;
-			// let scale_y = viewport_height / padded_height;
-			let scale = padded_width.min(padded_height);
-
-			// Update camera
+			// Center camera first
 			self.center_camera(app);
 
+			// Apply scale to camera
 			let mut camera_query =
 				app.world_mut().query_filtered::<&mut OrthographicProjection, With<Camera2d>>();
 			for mut projection in camera_query.iter_mut(app.world_mut()) {
-				projection.scale = 1.0 / scale;
+				projection.scale = scale;
 			}
 		}
 	}

@@ -26,7 +26,6 @@ fn main() -> Result<(), anyhow::Error> {
 	};
 
 	let renderer = RoadlineRenderer::with_config(config);
-	println!("🎨 Renderer created with visual config");
 
 	// Create and configure the Bevy app
 	let mut app = renderer.create_app();
@@ -66,9 +65,6 @@ fn main() -> Result<(), anyhow::Error> {
 			..default()
 		},
 	));
-
-	println!("🎮 Starting interactive visualization...");
-	println!("   Use WASD to move camera, Q/E to zoom, R to reset, ESC to quit");
 
 	// Run the Bevy app
 	app.run();
