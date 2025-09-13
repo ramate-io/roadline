@@ -44,11 +44,12 @@ impl DownLane {
 	}
 
 	pub fn canonical_from_lane(lane: LaneId, padding: DownLanePadding) -> Self {
-		// The lane new start range should be (2 + paddding) * lane_id
-		let new_start = ReifiedUnit::new((2 + padding.value().value()) * lane.value() as u16);
+		let new_start = ReifiedUnit::new((1 + padding.value().value()) * lane.value() as u16);
 
 		// The lane new end range should be (2 + paddding) * lane_id + 2
-		let new_end = ReifiedUnit::new((2 + padding.value().value()) * (lane.value() as u16 + 1));
+		let new_end = ReifiedUnit::new(
+			(1 + padding.value().value()) * (lane.value() as u16 + 1) - padding.value().value(),
+		);
 
 		let range = DownLaneRange { start: new_start, end: new_end };
 

@@ -37,14 +37,19 @@ pub fn update_milestone_sprites(
 		// Convert reified units to pixel coordinates
 		let pixel_x = x as f32 * 2.0;
 		let pixel_y = y as f32 * 2.0;
+		let sprite_width = width as f32 * 2.0;
+		let sprite_height = height as f32 * 2.0;
+
+		// Adjust for left justification (Bevy positions by center, so move right by half width)
+		let left_justified_x = pixel_x + (sprite_width / 2.0);
 
 		commands.spawn((
 			Sprite {
 				color: config.milestone_color,
-				custom_size: Some(Vec2::new(width as f32 * 2.0, height as f32 * 2.0)),
+				custom_size: Some(Vec2::new(sprite_width, sprite_height)),
 				..default()
 			},
-			Transform::from_xyz(pixel_x, pixel_y, 1.0),
+			Transform::from_xyz(left_justified_x, pixel_y, 1.0),
 			Visibility::Visible,
 			MilestoneNode::new(*task_id),
 			RenderState::new(),
