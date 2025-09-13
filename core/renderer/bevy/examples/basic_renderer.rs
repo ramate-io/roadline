@@ -4,7 +4,7 @@ use roadline_bevy_renderer::{RoadlineRenderConfig, RoadlineRenderer};
 use roadline_representation_core::graph::Graph;
 use roadline_representation_core::grid_algebra::PreGridAlgebra;
 use roadline_representation_core::range_algebra::{Date, PreRangeAlgebra};
-use roadline_representation_core::reified::PreReified;
+use roadline_representation_core::reified::{PreReified, ReifiedConfig};
 use roadline_util::duration::Duration;
 use roadline_util::task::Id as TaskId;
 use roadline_util::task::{
@@ -78,7 +78,9 @@ fn main() -> Result<(), anyhow::Error> {
 	let grid_algebra = PreGridAlgebra::new(range_algebra).compute()?;
 	println!("Grid algebra computed");
 
-	let reified = PreReified::new(grid_algebra).compute()?;
+	let reified = PreReified::new(grid_algebra)
+		.with_config(ReifiedConfig::default_config().with_connection_trim(2.into()))
+		.compute()?;
 	println!(
 		"Reified representation computed with {} tasks and {} connections",
 		reified.task_count(),

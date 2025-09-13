@@ -44,6 +44,18 @@ impl ReifiedConfig {
 			inter_lane_padding: DownLanePadding::new(ReifiedUnit::new(2)), // 2 units between lanes
 		}
 	}
+
+	/// Sets the connection trim
+	pub fn with_connection_trim(mut self, connection_trim: Trim) -> Self {
+		self.connection_trim = connection_trim;
+		self
+	}
+
+	/// Sets the inter-lane padding
+	pub fn with_inter_lane_padding(mut self, inter_lane_padding: DownLanePadding) -> Self {
+		self.inter_lane_padding = inter_lane_padding;
+		self
+	}
 }
 
 /// Pre-computation state for reified visual layer
@@ -57,8 +69,13 @@ impl PreReified {
 		Self { grid, config: ReifiedConfig::default_config() }
 	}
 
-	pub fn with_config(grid: GridAlgebra, config: ReifiedConfig) -> Self {
+	pub fn new_with_config(grid: GridAlgebra, config: ReifiedConfig) -> Self {
 		Self { grid, config }
+	}
+
+	pub fn with_config(mut self, config: ReifiedConfig) -> Self {
+		self.config = config;
+		self
 	}
 
 	pub fn compute(self) -> Result<Reified, ReifiedError> {
@@ -402,7 +419,7 @@ mod tests {
 			DownLanePadding::new(ReifiedUnit::new(5)), // Larger padding
 		);
 
-		let reified = PreReified::with_config(grid_algebra, config).compute()?;
+		let reified = PreReified::new_with_config(grid_algebra, config).compute()?;
 
 		assert_eq!(reified.task_count(), 2);
 		assert_eq!(reified.config().connection_trim.value().value(), 20);
