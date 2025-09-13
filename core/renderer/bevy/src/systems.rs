@@ -1,6 +1,7 @@
 use crate::components::{MilestoneNode, RenderState, TaskEdge};
 use crate::resources::{RenderUpdateEvent, Roadline};
 use crate::RoadlineRenderConfig;
+use bevy::color::palettes::css::WHITE_SMOKE;
 use bevy::prelude::*;
 
 /// System to update milestone sprites when reified data changes
@@ -43,12 +44,21 @@ pub fn update_milestone_sprites(
 		// Adjust for left justification (Bevy positions by center, so move right by half width)
 		let left_justified_x = pixel_x + (sprite_width / 2.0);
 
+		let task = reified.task(task_id);
+		if task.is_none() {
+			continue;
+		}
+		let task = task.unwrap();
+		let title = task.title();
+
 		commands.spawn((
 			Sprite {
-				color: config.milestone_color,
+				color: WHITE_SMOKE.into(),
 				custom_size: Some(Vec2::new(sprite_width, sprite_height)),
 				..default()
 			},
+			// Text
+			Text::new(title.text.clone()),
 			Transform::from_xyz(left_justified_x, pixel_y, 1.0),
 			Visibility::Visible,
 			MilestoneNode::new(*task_id),

@@ -522,6 +522,11 @@ impl Roadline {
 	pub fn range_algebra(&self) -> &RangeAlgebra {
 		self.reified.grid().range_algebra()
 	}
+
+	/// Gets the task for a given task id.
+	pub fn task(&self, task_id: &TaskId) -> Option<&Task> {
+		self.reified.grid().task(task_id)
+	}
 }
 
 #[cfg(test)]
