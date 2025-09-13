@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use roadline_representation_core::reified::Reified as CoreReified;
+use roadline_representation_core::roadline::Roadline as CoreRoadline;
 
 /// Event to trigger render updates
 #[derive(Event, Debug)]
@@ -40,59 +40,59 @@ impl Default for ViewportBounds {
 
 /// Bevy Resource wrapper for the core Reified representation
 #[derive(Resource, Debug, Clone)]
-pub struct ReifiedData {
-	inner: CoreReified,
+pub struct Roadline {
+	inner: CoreRoadline,
 }
 
-impl ReifiedData {
-	pub fn new(reified: CoreReified) -> Self {
+impl Roadline {
+	pub fn new(reified: CoreRoadline) -> Self {
 		Self { inner: reified }
 	}
 
 	/// Get a reference to the inner reified data
-	pub fn inner(&self) -> &CoreReified {
+	pub fn inner(&self) -> &CoreRoadline {
 		&self.inner
 	}
 
 	/// Get a mutable reference to the inner reified data
-	pub fn inner_mut(&mut self) -> &mut CoreReified {
+	pub fn inner_mut(&mut self) -> &mut CoreRoadline {
 		&mut self.inner
 	}
 
 	/// Consume the wrapper and return the inner reified data
-	pub fn into_inner(self) -> CoreReified {
+	pub fn into_inner(self) -> CoreRoadline {
 		self.inner
 	}
 }
 
-impl From<CoreReified> for ReifiedData {
-	fn from(reified: CoreReified) -> Self {
+impl From<CoreRoadline> for Roadline {
+	fn from(reified: CoreRoadline) -> Self {
 		Self::new(reified)
 	}
 }
 
-impl AsRef<CoreReified> for ReifiedData {
-	fn as_ref(&self) -> &CoreReified {
+impl AsRef<CoreRoadline> for Roadline {
+	fn as_ref(&self) -> &CoreRoadline {
 		&self.inner
 	}
 }
 
-impl AsMut<CoreReified> for ReifiedData {
-	fn as_mut(&mut self) -> &mut CoreReified {
+impl AsMut<CoreRoadline> for Roadline {
+	fn as_mut(&mut self) -> &mut CoreRoadline {
 		&mut self.inner
 	}
 }
 
 // Implement Deref and DerefMut for convenient access to inner methods
-impl std::ops::Deref for ReifiedData {
-	type Target = CoreReified;
+impl std::ops::Deref for Roadline {
+	type Target = CoreRoadline;
 
 	fn deref(&self) -> &Self::Target {
 		&self.inner
 	}
 }
 
-impl std::ops::DerefMut for ReifiedData {
+impl std::ops::DerefMut for Roadline {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		&mut self.inner
 	}

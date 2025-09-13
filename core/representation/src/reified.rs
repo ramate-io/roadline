@@ -40,7 +40,7 @@ impl ReifiedConfig {
 	/// Default configuration with reasonable visual spacing
 	pub fn default_config() -> Self {
 		Self {
-			connection_trim: Trim::new(ReifiedUnit::new(10)), // 10 units of gutter space
+			connection_trim: Trim::new(ReifiedUnit::new(2)), // 2 units of gutter space
 			inter_lane_padding: DownLanePadding::new(ReifiedUnit::new(2)), // 2 units between lanes
 		}
 	}
@@ -163,6 +163,7 @@ impl Reified {
 		self.grid.dependency(dependency_id)
 	}
 
+	/// Converts the reified data into its constituent parts.
 	pub fn to_reified_parts(
 		self,
 	) -> Result<(Vec<ReifiedTask>, Vec<ReifiedDependency>), ReifiedError> {

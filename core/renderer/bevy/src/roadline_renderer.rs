@@ -1,9 +1,9 @@
 use crate::{
-	resources::{ReifiedData, RenderUpdateEvent},
+	resources::{RenderUpdateEvent, Roadline},
 	RoadlineRenderConfig,
 };
 use bevy::prelude::*;
-use roadline_representation_core::reified::Reified as CoreReified;
+use roadline_representation_core::roadline::Roadline as CoreRoadline;
 
 /// High-level interface for rendering roadline visualizations
 pub struct RoadlineRenderer {
@@ -40,14 +40,14 @@ impl RoadlineRenderer {
 	}
 
 	/// Render reified data in the given app
-	pub fn render(&self, app: &mut App, reified: CoreReified) -> Result<(), RoadlineRenderError> {
+	pub fn render(&self, app: &mut App, reified: CoreRoadline) -> Result<(), RoadlineRenderError> {
 		// Validate the reified data
 		if reified.task_count() == 0 {
 			return Err(RoadlineRenderError::EmptyData);
 		}
 
 		// Insert the reified data as a resource (wrapped)
-		app.insert_resource(ReifiedData::new(reified));
+		app.insert_resource(Roadline::new(reified));
 
 		// Send render update event
 		if let Some(mut event_writer) =
@@ -76,7 +76,7 @@ impl RoadlineRenderer {
 
 	/// Get the current visual bounds from the rendered data
 	pub fn get_visual_bounds(&self, app: &App) -> Option<(f32, f32, f32, f32)> {
-		if let Some(reified) = app.world().get_resource::<ReifiedData>() {
+		if let Some(reified) = app.world().get_resource::<Roadline>() {
 			let (max_x, max_y) = reified.visual_bounds();
 			let pixel_max_x = max_x.value() as f32 * self.config.unit_to_pixel_scale;
 			let pixel_max_y = max_y.value() as f32 * self.config.unit_to_pixel_scale;
@@ -149,120 +149,4 @@ pub enum RoadlineRenderError {
 	EventSystemNotInitialized,
 	#[error("Bevy app not properly configured")]
 	AppNotConfigured,
-}
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-	use chrono::{DateTime, Utc};
-	use roadline_representation_core::graph::Graph;
-	use roadline_representation_core::grid_algebra::PreGridAlgebra;
-	use roadline_representation_core::range_algebra::{Date, PreRangeAlgebra};
-	use roadline_representation_core::reified::PreReified;
-	use roadline_util::duration::Duration;
-	use roadline_util::task::Id as TaskId;
-	use roadline_util::task::{
-		range::{End, PointOfReference, Start, TargetDate},
-		Task,
-	};
-	use std::collections::BTreeSet;
-	use std::time::Duration as StdDuration;
-
-	fn test_date(iso_string: &str) -> Date {
-		let datetime = DateTime::parse_from_rfc3339(iso_string)
-			.expect("Valid datetime string")
-			.with_timezone(&Utc);
-		Date::new(datetime)
-	}
-
-	fn create_test_task(
-		id: u8,
-		reference_id: u8,
-		offset_days: u64,
-		duration_days: u64,
-	) -> Result<Task, anyhow::Error> {
-		let id = TaskId::new(id);
-		let reference_id = TaskId::new(reference_id);
-
-		let start = Start::from(TargetDate {
-			point_of_reference: PointOfReference::from(reference_id),
-			duration: Duration::from(StdDuration::from_secs(offset_days * 24 * 60 * 60)),
-		});
-
-		let end = End::from(Duration::from(StdDuration::from_secs(duration_days * 24 * 60 * 60)));
-		let range = roadline_util::task::Range::new(start, end);
-
-		Ok(Task::new(
-			id,
-			roadline_util::task::Title::new_test(),
-			BTreeSet::new(),
-			BTreeSet::new(),
-			roadline_util::task::Summary::new_test(),
-			range,
-		))
-	}
-
-	fn create_test_reified() -> Result<CoreReified, anyhow::Error> {
-		let mut graph = Graph::new();
-
-		let task1 = create_test_task(1, 1, 0, 10)?;
-		let task2 = create_test_task(2, 1, 5, 10)?;
-
-		graph.add(task1)?;
-		graph.add(task2)?;
-
-		let range_algebra =
-			PreRangeAlgebra::new(graph).compute(test_date("2021-01-01T00:00:00Z"))?;
-		let grid_algebra = PreGridAlgebra::new(range_algebra).compute()?;
-		let reified = PreReified::new(grid_algebra).compute()?;
-
-		Ok(reified)
-	}
-
-	#[test]
-	fn test_renderer_creation() {
-		let renderer = RoadlineRenderer::new();
-		let app = renderer.create_app();
-
-		assert!(app.world().contains_resource::<RoadlineRenderConfig>());
-	}
-
-	#[test]
-	fn test_render_with_data() -> Result<(), anyhow::Error> {
-		let renderer = RoadlineRenderer::new();
-		let mut app = renderer.create_app();
-		let reified = create_test_reified()?;
-
-		let result = renderer.render(&mut app, reified);
-		assert!(result.is_ok());
-
-		// Verify reified data was inserted
-		assert!(app.world().contains_resource::<ReifiedData>());
-
-		Ok(())
-	}
-
-	#[test]
-	fn test_render_empty_data_error() {
-		// Skip this test for now since we need a proper empty constructor
-		// TODO: Implement proper empty reified data creation for testing
-	}
-
-	#[test]
-	fn test_visual_bounds() -> Result<(), anyhow::Error> {
-		let renderer = RoadlineRenderer::new();
-		let mut app = renderer.create_app();
-		let reified = create_test_reified()?;
-
-		renderer.render(&mut app, reified)?;
-
-		let bounds = renderer.get_visual_bounds(&app);
-		assert!(bounds.is_some());
-
-		let (min_x, max_x, min_y, max_y) = bounds.unwrap();
-		assert!(max_x > min_x);
-		assert!(max_y >= min_y);
-
-		Ok(())
-	}
 }

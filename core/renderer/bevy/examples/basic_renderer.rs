@@ -8,16 +8,12 @@ fn main() -> Result<(), anyhow::Error> {
 	println!("🚀 Starting Roadline Bevy Renderer Visual Example");
 
 	// Create a complex test reified representation for a more interesting visualization
-	let reified = create_complex_test_reified()?;
+	let reified = create_test_roadline()?;
 	println!(
 		"📊 Created reified representation with {} tasks and {} connections",
 		reified.task_count(),
 		reified.connection_count()
 	);
-
-	// Validate the structure
-	validate_reified_structure(&reified, 5, 5)?;
-	println!("✅ Reified structure validated");
 
 	// Create the Bevy renderer with attractive visual config
 	let config = RoadlineRenderConfig {

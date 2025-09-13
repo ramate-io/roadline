@@ -88,6 +88,14 @@ impl DownStretch {
 		&self.down_stretch
 	}
 
+	pub fn range(&self) -> &DownStretchRange {
+		&self.down_stretch
+	}
+
+	pub fn width(&self) -> ReifiedUnit {
+		ReifiedUnit::new(self.down_stretch().end().value() - self.down_stretch().start().value())
+	}
+
 	/// Get the connection point at the end of this stretch (right edge, for outgoing connections)
 	pub fn outgoing_connection_point(&self) -> ReifiedUnit {
 		self.down_stretch.end()
