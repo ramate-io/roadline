@@ -17,5 +17,21 @@ roadline-util = { workspace = true }
 roadline-representation-core = { workspace = true }
 chrono = { workspace = true }
 
+# Bevy core dependencies
+bevy = { workspace = true }
+
+# For web integration with Dioxus (optional for now)
+wasm-bindgen = { workspace = true, optional = true }
+web-sys = { workspace = true, optional = true }
+js-sys = { workspace = true, optional = true }
+
+[features]
+default = []
+web = ["wasm-bindgen", "web-sys", "js-sys"]
+
+[[example]]
+name = "basic_renderer"
+path = "examples/basic_renderer.rs"
+
 [lints]
 workspace = true
