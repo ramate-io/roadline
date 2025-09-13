@@ -4,6 +4,9 @@ pub mod resources;
 pub mod roadline_renderer;
 pub mod systems;
 
+#[cfg(any(test, feature = "test-utils"))]
+pub mod test_utils;
+
 use bevy::prelude::*;
 
 pub use milestone::MilestoneSprite;
@@ -76,6 +79,7 @@ impl Default for RoadlineRenderConfig {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::test_utils::*;
 
 	#[test]
 	fn test_renderer_creation() {
@@ -100,5 +104,84 @@ mod tests {
 		let stored_config = app.world().resource::<RoadlineRenderConfig>();
 		assert_eq!(stored_config.unit_to_pixel_scale, 2.0);
 		assert_eq!(stored_config.milestone_radius, 10.0);
+	}
+
+	#[test]
+	fn test_simple_rendering_pipeline() -> Result<(), anyhow::Error> {
+		// Create a simple test reified representation
+		let reified = create_simple_test_reified()?;
+		validate_reified_structure(&reified, 3, 2)?;
+
+		// Create the Bevy renderer with custom config
+		let config = RoadlineRenderConfig {
+			unit_to_pixel_scale: 2.0,
+			milestone_color: Color::srgb(0.3, 0.8, 0.2), // Green milestones
+			edge_color: Color::srgb(0.7, 0.7, 0.9),      // Light blue edges
+			milestone_radius: 12.0,
+			edge_thickness: 3.0,
+			..Default::default()
+		};
+
+		let renderer = RoadlineRenderer::with_config(config);
+
+		// Create and configure the Bevy app
+		let mut app = renderer.create_app();
+
+		// Render the reified data
+		renderer.render(&mut app, reified)?;
+
+		// Verify the app contains the rendered data
+		assert!(app.world().contains_resource::<resources::ReifiedData>());
+
+		// Get visual bounds and verify they're reasonable
+		if let Some((min_x, max_x, min_y, max_y)) = renderer.get_visual_bounds(&app) {
+			assert!(max_x > min_x, "Max X should be greater than min X");
+			assert!(max_y >= min_y, "Max Y should be greater than or equal to min Y");
+			println!(
+				"Visual bounds: x=[{:.1}, {:.1}], y=[{:.1}, {:.1}]",
+				min_x, max_x, min_y, max_y
+			);
+		} else {
+			panic!("Visual bounds should be available after rendering");
+		}
+
+		// Test camera operations
+		renderer.center_camera(&mut app);
+		renderer.fit_camera_to_content(&mut app, 0.1); // 10% padding
+
+		println!("Simple rendering pipeline test completed successfully!");
+		Ok(())
+	}
+
+	#[test]
+	fn test_complex_rendering_pipeline() -> Result<(), anyhow::Error> {
+		// Create a complex test reified representation
+		let reified = create_complex_test_reified()?;
+		validate_reified_structure(&reified, 5, 5)?;
+
+		// Create the Bevy renderer
+		let renderer = RoadlineRenderer::new();
+		let mut app = renderer.create_app();
+
+		// Render the reified data
+		renderer.render(&mut app, reified)?;
+
+		// Verify the app contains the rendered data
+		assert!(app.world().contains_resource::<resources::ReifiedData>());
+
+		// Get visual bounds and verify they're reasonable for complex graph
+		if let Some((min_x, max_x, min_y, max_y)) = renderer.get_visual_bounds(&app) {
+			assert!(max_x > min_x, "Max X should be greater than min X");
+			assert!(max_y > min_y, "Max Y should be greater than min Y for complex graph");
+			println!(
+				"Complex graph visual bounds: x=[{:.1}, {:.1}], y=[{:.1}, {:.1}]",
+				min_x, max_x, min_y, max_y
+			);
+		} else {
+			panic!("Visual bounds should be available after rendering");
+		}
+
+		println!("Complex rendering pipeline test completed successfully!");
+		Ok(())
 	}
 }

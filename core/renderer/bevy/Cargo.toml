@@ -28,10 +28,12 @@ js-sys = { workspace = true, optional = true }
 [features]
 default = []
 web = ["wasm-bindgen", "web-sys", "js-sys"]
+test-utils = []
 
 [[example]]
 name = "basic_renderer"
 path = "examples/basic_renderer.rs"
+required-features = ["test-utils"]
 
 [lints]
 workspace = true

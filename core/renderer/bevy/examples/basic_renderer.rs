@@ -1,125 +1,179 @@
 use bevy::prelude::*;
-use chrono::{DateTime, Utc};
 use roadline_bevy_renderer::{RoadlineRenderConfig, RoadlineRenderer};
-use roadline_representation_core::graph::Graph;
-use roadline_representation_core::grid_algebra::PreGridAlgebra;
-use roadline_representation_core::range_algebra::{Date, PreRangeAlgebra};
-use roadline_representation_core::reified::{PreReified, ReifiedConfig};
-use roadline_util::duration::Duration;
-use roadline_util::task::Id as TaskId;
-use roadline_util::task::{
-	range::{End, PointOfReference, Start, TargetDate},
-	Task,
-};
-use std::collections::BTreeSet;
-use std::time::Duration as StdDuration;
 
-/// Creates a test date from an ISO string.
-fn test_date(iso_string: &str) -> Date {
-	let datetime = DateTime::parse_from_rfc3339(iso_string)
-		.expect("Valid datetime string")
-		.with_timezone(&Utc);
-	Date::new(datetime)
-}
-
-/// Creates a test task with the specified parameters.
-fn create_test_task(
-	id: u8,
-	reference_id: u8,
-	offset_days: u64,
-	duration_days: u64,
-	dependencies: BTreeSet<u8>,
-) -> Result<Task, anyhow::Error> {
-	let id = TaskId::new(id);
-	let reference_id = TaskId::new(reference_id);
-
-	let start = Start::from(TargetDate {
-		point_of_reference: PointOfReference::from(reference_id),
-		duration: Duration::from(StdDuration::from_secs(offset_days * 24 * 60 * 60)),
-	});
-
-	let end = End::from(Duration::from(StdDuration::from_secs(duration_days * 24 * 60 * 60)));
-	let range = roadline_util::task::Range::new(start, end);
-
-	let mut task = Task::new(
-		id,
-		roadline_util::task::Title::new_test(),
-		BTreeSet::new(),
-		BTreeSet::new(),
-		roadline_util::task::Summary::new_test(),
-		range,
-	);
-
-	task.dependencies_mut()
-		.extend(dependencies.into_iter().map(|id| TaskId::new(id)));
-	Ok(task)
-}
+// Import test utilities for the example
+use roadline_bevy_renderer::test_utils::*;
 
 fn main() -> Result<(), anyhow::Error> {
-	println!("Creating Roadline Bevy Renderer Example");
+	println!("🚀 Starting Roadline Bevy Renderer Visual Example");
 
-	// Create a simple graph: Task1 -> Task2 -> Task3
-	let mut graph = Graph::new();
-
-	let task1 = create_test_task(1, 1, 0, 5, BTreeSet::new())?;
-	let task2 = create_test_task(2, 1, 5, 3, BTreeSet::from_iter([1]))?;
-	let task3 = create_test_task(3, 1, 8, 4, BTreeSet::from_iter([2]))?;
-
-	graph.add(task1)?;
-	graph.add(task2)?;
-	graph.add(task3)?;
-
-	println!("Graph created with {} tasks", graph.task_ids().count());
-
-	// Build the representation layers
-	let range_algebra = PreRangeAlgebra::new(graph).compute(test_date("2021-01-01T00:00:00Z"))?;
-	println!("Range algebra computed");
-
-	let grid_algebra = PreGridAlgebra::new(range_algebra).compute()?;
-	println!("Grid algebra computed");
-
-	let reified = PreReified::new(grid_algebra)
-		.with_config(ReifiedConfig::default_config().with_connection_trim(2.into()))
-		.compute()?;
+	// Create a complex test reified representation for a more interesting visualization
+	let reified = create_complex_test_reified()?;
 	println!(
-		"Reified representation computed with {} tasks and {} connections",
+		"📊 Created reified representation with {} tasks and {} connections",
 		reified.task_count(),
 		reified.connection_count()
 	);
 
-	// Create the Bevy renderer with custom config
+	// Validate the structure
+	validate_reified_structure(&reified, 5, 5)?;
+	println!("✅ Reified structure validated");
+
+	// Create the Bevy renderer with attractive visual config
 	let config = RoadlineRenderConfig {
-		unit_to_pixel_scale: 2.0,
-		milestone_color: Color::srgb(0.3, 0.8, 0.2), // Green milestones
-		edge_color: Color::srgb(0.7, 0.7, 0.9),      // Light blue edges
-		milestone_radius: 12.0,
-		edge_thickness: 3.0,
-		..Default::default()
+		unit_to_pixel_scale: 3.0, // Larger scale for better visibility
+		milestone_color: Color::srgb(0.2, 0.8, 1.0), // Bright cyan milestones
+		edge_color: Color::srgb(0.9, 0.9, 0.9), // Light gray edges
+		milestone_radius: 15.0,   // Larger milestones
+		edge_thickness: 4.0,      // Thicker edges
+		background_color: Color::srgb(0.05, 0.05, 0.1), // Dark blue background
 	};
 
 	let renderer = RoadlineRenderer::with_config(config);
-	println!("Renderer created with custom config");
+	println!("🎨 Renderer created with visual config");
 
 	// Create and configure the Bevy app
 	let mut app = renderer.create_app();
-	println!("Bevy app created");
+
+	// Add some additional systems for better visual experience
+	app.add_systems(Update, (keyboard_input_system, camera_control_system, info_display_system));
 
 	// Render the reified data
 	renderer.render(&mut app, reified)?;
-	println!("Reified data rendered successfully");
+	println!("🎯 Reified data rendered successfully");
 
-	// Get visual bounds
+	// Get and display visual bounds
 	if let Some((min_x, max_x, min_y, max_y)) = renderer.get_visual_bounds(&app) {
-		println!("Visual bounds: x=[{:.1}, {:.1}], y=[{:.1}, {:.1}]", min_x, max_x, min_y, max_y);
+		println!(
+			"📏 Visual bounds: x=[{:.1}, {:.1}], y=[{:.1}, {:.1}]",
+			min_x, max_x, min_y, max_y
+		);
 	}
 
-	// Center and fit camera
+	// Center and fit camera to content
 	renderer.center_camera(&mut app);
-	renderer.fit_camera_to_content(&mut app, 0.1); // 10% padding
-	println!("Camera positioned and fitted to content");
+	renderer.fit_camera_to_content(&mut app, 0.2); // 20% padding for better view
+	println!("📷 Camera positioned and fitted to content");
 
-	println!("Roadline Bevy Renderer example completed successfully!");
-	println!("Note: This example demonstrates the renderer setup without running the actual Bevy app loop.");
+	// Add instructions text
+	app.world_mut().spawn((
+		Text::new("Roadline Visualization\n\nControls:\n- WASD: Move camera\n- Q/E: Zoom in/out\n- R: Reset camera\n- ESC: Quit"),
+		TextFont {
+			font_size: 16.0,
+			..default()
+		},
+		TextColor(Color::WHITE),
+		Node {
+			position_type: PositionType::Absolute,
+			top: Val::Px(10.0),
+			left: Val::Px(10.0),
+			..default()
+		},
+	));
+
+	println!("🎮 Starting interactive visualization...");
+	println!("   Use WASD to move camera, Q/E to zoom, R to reset, ESC to quit");
+
+	// Run the Bevy app
+	app.run();
 
 	Ok(())
+}
+
+/// System to handle keyboard input for camera controls and quitting
+fn keyboard_input_system(
+	keys: Res<ButtonInput<KeyCode>>,
+	mut camera_query: Query<&mut Transform, With<Camera2d>>,
+	mut projection_query: Query<&mut OrthographicProjection, With<Camera2d>>,
+	mut exit: EventWriter<AppExit>,
+) {
+	if let Ok(mut transform) = camera_query.get_single_mut() {
+		let move_speed = 10.0;
+
+		// Camera movement
+		if keys.pressed(KeyCode::KeyW) {
+			transform.translation.y += move_speed;
+		}
+		if keys.pressed(KeyCode::KeyS) {
+			transform.translation.y -= move_speed;
+		}
+		if keys.pressed(KeyCode::KeyA) {
+			transform.translation.x -= move_speed;
+		}
+		if keys.pressed(KeyCode::KeyD) {
+			transform.translation.x += move_speed;
+		}
+
+		// Reset camera position
+		if keys.just_pressed(KeyCode::KeyR) {
+			transform.translation = Vec3::ZERO;
+			if let Ok(mut projection) = projection_query.get_single_mut() {
+				projection.scale = 1.0;
+			}
+		}
+	}
+
+	// Zoom controls
+	if let Ok(mut projection) = projection_query.get_single_mut() {
+		if keys.pressed(KeyCode::KeyQ) {
+			projection.scale *= 0.95; // Zoom in
+		}
+		if keys.pressed(KeyCode::KeyE) {
+			projection.scale *= 1.05; // Zoom out
+		}
+	}
+
+	// Quit
+	if keys.just_pressed(KeyCode::Escape) {
+		exit.send(AppExit::Success);
+	}
+}
+
+/// System for smooth camera controls
+fn camera_control_system(
+	time: Res<Time>,
+	keys: Res<ButtonInput<KeyCode>>,
+	mut camera_query: Query<&mut Transform, With<Camera2d>>,
+) {
+	if let Ok(mut transform) = camera_query.get_single_mut() {
+		let move_speed = 200.0 * time.delta_secs();
+
+		// Smooth camera movement
+		let mut movement = Vec3::ZERO;
+
+		if keys.pressed(KeyCode::ArrowUp) {
+			movement.y += move_speed;
+		}
+		if keys.pressed(KeyCode::ArrowDown) {
+			movement.y -= move_speed;
+		}
+		if keys.pressed(KeyCode::ArrowLeft) {
+			movement.x -= move_speed;
+		}
+		if keys.pressed(KeyCode::ArrowRight) {
+			movement.x += move_speed;
+		}
+
+		transform.translation += movement;
+	}
+}
+
+/// System to display runtime information
+fn info_display_system(
+	camera_query: Query<&Transform, With<Camera2d>>,
+	projection_query: Query<&OrthographicProjection, With<Camera2d>>,
+	mut text_query: Query<&mut Text>,
+) {
+	if let (Ok(transform), Ok(projection)) =
+		(camera_query.get_single(), projection_query.get_single())
+	{
+		if let Ok(mut text) = text_query.get_single_mut() {
+			text.0 = format!(
+				"Roadline Visualization\n\nCamera Position: ({:.1}, {:.1})\nZoom: {:.2}x\n\nControls:\n- WASD/Arrows: Move camera\n- Q/E: Zoom in/out\n- R: Reset camera\n- ESC: Quit",
+				transform.translation.x,
+				transform.translation.y,
+				1.0 / projection.scale
+			);
+		}
+	}
 }

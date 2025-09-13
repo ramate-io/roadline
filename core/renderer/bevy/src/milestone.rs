@@ -126,7 +126,7 @@ mod tests {
 	use chrono::{DateTime, Utc};
 	use roadline_representation_core::grid_algebra::cell::Cell;
 	use roadline_representation_core::grid_algebra::{lane::LaneId, stretch::Stretch};
-	use roadline_representation_core::range_algebra::{Date, Span};
+	use roadline_representation_core::range_algebra::Date;
 	use roadline_representation_core::reified::{DownLane, DownStretch, ReifiedUnit};
 
 	fn create_test_down_cell() -> DownCell {
