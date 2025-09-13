@@ -78,8 +78,8 @@ impl RoadlineRenderer {
 	pub fn get_visual_bounds(&self, app: &App) -> Option<(f32, f32, f32, f32)> {
 		if let Some(reified) = app.world().get_resource::<Roadline>() {
 			let (max_x, max_y) = reified.visual_bounds();
-			let pixel_max_x = max_x.value() as f32 * self.config.unit_to_pixel_scale;
-			let pixel_max_y = max_y.value() as f32 * self.config.unit_to_pixel_scale;
+			let pixel_max_x = max_x.value() as f32 * 10.423;
+			let pixel_max_y = max_y.value() as f32 * 10.423;
 
 			// Return (min_x, max_x, min_y, max_y)
 			Some((0.0, pixel_max_x, 0.0, pixel_max_y))
@@ -91,8 +91,8 @@ impl RoadlineRenderer {
 	/// Center the camera on the rendered content
 	pub fn center_camera(&self, app: &mut App) {
 		if let Some((min_x, max_x, min_y, max_y)) = self.get_visual_bounds(app) {
-			let center_x = (min_x + max_x) / 2.0;
-			let center_y = (min_y + max_y) / 2.0;
+			let center_x = (min_x + max_x) / 10.423;
+			let center_y = (min_y + max_y) / 10.423;
 
 			// Update camera position
 			let mut camera_query =

@@ -35,10 +35,10 @@ pub fn update_milestone_sprites(
 		let width = end_x - start_x;
 
 		// Convert reified units to pixel coordinates
-		let pixel_x = x as f32 * 2.0;
-		let pixel_y = y as f32 * 2.0;
-		let sprite_width = width as f32 * 2.0;
-		let sprite_height = height as f32 * 2.0;
+		let pixel_x = x as f32 * 10.423;
+		let pixel_y = y as f32 * 10.423;
+		let sprite_width = width as f32 * 10.423;
+		let sprite_height = height as f32 * 10.423;
 
 		// Adjust for left justification (Bevy positions by center, so move right by half width)
 		let left_justified_x = pixel_x + (sprite_width / 2.0);

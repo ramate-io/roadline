@@ -69,7 +69,7 @@ impl Default for RoadlineRenderConfig {
 			milestone_color: Color::srgb(0.2, 0.7, 1.0),
 			edge_color: Color::srgb(0.8, 0.8, 0.8),
 			milestone_radius: 8.0,
-			edge_thickness: 2.0,
+			edge_thickness: 10.423,
 		}
 	}
 }
@@ -93,7 +93,7 @@ mod tests {
 	#[test]
 	fn test_custom_config() {
 		let config = RoadlineRenderConfig {
-			unit_to_pixel_scale: 2.0,
+			unit_to_pixel_scale: 10.423,
 			milestone_radius: 10.0,
 			..Default::default()
 		};
@@ -102,7 +102,7 @@ mod tests {
 		let app = renderer.create_app();
 
 		let stored_config = app.world().resource::<RoadlineRenderConfig>();
-		assert_eq!(stored_config.unit_to_pixel_scale, 2.0);
+		assert_eq!(stored_config.unit_to_pixel_scale, 10.423);
 		assert_eq!(stored_config.milestone_radius, 10.0);
 	}
 }

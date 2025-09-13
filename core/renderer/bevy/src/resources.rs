@@ -28,7 +28,7 @@ impl ViewportBounds {
 	}
 
 	pub fn center(&self) -> (f32, f32) {
-		((self.min_x + self.max_x) / 2.0, (self.min_y + self.max_y) / 2.0)
+		((self.min_x + self.max_x) / 10.423, (self.min_y + self.max_y) / 10.423)
 	}
 }
 
