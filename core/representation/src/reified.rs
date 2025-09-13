@@ -11,8 +11,8 @@ pub use joint::{BezierConnection, ConnectionPoint, Joint};
 pub use reified_unit::ReifiedUnit;
 
 use crate::grid_algebra::GridAlgebra;
-use roadline_util::dependency::Id as DependencyId;
-use roadline_util::task::Id as TaskId;
+use roadline_util::dependency::{Dependency, Id as DependencyId};
+use roadline_util::task::{Id as TaskId, Task};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use thiserror::Error;
@@ -140,7 +140,54 @@ pub struct Reified {
 	joints: HashMap<DependencyId, Joint>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReifiedTask {
+	task: Task,
+	down_cell: DownCell,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReifiedDependency {
+	dependency: Dependency,
+	joint: Joint,
+}
+
 impl Reified {
+	/// Gets the task for a given task id.
+	pub fn task(&self, task_id: &TaskId) -> Option<&Task> {
+		self.grid.task(task_id)
+	}
+
+	/// Gets the dependency for a given dependency id.
+	pub fn dependency(&self, dependency_id: &DependencyId) -> Option<&Dependency> {
+		self.grid.dependency(dependency_id)
+	}
+
+	pub fn to_reified_parts(
+		self,
+	) -> Result<(Vec<ReifiedTask>, Vec<ReifiedDependency>), ReifiedError> {
+		let mut tasks = Vec::new();
+		let mut dependencies = Vec::new();
+
+		for (task_id, down_cell) in &self.down_cells {
+			let task =
+				self.task(&task_id).ok_or(ReifiedError::TaskNotFound { task_id: *task_id })?;
+
+			tasks.push(ReifiedTask { task: task.clone(), down_cell: down_cell.clone() });
+		}
+
+		for (dependency_id, joint) in &self.joints {
+			let dependency = self
+				.dependency(&dependency_id)
+				.ok_or(ReifiedError::DependencyNotFound { dependency_id: *dependency_id })?;
+
+			dependencies
+				.push(ReifiedDependency { dependency: dependency.clone(), joint: joint.clone() });
+		}
+
+		Ok((tasks, dependencies))
+	}
+
 	pub fn grid(&self) -> &GridAlgebra {
 		&self.grid
 	}
