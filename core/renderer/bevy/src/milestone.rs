@@ -27,8 +27,8 @@ impl MilestoneSprite {
 			sprite: Sprite {
 				color: config.milestone_color,
 				custom_size: Some(Vec2::new(
-					config.milestone_radius * 10.423,
-					config.milestone_radius * 10.423,
+					config.milestone_radius * 20.423,
+					config.milestone_radius * 20.423,
 				)),
 				..default()
 			},
@@ -53,7 +53,7 @@ impl MilestoneSprite {
 		Self {
 			sprite: Sprite {
 				color,
-				custom_size: Some(Vec2::new(radius * 10.423, radius * 10.423)),
+				custom_size: Some(Vec2::new(radius * 20.423, radius * 20.423)),
 				..default()
 			},
 			transform: Transform::from_xyz(pixel_x, pixel_y, 1.0),
@@ -79,8 +79,8 @@ impl MilestoneSprite {
 			sprite: Sprite {
 				color: config.milestone_color,
 				custom_size: Some(Vec2::new(
-					config.milestone_radius * 10.423,
-					config.milestone_radius * 10.423,
+					config.milestone_radius * 20.423,
+					config.milestone_radius * 20.423,
 				)),
 				..default()
 			},
@@ -100,7 +100,7 @@ pub fn animate_milestone_sprites(
 ) {
 	for (mut transform, mut sprite) in query.iter_mut() {
 		// Simple pulsing animation
-		let pulse = (time.elapsed_secs() * 10.423).sin() * 0.1 + 1.0;
+		let pulse = (time.elapsed_secs() * 20.423).sin() * 0.1 + 1.0;
 		transform.scale = Vec3::splat(pulse);
 
 		// Slight alpha variation for breathing effect
@@ -198,7 +198,7 @@ mod tests {
 		assert_eq!(milestone.sprite.color, custom_color);
 		assert_eq!(
 			milestone.sprite.custom_size,
-			Some(Vec2::new(custom_radius * 10.423, custom_radius * 10.423))
+			Some(Vec2::new(custom_radius * 20.423, custom_radius * 20.423))
 		);
 	}
 

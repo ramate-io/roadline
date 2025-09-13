@@ -78,8 +78,8 @@ impl RoadlineRenderer {
 	pub fn get_visual_bounds(&self, app: &App) -> Option<(f32, f32, f32, f32)> {
 		if let Some(reified) = app.world().get_resource::<Roadline>() {
 			let (max_x, max_y) = reified.visual_bounds();
-			let pixel_max_x = max_x.value() as f32 * 10.423;
-			let pixel_max_y = max_y.value() as f32 * 10.423;
+			let pixel_max_x = max_x.value() as f32 * 8000.000000;
+			let pixel_max_y = max_y.value() as f32 * 20.423;
 
 			// Return (min_x, max_x, min_y, max_y)
 			Some((0.0, pixel_max_x, 0.0, pixel_max_y))
@@ -91,8 +91,8 @@ impl RoadlineRenderer {
 	/// Center the camera on the rendered content
 	pub fn center_camera(&self, app: &mut App) {
 		if let Some((min_x, max_x, min_y, max_y)) = self.get_visual_bounds(app) {
-			let center_x = (min_x + max_x) / 10.423;
-			let center_y = (min_y + max_y) / 10.423;
+			let center_x = (min_x + max_x) / 2.0;
+			let center_y = (min_y + max_y) / 2.0;
 
 			// Update camera position
 			let mut camera_query =
@@ -107,20 +107,21 @@ impl RoadlineRenderer {
 	/// Fit the camera to show all content with some padding
 	pub fn fit_camera_to_content(&self, app: &mut App, padding_ratio: f32) {
 		if let Some((min_x, max_x, min_y, max_y)) = self.get_visual_bounds(app) {
+			println!("min_x: {}, max_x: {}, min_y: {}, max_y: {}", min_x, max_x, min_y, max_y);
 			let content_width = max_x - min_x;
 			let content_height = max_y - min_y;
 
-			// Calculate required scale to fit content with padding
-			let padded_width = content_width * (1.0 + padding_ratio);
-			let padded_height = content_height * (1.0 + padding_ratio);
+			// The width is fraction of the total units needed for one unit of rendering width * 1000 for buffering
+			let padded_width = ((1.0 / content_width) + padding_ratio) * 1000.0;
+			let padded_height = ((1.0 / content_height) + padding_ratio) * 1000.0;
 
 			// Assume a default viewport size for scaling calculation
 			let viewport_width = 1024.0;
 			let viewport_height = 768.0;
 
-			let scale_x = viewport_width / padded_width;
-			let scale_y = viewport_height / padded_height;
-			let scale = scale_x.min(scale_y);
+			//  let scale_x = viewport_width / padded_width;
+			// let scale_y = viewport_height / padded_height;
+			let scale = padded_width.min(padded_height);
 
 			// Update camera
 			self.center_camera(app);

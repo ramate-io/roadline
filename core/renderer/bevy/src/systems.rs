@@ -36,10 +36,10 @@ pub fn update_milestone_sprites(
 		let width = end_x - start_x;
 
 		// Convert reified units to pixel coordinates
-		let pixel_x = x as f32 * 10.423;
-		let pixel_y = y as f32 * 10.423;
-		let sprite_width = width as f32 * 10.423;
-		let sprite_height = height as f32 * 10.423;
+		let pixel_x = x as f32 * 20.423;
+		let pixel_y = y as f32 * 20.423;
+		let sprite_width = width as f32 * 20.423;
+		let sprite_height = height as f32 * 20.423;
 
 		// Adjust for left justification (Bevy positions by center, so move right by half width)
 		let left_justified_x = pixel_x + (sprite_width / 2.0);
@@ -51,18 +51,37 @@ pub fn update_milestone_sprites(
 		let task = task.unwrap();
 		let title = task.title();
 
+		// Spawn the background with border (black border)
+		commands.spawn((
+			Sprite {
+				color: Color::BLACK,
+				custom_size: Some(Vec2::new(sprite_width + 2.0, sprite_height + 2.0)), // Slightly larger for border
+				..default()
+			},
+			Transform::from_xyz(left_justified_x, pixel_y, 1.0),
+			Visibility::Visible,
+		));
+
+		// Spawn the inner background (white)
 		commands.spawn((
 			Sprite {
 				color: WHITE_SMOKE.into(),
 				custom_size: Some(Vec2::new(sprite_width, sprite_height)),
 				..default()
 			},
-			// Text
-			Text::new(title.text.clone()),
-			Transform::from_xyz(left_justified_x, pixel_y, 1.0),
+			Transform::from_xyz(left_justified_x, pixel_y, 1.1), // Slightly higher z to appear on top of border
 			Visibility::Visible,
 			MilestoneNode::new(*task_id),
 			RenderState::new(),
+		));
+
+		// Spawn the text within the sprite bounds
+		commands.spawn((
+			Text2d::new(title.text.clone()),
+			TextFont { font_size: 12.0, ..default() },
+			TextColor(Color::BLACK),
+			Transform::from_xyz(left_justified_x, pixel_y, 2.0), // Higher z-index to appear on top
+			Visibility::Visible,
 		));
 	}
 }

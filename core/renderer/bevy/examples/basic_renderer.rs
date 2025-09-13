@@ -22,7 +22,7 @@ fn main() -> Result<(), anyhow::Error> {
 		edge_color: Color::srgb(0.9, 0.9, 0.9), // Light gray edges
 		milestone_radius: 15.0,   // Larger milestones
 		edge_thickness: 4.0,      // Thicker edges
-		background_color: Color::srgb(0.05, 0.05, 0.1), // Dark blue background
+		background_color: Color::srgb(1.0, 1.0, 1.0), // Dark blue background
 	};
 
 	let renderer = RoadlineRenderer::with_config(config);
@@ -58,7 +58,7 @@ fn main() -> Result<(), anyhow::Error> {
 			font_size: 16.0,
 			..default()
 		},
-		TextColor(Color::WHITE),
+		TextColor(Color::BLACK),
 		Node {
 			position_type: PositionType::Absolute,
 			top: Val::Px(10.0),

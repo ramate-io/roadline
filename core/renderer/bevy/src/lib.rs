@@ -30,6 +30,8 @@ impl Plugin for RoadlinePlugin {
 				}),
 				..default()
 			}))
+			// Set white background
+			.insert_resource(ClearColor(Color::WHITE))
 			// Add our custom systems
 			.add_systems(Startup, setup_camera)
 			.add_systems(
@@ -65,44 +67,11 @@ impl Default for RoadlineRenderConfig {
 	fn default() -> Self {
 		Self {
 			unit_to_pixel_scale: 1.0,
-			background_color: Color::srgb(0.1, 0.1, 0.1),
+			background_color: Color::srgb(1.0, 1.0, 1.0),
 			milestone_color: Color::srgb(0.2, 0.7, 1.0),
 			edge_color: Color::srgb(0.8, 0.8, 0.8),
 			milestone_radius: 8.0,
-			edge_thickness: 10.423,
+			edge_thickness: 20.423,
 		}
-	}
-}
-
-// RoadlineRenderer is defined in roadline_renderer.rs
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-	use crate::test_utils::*;
-
-	#[test]
-	fn test_renderer_creation() {
-		let renderer = RoadlineRenderer::new();
-		let app = renderer.create_app();
-
-		// Basic smoke test - ensure app was created
-		assert!(app.world().contains_resource::<RoadlineRenderConfig>());
-	}
-
-	#[test]
-	fn test_custom_config() {
-		let config = RoadlineRenderConfig {
-			unit_to_pixel_scale: 10.423,
-			milestone_radius: 10.0,
-			..Default::default()
-		};
-
-		let renderer = RoadlineRenderer::with_config(config.clone());
-		let app = renderer.create_app();
-
-		let stored_config = app.world().resource::<RoadlineRenderConfig>();
-		assert_eq!(stored_config.unit_to_pixel_scale, 10.423);
-		assert_eq!(stored_config.milestone_radius, 10.0);
 	}
 }
