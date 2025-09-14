@@ -97,8 +97,7 @@ impl RoadlineRenderer {
 		println!("Centering camera at origin: ({:.1}, {:.1})", center_x, center_y);
 
 		// Update camera position
-		let mut camera_query =
-			app.world_mut().query_filtered::<&mut Transform, With<Camera2d>>();
+		let mut camera_query = app.world_mut().query_filtered::<&mut Transform, With<Camera2d>>();
 		for mut transform in camera_query.iter_mut(app.world_mut()) {
 			transform.translation.x = center_x;
 			transform.translation.y = center_y;

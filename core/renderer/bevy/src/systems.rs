@@ -29,10 +29,10 @@ pub fn update_milestone_sprites(
 	let (max_width, max_height) = reified.visual_bounds();
 	let max_width_f32 = max_width.value() as f32;
 	let max_height_f32 = max_height.value() as f32;
-	
+
 	// Scale factor: try a much larger scale to see if that helps with visibility
 	let pixels_per_unit = 50.0;
-	
+
 	// Calculate offsets to center the content around (0,0)
 	let content_width_pixels = max_width_f32 * pixels_per_unit;
 	let content_height_pixels = max_height_f32 * pixels_per_unit;
@@ -46,7 +46,7 @@ pub fn update_milestone_sprites(
 			task_id, start_x, start_y, end_x, end_y
 		);
 		println!("Max bounds: width={}, height={}", max_width_f32, max_height_f32);
-		
+
 		let (x, y) = (start_x, start_y);
 		let height = end_y - start_y;
 		let width = end_x - start_x;
@@ -99,7 +99,7 @@ pub fn update_milestone_sprites(
 		// Spawn the text within the sprite bounds
 		commands.spawn((
 			Text2d::new(title.text.clone()),
-			TextFont { font_size: 12.0, ..default() },
+			TextFont { font_size: 6.0, ..default() },
 			TextColor(Color::BLACK),
 			Transform::from_xyz(left_justified_x, pixel_y, 2.0), // Higher z-index to appear on top
 			Visibility::Visible,
