@@ -100,11 +100,14 @@ impl TaskSpawner {
 	/// Spawns all entities needed for a task: main task node and text
 	pub fn spawn(self, commands: &mut Commands, root_ui: Entity) {
 		// Spawn the main task node with built-in border
-		let task_entity = commands.spawn(TaskBundle::new(self.task_id, self.position, self.size)).id();
-		
+		let task_entity =
+			commands.spawn(TaskBundle::new(self.task_id, self.position, self.size)).id();
+
 		// Spawn the text
-		let text_entity = commands.spawn(TaskTextBundle::new(self.title, self.position, self.font_size)).id();
-		
+		let text_entity = commands
+			.spawn(TaskTextBundle::new(self.title, self.position, self.font_size))
+			.id();
+
 		// Add both entities as children of the root UI node
 		commands.entity(root_ui).add_child(task_entity);
 		commands.entity(root_ui).add_child(text_entity);
