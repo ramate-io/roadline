@@ -13,6 +13,10 @@ use bevy::prelude::*;
 pub use milestone::MilestoneSprite;
 pub use roadline_renderer::RoadlineRenderer;
 
+/// Resource to track the root UI node for task positioning
+#[derive(Resource, Debug, Clone)]
+pub struct RootUiNode(pub Entity);
+
 /// Main plugin for the Roadline Bevy renderer
 #[derive(Default)]
 pub struct RoadlinePlugin;
@@ -37,14 +41,60 @@ impl Plugin for RoadlinePlugin {
 			.add_systems(Startup, setup_camera)
 			.add_systems(
 				Update,
-				(systems::TaskSystemConfig::build(), systems::DependencySystemConfig::build()),
+				(
+					systems::TaskSystemConfig::build(),
+					systems::DependencySystemConfig::build(),
+					update_ui_positioning,
+				),
 			);
 	}
 }
 
-/// Setup the 2D camera for rendering
+/// Setup the 2D camera for rendering and root UI node
 fn setup_camera(mut commands: Commands) {
 	commands.spawn(Camera2d);
+
+	// Create root UI node that covers the entire screen using flexbox layout
+	let root_ui = commands
+		.spawn((
+			Node {
+				position_type: PositionType::Absolute,
+				left: Val::Px(0.0),
+				top: Val::Px(0.0),
+				width: Val::Percent(100.0),
+				height: Val::Percent(100.0),
+				align_self: AlignSelf::Stretch,
+				justify_self: JustifySelf::Stretch,
+				flex_direction: FlexDirection::Column,
+				align_items: AlignItems::FlexStart,
+				justify_content: JustifyContent::FlexStart,
+				..default()
+			},
+			BackgroundColor(Color::srgb(1.0, 1.0, 1.0)), // White background to see the UI
+		))
+		.id();
+
+	// Store the root UI node as a resource
+	commands.insert_resource(RootUiNode(root_ui));
+}
+
+/// System to update UI positioning based on camera movement
+fn update_ui_positioning(
+	camera_query: Query<&Transform, (With<Camera2d>, Changed<Transform>)>,
+	mut ui_query: Query<&mut Node>,
+	root_ui: Res<RootUiNode>,
+) {
+	if let Ok(camera_transform) = camera_query.get_single() {
+		if let Ok(mut root_node) = ui_query.get_mut(root_ui.0) {
+			// Update the root UI node's margin to offset camera movement
+			root_node.margin = UiRect {
+				left: Val::Px(-camera_transform.translation.x),
+				top: Val::Px(-camera_transform.translation.y),
+				right: Val::Px(0.0),
+				bottom: Val::Px(0.0),
+			};
+		}
+	}
 }
 
 /// Configuration for the renderer

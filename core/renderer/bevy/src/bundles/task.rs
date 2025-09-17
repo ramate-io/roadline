@@ -20,12 +20,17 @@ impl TaskBundle {
 	pub fn new(task_id: TaskId, position: Vec3, size: Vec2) -> Self {
 		Self {
 			node: Node {
-				position_type: PositionType::Absolute,
-				left: Val::Px(position.x - size.x / 2.0),
-				top: Val::Px(-position.y - size.y / 2.0), // Flip Y for UI coordinates
 				width: Val::Px(size.x),
 				height: Val::Px(size.y),
+				margin: UiRect {
+					left: Val::Px(position.x - size.x / 2.0),
+					top: Val::Px(position.y - size.y / 2.0),
+					right: Val::Px(0.0),
+					bottom: Val::Px(0.0),
+				},
 				border: UiRect::all(Val::Px(2.0)), // 2px border on all sides
+				align_items: AlignItems::Center,
+				justify_content: JustifyContent::Center,
 				..default()
 			},
 			background_color: BackgroundColor(Color::srgb(0.96, 0.96, 0.96)),
@@ -55,11 +60,14 @@ impl TaskTextBundle {
 			text: Text::new(title),
 			text_layout: TextLayout::default(),
 			node: Node {
-				position_type: PositionType::Absolute,
-				left: Val::Px(position.x),
-				top: Val::Px(-position.y),        // Flip Y for UI coordinates
 				width: Val::Px(200.0),            // Reasonable width for text
 				height: Val::Px(font_size * 1.5), // Height based on font size
+				margin: UiRect {
+					left: Val::Px(position.x),
+					top: Val::Px(position.y),
+					right: Val::Px(0.0),
+					bottom: Val::Px(0.0),
+				},
 				justify_content: JustifyContent::Center,
 				align_items: AlignItems::Center,
 				..default()
@@ -90,11 +98,15 @@ impl TaskSpawner {
 	}
 
 	/// Spawns all entities needed for a task: main task node and text
-	pub fn spawn(self, commands: &mut Commands) {
+	pub fn spawn(self, commands: &mut Commands, root_ui: Entity) {
 		// Spawn the main task node with built-in border
-		commands.spawn(TaskBundle::new(self.task_id, self.position, self.size));
-
+		let task_entity = commands.spawn(TaskBundle::new(self.task_id, self.position, self.size)).id();
+		
 		// Spawn the text
-		commands.spawn(TaskTextBundle::new(self.title, self.position, self.font_size));
+		let text_entity = commands.spawn(TaskTextBundle::new(self.title, self.position, self.font_size)).id();
+		
+		// Add both entities as children of the root UI node
+		commands.entity(root_ui).add_child(task_entity);
+		commands.entity(root_ui).add_child(text_entity);
 	}
 }
