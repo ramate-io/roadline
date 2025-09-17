@@ -37,7 +37,7 @@ impl Plugin for RoadlinePlugin {
 			.add_systems(Startup, setup_camera)
 			.add_systems(
 				Update,
-				(systems::update_task_sprites, systems::update_dependency_renderers),
+				(systems::TaskSystemConfig::build(), systems::DependencySystemConfig::build()),
 			);
 	}
 }
