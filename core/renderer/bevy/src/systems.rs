@@ -1,16 +1,16 @@
-use crate::components::{MilestoneNode, RenderState, TaskEdge};
+use crate::components::{Task, Dependency};
+use crate::bundles::TaskBundle;
 use crate::resources::{RenderUpdateEvent, Roadline};
 use crate::RoadlineRenderConfig;
-use bevy::color::palettes::css::WHITE_SMOKE;
 use bevy::prelude::*;
 
 /// System to update milestone sprites when reified data changes
-pub fn update_milestone_sprites(
+pub fn update_task_sprites(
 	mut commands: Commands,
 	render_events: EventReader<RenderUpdateEvent>,
 	reified_opt: Option<Res<Roadline>>,
-	config: Res<RoadlineRenderConfig>,
-	existing_milestones: Query<Entity, With<MilestoneNode>>,
+	_config: Res<RoadlineRenderConfig>,
+	existing_tasks: Query<Entity, With<Task>>,
 ) {
 	// Only update if we received a render event and have reified data
 	if render_events.is_empty() || reified_opt.is_none() {
@@ -20,8 +20,8 @@ pub fn update_milestone_sprites(
 
 	let reified = reified_opt.unwrap();
 
-	// Clear existing milestone entities
-	for entity in existing_milestones.iter() {
+	// Clear existing task entities
+	for entity in existing_tasks.iter() {
 		commands.entity(entity).despawn();
 	}
 
@@ -39,7 +39,7 @@ pub fn update_milestone_sprites(
 	let offset_x = -content_width_pixels / 2.0;
 	let offset_y = -content_height_pixels / 2.0;
 
-	// Create new milestone sprites for each task
+	// Create new task sprites for each task
 	for (task_id, start_x, start_y, end_x, end_y) in reified.task_rectangles() {
 		println!(
 			"task_id: {:?}, start_x: {}, start_y: {}, end_x: {}, end_y: {}",
@@ -72,47 +72,23 @@ pub fn update_milestone_sprites(
 		let task = task.unwrap();
 		let title = task.title();
 
-		// Spawn the background with border (black border)
-		commands.spawn((
-			Sprite {
-				color: Color::BLACK,
-				custom_size: Some(Vec2::new(sprite_width + 2.0, sprite_height + 2.0)), // Slightly larger for border
-				..default()
-			},
-			Transform::from_xyz(left_justified_x, pixel_y, 1.0),
-			Visibility::Visible,
-		));
-
-		// Spawn the inner background (white)
-		commands.spawn((
-			Sprite {
-				color: WHITE_SMOKE.into(),
-				custom_size: Some(Vec2::new(sprite_width, sprite_height)),
-				..default()
-			},
-			Transform::from_xyz(left_justified_x, pixel_y, 1.1), // Slightly higher z to appear on top of border
-			Visibility::Visible,
-			MilestoneNode::new(*task_id),
-			RenderState::new(),
-		));
-
-		// Spawn the text within the sprite bounds
-		commands.spawn((
-			Text2d::new(title.text.clone()),
-			TextFont { font_size: 6.0, ..default() },
-			TextColor(Color::BLACK),
-			Transform::from_xyz(left_justified_x, pixel_y, 2.0), // Higher z-index to appear on top
-			Visibility::Visible,
-		));
+		// Use TaskBundle to spawn all task entities
+		let task_bundle = TaskBundle::new(
+			*task_id,
+			Vec3::new(left_justified_x, pixel_y, 0.0),
+			Vec2::new(sprite_width, sprite_height),
+			title.text.clone(),
+		);
+		task_bundle.spawn(&mut commands);
 	}
 }
 
 /// System to update edge renderers when reified data changes
-pub fn update_edge_renderers(
+pub fn update_dependency_renderers(
 	mut _commands: Commands,
 	_render_events: EventReader<RenderUpdateEvent>,
 	_reified_opt: Option<Res<Roadline>>,
 	_config: Res<RoadlineRenderConfig>,
-	_existing_edges: Query<Entity, With<TaskEdge>>,
+	_existing_dependencies: Query<Entity, With<Dependency>>,
 ) {
 }

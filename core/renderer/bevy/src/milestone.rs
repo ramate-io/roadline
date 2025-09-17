@@ -1,4 +1,4 @@
-use crate::components::{MilestoneNode, RenderState};
+use crate::components::{Task, RenderState};
 use crate::RoadlineRenderConfig;
 use bevy::prelude::*;
 use roadline_representation_core::reified::{DownCell, ReifiedUnit};
@@ -10,7 +10,7 @@ pub struct MilestoneSprite {
 	pub sprite: Sprite,
 	pub transform: Transform,
 	pub visibility: Visibility,
-	pub milestone_node: MilestoneNode,
+	pub task: Task,
 	pub render_state: RenderState,
 }
 
@@ -34,7 +34,7 @@ impl MilestoneSprite {
 			},
 			transform: Transform::from_xyz(pixel_x, pixel_y, 1.0),
 			visibility: Visibility::Visible,
-			milestone_node: MilestoneNode::new(task_id),
+			task: Task::new(task_id),
 			render_state: RenderState::new(),
 		}
 	}
@@ -58,7 +58,7 @@ impl MilestoneSprite {
 			},
 			transform: Transform::from_xyz(pixel_x, pixel_y, 1.0),
 			visibility: Visibility::Visible,
-			milestone_node: MilestoneNode::new(task_id),
+			task: Task::new(task_id),
 			render_state: RenderState::new(),
 		}
 	}
@@ -87,7 +87,7 @@ impl MilestoneSprite {
 			transform: Transform::from_xyz(pixel_x, pixel_y, 1.0)
 				.with_rotation(Quat::from_rotation_z(std::f32::consts::PI / 4.0)), // 45 degree rotation for diamond
 			visibility: Visibility::Visible,
-			milestone_node: MilestoneNode::new(task_id),
+			task: Task::new(task_id),
 			render_state: RenderState::new(),
 		}
 	}
@@ -96,7 +96,7 @@ impl MilestoneSprite {
 /// System to handle milestone sprite animations and interactions
 pub fn animate_milestone_sprites(
 	time: Res<Time>,
-	mut query: Query<(&mut Transform, &mut Sprite), With<MilestoneNode>>,
+	mut query: Query<(&mut Transform, &mut Sprite), With<Task>>,
 ) {
 	for (mut transform, mut sprite) in query.iter_mut() {
 		// Simple pulsing animation
@@ -111,7 +111,7 @@ pub fn animate_milestone_sprites(
 
 /// System to handle milestone hover effects (for future interactivity)
 pub fn handle_milestone_interactions(
-	mut query: Query<(&Transform, &mut Sprite), With<MilestoneNode>>,
+	mut query: Query<(&Transform, &mut Sprite), With<Task>>,
 	// TODO: Add cursor position and input handling
 ) {
 	// Placeholder for future interaction handling
@@ -174,7 +174,7 @@ mod tests {
 
 		let milestone = MilestoneSprite::new(task_id, &down_cell, &config);
 
-		assert_eq!(milestone.milestone_node.task_id, task_id);
+		assert_eq!(milestone.task.task_id, task_id);
 		assert_eq!(milestone.sprite.color, config.milestone_color);
 	}
 
@@ -194,7 +194,7 @@ mod tests {
 			&config,
 		);
 
-		assert_eq!(milestone.milestone_node.task_id, task_id);
+		assert_eq!(milestone.task.task_id, task_id);
 		assert_eq!(milestone.sprite.color, custom_color);
 		assert_eq!(
 			milestone.sprite.custom_size,
