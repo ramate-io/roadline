@@ -1,11 +1,15 @@
 use crate::components::{RenderState, Task};
 use bevy::prelude::*;
+use bevy::ui::{BackgroundColor, BorderRadius, Node};
 use roadline_util::task::Id as TaskId;
 
 /// Bundle for the task border (black border around the task)
 #[derive(Bundle)]
 pub struct TaskBorderBundle {
-	pub sprite: Sprite,
+	pub node: Node,
+	pub background_color: BackgroundColor,
+	pub border_radius: BorderRadius,
+	pub style: Style,
 	pub transform: Transform,
 	pub visibility: Visibility,
 }
