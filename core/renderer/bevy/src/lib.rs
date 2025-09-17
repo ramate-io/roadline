@@ -9,13 +9,14 @@ pub mod systems;
 pub mod test_utils;
 
 use bevy::prelude::*;
+use bevy_ui_anchor::AnchorUiPlugin;
 
 pub use milestone::MilestoneSprite;
 pub use roadline_renderer::RoadlineRenderer;
 
-/// Resource to track the root UI node for task positioning
-#[derive(Resource, Debug, Clone)]
-pub struct RootUiNode(pub Entity);
+/// Marker component for the UI camera
+#[derive(Component)]
+pub struct UiCameraMarker;
 
 /// Main plugin for the Roadline Bevy renderer
 #[derive(Default)]
@@ -35,66 +36,25 @@ impl Plugin for RoadlinePlugin {
 				}),
 				..default()
 			}))
+			// Add bevy_ui_anchor plugin
+			.add_plugins(AnchorUiPlugin::<UiCameraMarker>::new())
 			// Set white background
 			.insert_resource(ClearColor(Color::WHITE))
 			// Add our custom systems
 			.add_systems(Startup, setup_camera)
 			.add_systems(
 				Update,
-				(
-					systems::TaskSystemConfig::build(),
-					systems::DependencySystemConfig::build(),
-					update_ui_positioning,
-				),
+				(systems::TaskSystemConfig::build(), systems::DependencySystemConfig::build()),
 			);
 	}
 }
 
-/// Setup the 2D camera for rendering and root UI node
+/// Setup the 2D camera for rendering
 fn setup_camera(mut commands: Commands) {
-	commands.spawn(Camera2d);
-
-	// Create root UI node that covers the entire screen using flexbox layout
-	let root_ui = commands
-		.spawn((
-			Node {
-				position_type: PositionType::Absolute,
-				left: Val::Px(0.0),
-				top: Val::Px(0.0),
-				width: Val::Percent(100.0),
-				height: Val::Percent(100.0),
-				align_self: AlignSelf::Stretch,
-				justify_self: JustifySelf::Stretch,
-				flex_direction: FlexDirection::Column,
-				align_items: AlignItems::FlexStart,
-				justify_content: JustifyContent::FlexStart,
-				..default()
-			},
-			BackgroundColor(Color::srgb(1.0, 1.0, 1.0)), // White background to see the UI
-		))
-		.id();
-
-	// Store the root UI node as a resource
-	commands.insert_resource(RootUiNode(root_ui));
-}
-
-/// System to update UI positioning based on camera movement
-fn update_ui_positioning(
-	camera_query: Query<&Transform, (With<Camera2d>, Changed<Transform>)>,
-	mut ui_query: Query<&mut Node>,
-	root_ui: Res<RootUiNode>,
-) {
-	if let Ok(camera_transform) = camera_query.get_single() {
-		if let Ok(mut root_node) = ui_query.get_mut(root_ui.0) {
-			// Update the root UI node's margin to offset camera movement
-			root_node.margin = UiRect {
-				left: Val::Px(-camera_transform.translation.x),
-				top: Val::Px(-camera_transform.translation.y),
-				right: Val::Px(0.0),
-				bottom: Val::Px(0.0),
-			};
-		}
-	}
+	commands.spawn((
+		Camera2d,
+		UiCameraMarker, // Mark this camera for bevy_ui_anchor
+	));
 }
 
 /// Configuration for the renderer

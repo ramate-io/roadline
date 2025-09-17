@@ -76,10 +76,9 @@ fn main() -> Result<(), anyhow::Error> {
 fn keyboard_input_system(
 	keys: Res<ButtonInput<KeyCode>>,
 	mut camera_query: Query<&mut Transform, With<Camera2d>>,
-	mut projection_query: Query<&mut OrthographicProjection, With<Camera2d>>,
 	mut exit: EventWriter<AppExit>,
 ) {
-	if let Ok(mut transform) = camera_query.get_single_mut() {
+	if let Ok(mut transform) = camera_query.single_mut() {
 		let move_speed = 10.0;
 
 		// Camera movement
@@ -99,25 +98,12 @@ fn keyboard_input_system(
 		// Reset camera position
 		if keys.just_pressed(KeyCode::KeyR) {
 			transform.translation = Vec3::ZERO;
-			if let Ok(mut projection) = projection_query.get_single_mut() {
-				projection.scale = 1.0;
-			}
-		}
-	}
-
-	// Zoom controls
-	if let Ok(mut projection) = projection_query.get_single_mut() {
-		if keys.pressed(KeyCode::KeyQ) {
-			projection.scale *= 0.95; // Zoom in
-		}
-		if keys.pressed(KeyCode::KeyE) {
-			projection.scale *= 1.05; // Zoom out
 		}
 	}
 
 	// Quit
 	if keys.just_pressed(KeyCode::Escape) {
-		exit.send(AppExit::Success);
+		exit.write(AppExit::Success);
 	}
 }
 
@@ -127,7 +113,7 @@ fn camera_control_system(
 	keys: Res<ButtonInput<KeyCode>>,
 	mut camera_query: Query<&mut Transform, With<Camera2d>>,
 ) {
-	if let Ok(mut transform) = camera_query.get_single_mut() {
+	if let Ok(mut transform) = camera_query.single_mut() {
 		let move_speed = 200.0 * time.delta_secs();
 
 		// Smooth camera movement
@@ -153,18 +139,14 @@ fn camera_control_system(
 /// System to display runtime information
 fn info_display_system(
 	camera_query: Query<&Transform, With<Camera2d>>,
-	projection_query: Query<&OrthographicProjection, With<Camera2d>>,
 	mut text_query: Query<&mut Text>,
 ) {
-	if let (Ok(transform), Ok(projection)) =
-		(camera_query.get_single(), projection_query.get_single())
-	{
-		if let Ok(mut text) = text_query.get_single_mut() {
+	if let Ok(transform) = camera_query.single() {
+		if let Ok(mut text) = text_query.single_mut() {
 			text.0 = format!(
-				"Roadline Visualization\n\nCamera Position: ({:.1}, {:.1})\nZoom: {:.2}x\n\nControls:\n- WASD/Arrows: Move camera\n- Q/E: Zoom in/out\n- R: Reset camera\n- ESC: Quit",
+				"Roadline Visualization\n\nCamera Position: ({:.1}, {:.1})\n\nControls:\n- WASD/Arrows: Move camera\n- R: Reset camera\n- ESC: Quit",
 				transform.translation.x,
 				transform.translation.y,
-				1.0 / projection.scale
 			);
 		}
 	}

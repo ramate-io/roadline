@@ -1,7 +1,7 @@
 use crate::bundles::TaskSpawner;
 use crate::components::Task;
 use crate::resources::{RenderUpdateEvent, Roadline};
-use crate::{RoadlineRenderConfig, RootUiNode};
+use crate::RoadlineRenderConfig;
 use bevy::prelude::*;
 
 /// Configuration for task systems
@@ -14,14 +14,12 @@ impl TaskSystemConfig {
 		EventReader<RenderUpdateEvent>,
 		Option<Res<Roadline>>,
 		Res<RoadlineRenderConfig>,
-		Res<RootUiNode>,
 		Query<Entity, With<Task>>,
 	) {
 		move |mut commands: Commands,
 		      render_events: EventReader<RenderUpdateEvent>,
 		      reified_opt: Option<Res<Roadline>>,
 		      _config: Res<RoadlineRenderConfig>,
-		      root_ui: Res<RootUiNode>,
 		      existing_tasks: Query<Entity, With<Task>>| {
 			// Only update if we received a render event and have reified data
 			if render_events.is_empty() || reified_opt.is_none() {
@@ -90,7 +88,7 @@ impl TaskSystemConfig {
 					Vec2::new(sprite_width, sprite_height),
 					title.text.clone(),
 				);
-				task_spawner.spawn(&mut commands, root_ui.0);
+				task_spawner.spawn(&mut commands);
 			}
 		}
 	}
