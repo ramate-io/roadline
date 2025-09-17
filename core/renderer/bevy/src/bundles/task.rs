@@ -1,68 +1,37 @@
 use crate::components::{RenderState, Task};
 use bevy::prelude::*;
-use bevy::ui::{BackgroundColor, BorderRadius, Node};
+use bevy::ui::{BackgroundColor, BorderColor, BorderRadius, Node};
 use roadline_util::task::Id as TaskId;
 
-/// Bundle for the task border (black border around the task)
+/// Bundle for the main task entity with built-in border
 #[derive(Bundle)]
-pub struct TaskBorderBundle {
+pub struct TaskBundle {
 	pub node: Node,
 	pub background_color: BackgroundColor,
+	pub border_color: BorderColor,
 	pub border_radius: BorderRadius,
-	pub style: Style,
-	pub transform: Transform,
-	pub visibility: Visibility,
-}
-
-impl TaskBorderBundle {
-	pub fn new(position: Vec3, size: Vec2) -> Self {
-		let border_size = Vec2::new(size.x + 2.0, size.y + 2.0);
-		Self {
-			node: Node::default(),
-			background_color: BackgroundColor(Color::BLACK),
-			border_radius: BorderRadius::all(Val::Px(5.0)), // Slightly larger radius for border
-			style: Style {
-				position_type: PositionType::Absolute,
-				left: Val::Px(position.x - border_size.x / 2.0),
-				top: Val::Px(-position.y - border_size.y / 2.0), // Flip Y for UI coordinates
-				width: Val::Px(border_size.x),
-				height: Val::Px(border_size.y),
-				..default()
-			},
-			transform: Transform::from_xyz(position.x, position.y, 1.0),
-			visibility: Visibility::Visible,
-		}
-	}
-}
-
-/// Bundle for the main task entity (background with Task component)
-#[derive(Bundle)]
-pub struct TaskBackgroundBundle {
-	pub node: Node,
-	pub background_color: BackgroundColor,
-	pub border_radius: BorderRadius,
-	pub style: Style,
 	pub transform: Transform,
 	pub visibility: Visibility,
 	pub task: Task,
 	pub render_state: RenderState,
 }
 
-impl TaskBackgroundBundle {
+impl TaskBundle {
 	pub fn new(task_id: TaskId, position: Vec3, size: Vec2) -> Self {
 		Self {
-			node: Node::default(),
-			background_color: BackgroundColor(Color::srgb(0.96, 0.96, 0.96)),
-			border_radius: BorderRadius::all(Val::Px(4.0)), // Rounded corners with 4px radius
-			style: Style {
+			node: Node {
 				position_type: PositionType::Absolute,
 				left: Val::Px(position.x - size.x / 2.0),
 				top: Val::Px(-position.y - size.y / 2.0), // Flip Y for UI coordinates
 				width: Val::Px(size.x),
 				height: Val::Px(size.y),
+				border: UiRect::all(Val::Px(2.0)), // 2px border on all sides
 				..default()
 			},
-			transform: Transform::from_xyz(position.x, position.y, 1.1), // Slightly higher z to appear on top of border
+			background_color: BackgroundColor(Color::srgb(0.96, 0.96, 0.96)),
+			border_color: BorderColor(Color::BLACK),
+			border_radius: BorderRadius::all(Val::Px(4.0)), // Rounded corners with 4px radius
+			transform: Transform::from_xyz(position.x, position.y, 1.0),
 			visibility: Visibility::Visible,
 			task: Task::new(task_id),
 			render_state: RenderState::new(),
@@ -76,7 +45,6 @@ pub struct TaskTextBundle {
 	pub text: Text,
 	pub text_layout: TextLayout,
 	pub node: Node,
-	pub style: Style,
 	pub transform: Transform,
 	pub visibility: Visibility,
 }
@@ -86,8 +54,7 @@ impl TaskTextBundle {
 		Self {
 			text: Text::new(title),
 			text_layout: TextLayout::default(),
-			node: Node::default(),
-			style: Style {
+			node: Node {
 				position_type: PositionType::Absolute,
 				left: Val::Px(position.x),
 				top: Val::Px(-position.y),        // Flip Y for UI coordinates
@@ -104,7 +71,7 @@ impl TaskTextBundle {
 }
 
 /// Helper struct for spawning all task entities
-pub struct TaskBundle {
+pub struct TaskSpawner {
 	pub task_id: TaskId,
 	pub position: Vec3,
 	pub size: Vec2,
@@ -112,7 +79,7 @@ pub struct TaskBundle {
 	pub font_size: f32,
 }
 
-impl TaskBundle {
+impl TaskSpawner {
 	pub fn new(task_id: TaskId, position: Vec3, size: Vec2, title: String) -> Self {
 		Self { task_id, position, size, title, font_size: 6.0 }
 	}
@@ -122,13 +89,10 @@ impl TaskBundle {
 		self
 	}
 
-	/// Spawns all entities needed for a task: border, background, and text
+	/// Spawns all entities needed for a task: main task node and text
 	pub fn spawn(self, commands: &mut Commands) {
-		// Spawn the border
-		commands.spawn(TaskBorderBundle::new(self.position, self.size));
-
-		// Spawn the background with Task component
-		commands.spawn(TaskBackgroundBundle::new(self.task_id, self.position, self.size));
+		// Spawn the main task node with built-in border
+		commands.spawn(TaskBundle::new(self.task_id, self.position, self.size));
 
 		// Spawn the text
 		commands.spawn(TaskTextBundle::new(self.title, self.position, self.font_size));
