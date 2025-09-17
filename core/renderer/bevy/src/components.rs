@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use roadline_util::dependency::Id as DependencyId;
 use roadline_util::task::Id as TaskId;
+pub mod dependency;
+pub mod task;
 
 /// Component that marks an entity as a milestone node
 #[derive(Component, Debug)]
