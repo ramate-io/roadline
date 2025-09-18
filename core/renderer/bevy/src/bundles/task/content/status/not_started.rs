@@ -1,8 +1,10 @@
-use super::{StatusBundle, StatusPreBundle};
 use bevy::prelude::*;
 use bevy::ui::{Node, Val};
 
-pub type NotStartedStatusBundle = (Node, BackgroundColor, Sprite);
+#[derive(Component)]
+pub struct NotStartedStatusMarker;
+
+pub type NotStartedStatusBundle = (NotStartedStatusMarker, Node, BackgroundColor, Sprite);
 
 pub struct NotStartedStatusPreBundle(NotStartedStatusBundle);
 
@@ -12,11 +14,11 @@ impl NotStartedStatusPreBundle {
 	}
 }
 
-pub struct NotStartedStatus {
+pub struct NotStartedStatusBundler {
 	pub total: u32,
 }
 
-impl NotStartedStatus {
+impl NotStartedStatusBundler {
 	pub fn new(total: u32) -> Self {
 		Self { total }
 	}
@@ -25,6 +27,7 @@ impl NotStartedStatus {
 		let color = Color::srgb(0.0, 0.0, 1.0); // Blue for not started
 
 		NotStartedStatusPreBundle((
+			NotStartedStatusMarker,
 			Node {
 				display: Display::Flex,
 				align_items: AlignItems::Center,

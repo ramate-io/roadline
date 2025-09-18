@@ -1,12 +1,9 @@
-use crate::bundles::task::content;
-use crate::bundles::task::content::status;
-use crate::bundles::task::content::title;
+use crate::bundles::task::content::{self, status, title};
 use crate::bundles::TaskBundler;
 use crate::components::Task;
 use crate::resources::{RenderUpdateEvent, Roadline};
 use crate::RoadlineRenderConfig;
 use bevy::prelude::*;
-use bevy::ui::GridPlacement;
 
 /// Configuration for task systems
 pub struct TaskSystemConfig;

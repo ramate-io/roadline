@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 use bevy::ui::Node;
 
-pub type TitleBundle = (Node, BackgroundColor, Text, TextColor, TextFont, Children);
+#[derive(Component)]
+pub struct TitleMarker;
+
+pub type TitleBundle = (TitleMarker, Node, BackgroundColor, Text, TextColor, TextFont, Children);
 
 pub struct TitlePreBundle(TitleBundle);
 
@@ -22,6 +25,7 @@ impl TitleBundler {
 
 	pub fn pre_bundle(self) -> TitlePreBundle {
 		TitlePreBundle((
+			TitleMarker,
 			Node {
 				display: Display::Flex,
 				align_items: AlignItems::Center,

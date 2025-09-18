@@ -3,10 +3,12 @@ use bevy::prelude::*;
 use bevy::ui::{GridTrack, Node, Val};
 
 pub mod status;
+pub use status::StatusBundle;
 pub mod title;
 pub use title::TitleBundle;
 
-pub type ContentBundle = (Node, BackgroundColor, SpawnOneRelated<ChildOf, TitleBundle>);
+pub type ContentBundle =
+	(Node, BackgroundColor, SpawnOneRelated<ChildOf, (TitleBundle, StatusBundle)>);
 
 pub struct ContentPreBundle(ContentBundle);
 
@@ -27,6 +29,7 @@ impl ContentBundler {
 
 	pub fn pre_bundle(self) -> ContentPreBundle {
 		let title_bundle = title::TitleBundler::new(self.title).pre_bundle().bundle();
+		let status_bundle = status::StatusBundler::new(1, 1).pre_bundle().bundle();
 
 		ContentPreBundle((
 			Node {
@@ -41,7 +44,7 @@ impl ContentBundler {
 				..default()
 			},
 			BackgroundColor(Color::srgb(0.96, 0.96, 0.96)), // blue background
-			Children::spawn_one(title_bundle),
+			Children::spawn_one((title_bundle, status_bundle)),
 		))
 	}
 }

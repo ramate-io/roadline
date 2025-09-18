@@ -1,8 +1,10 @@
-use super::{StatusBundle, StatusPreBundle};
 use bevy::prelude::*;
 use bevy::ui::{Node, Val};
 
-pub type MissedStatusBundle = (Node, BackgroundColor, Sprite);
+#[derive(Component)]
+pub struct MissedStatusMarker;
+
+pub type MissedStatusBundle = (MissedStatusMarker, Node, BackgroundColor, Sprite);
 
 pub struct MissedStatusPreBundle(MissedStatusBundle);
 
@@ -12,12 +14,12 @@ impl MissedStatusPreBundle {
 	}
 }
 
-pub struct MissedStatus {
+pub struct MissedStatusBundler {
 	pub completed: u32,
 	pub total: u32,
 }
 
-impl MissedStatus {
+impl MissedStatusBundler {
 	pub fn new(completed: u32, total: u32) -> Self {
 		Self { completed, total }
 	}
@@ -26,6 +28,7 @@ impl MissedStatus {
 		let color = Color::srgb(1.0, 0.0, 0.0); // Red for missed
 
 		MissedStatusPreBundle((
+			MissedStatusMarker,
 			Node {
 				display: Display::Flex,
 				align_items: AlignItems::Center,

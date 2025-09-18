@@ -1,8 +1,10 @@
-use super::{StatusBundle, StatusPreBundle};
 use bevy::prelude::*;
 use bevy::ui::{Node, Val};
 
-pub type InProgressStatusBundle = (Node, BackgroundColor, Sprite);
+#[derive(Component)]
+pub struct InProgressStatusMarker;
+
+pub type InProgressStatusBundle = (InProgressStatusMarker, Node, BackgroundColor, Sprite);
 
 pub struct InProgressStatusPreBundle(InProgressStatusBundle);
 
@@ -12,7 +14,7 @@ impl InProgressStatusPreBundle {
 	}
 }
 
-pub struct InProgressStatus {
+pub struct InProgressStatusBundler {
 	pub completed: u32,
 	pub total: u32,
 }
@@ -26,6 +28,7 @@ impl InProgressStatusBundler {
 		let color = Color::srgb(1.0, 1.0, 0.0); // Yellow for in progress
 
 		InProgressStatusPreBundle((
+			InProgressStatusMarker,
 			Node {
 				display: Display::Flex,
 				align_items: AlignItems::Center,

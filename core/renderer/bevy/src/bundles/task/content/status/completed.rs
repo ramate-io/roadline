@@ -1,8 +1,10 @@
-use super::{StatusBundle, StatusPreBundle};
 use bevy::prelude::*;
 use bevy::ui::{Node, Val};
 
-pub type CompletedStatusBundle = (Node, BackgroundColor, Sprite);
+#[derive(Component)]
+pub struct CompletedStatusMarker;
+
+pub type CompletedStatusBundle = (CompletedStatusMarker, Node, BackgroundColor, Sprite);
 
 pub struct CompletedStatusPreBundle(CompletedStatusBundle);
 
@@ -12,12 +14,12 @@ impl CompletedStatusPreBundle {
 	}
 }
 
-pub struct CompletedStatus {
+pub struct CompletedStatusBundler {
 	pub completed: u32,
 	pub total: u32,
 }
 
-impl CompletedStatus {
+impl CompletedStatusBundler {
 	pub fn new(completed: u32, total: u32) -> Self {
 		Self { completed, total }
 	}
@@ -26,6 +28,7 @@ impl CompletedStatus {
 		let color = Color::srgb(0.0, 1.0, 0.0); // Green for completed
 
 		CompletedStatusPreBundle((
+			CompletedStatusMarker,
 			Node {
 				display: Display::Flex,
 				align_items: AlignItems::Center,
