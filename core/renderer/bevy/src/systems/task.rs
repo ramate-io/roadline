@@ -1,4 +1,4 @@
-use crate::bundles::TaskSpawner;
+use crate::bundles::TaskBundler;
 use crate::components::Task;
 use crate::resources::{RenderUpdateEvent, Roadline};
 use crate::RoadlineRenderConfig;
@@ -82,13 +82,13 @@ impl TaskSystemConfig {
 				let title = task.title();
 
 				// Use TaskSpawner to spawn all task entities
-				let task_spawner = TaskSpawner::new(
+				let task_spawner = TaskBundler::new(
 					*task_id,
 					Vec3::new(left_justified_x, pixel_y, 0.0),
 					Vec2::new(sprite_width, sprite_height),
 					title.text.clone(),
 				);
-				task_spawner.spawn(&mut commands);
+				commands.spawn(task_spawner.bundle().into_inner());
 			}
 		}
 	}
