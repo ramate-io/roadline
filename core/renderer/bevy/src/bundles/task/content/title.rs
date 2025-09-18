@@ -1,6 +1,5 @@
 use bevy::prelude::*;
-use bevy::text::LineHeight;
-use bevy::ui::{Node, Val};
+use bevy::ui::Node;
 
 pub type TitleBundle = (Node, BackgroundColor, Text, TextColor, TextFont, Children);
 

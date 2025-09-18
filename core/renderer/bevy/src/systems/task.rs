@@ -1,8 +1,12 @@
+use crate::bundles::task::content;
+use crate::bundles::task::content::status;
+use crate::bundles::task::content::title;
 use crate::bundles::TaskBundler;
 use crate::components::Task;
 use crate::resources::{RenderUpdateEvent, Roadline};
 use crate::RoadlineRenderConfig;
 use bevy::prelude::*;
+use bevy::ui::GridPlacement;
 
 /// Configuration for task systems
 pub struct TaskSystemConfig;
@@ -81,13 +85,14 @@ impl TaskSystemConfig {
 				let task = task.unwrap();
 				let title = task.title();
 
-				// Use TaskSpawner to spawn all task entities
+				// Use TaskBundler to spawn all task entities
 				let task_bundler = TaskBundler::new(
 					*task_id,
 					Vec3::new(left_justified_x, pixel_y, 0.0),
 					Vec2::new(sprite_width, sprite_height),
 					title.text.clone(),
 				);
+
 				commands.spawn(task_bundler.pre_bundle().bundle());
 			}
 		}
