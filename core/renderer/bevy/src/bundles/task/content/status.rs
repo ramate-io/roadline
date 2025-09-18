@@ -6,24 +6,47 @@ pub mod in_progress;
 pub mod missed;
 pub mod not_started;
 
-pub use completed::CompletedStatus;
-pub use in_progress::InProgressStatus;
-pub use missed::MissedStatus;
-pub use not_started::NotStartedStatus;
+pub use completed::{CompletedStatus, CompletedStatusBundle, CompletedStatusPreBundle};
+pub use in_progress::{InProgressStatus, InProgressStatusBundle, InProgressStatusPreBundle};
+pub use missed::{MissedStatus, MissedStatusBundle, MissedStatusPreBundle};
+pub use not_started::{NotStartedStatus, NotStartedStatusBundle, NotStartedStatusPreBundle};
 
-pub type StatusBundle = (Node, BackgroundColor, Sprite);
+/// Use options for different status types
+pub type StatusBundle = (
+	Option<CompletedStatusBundle>,
+	Option<InProgressStatusBundle>,
+	Option<MissedStatusBundle>,
+	Option<NotStartedStatusBundle>,
+);
 
-pub struct StatusPreBundle(StatusBundle);
+pub enum StatusPreBundle {
+	Completed(CompletedStatusPreBundle),
+	InProgress(InProgressStatusPreBundle),
+	Missed(MissedStatusPreBundle),
+	NotStarted(NotStartedStatusPreBundle),
+}
 
 impl StatusPreBundle {
 	pub fn bundle(self) -> StatusBundle {
-		self.0
+		match self {
+			StatusPreBundle::Completed(completed) => (Some(completed.bundle()), None, None, None),
+			StatusPreBundle::InProgress(in_progress) => {
+				(None, Some(in_progress.bundle()), None, None)
+			}
+			StatusPreBundle::Missed(missed) => (None, None, Some(missed.bundle()), None),
+			StatusPreBundle::NotStarted(not_started) => {
+				(None, None, None, Some(not_started.bundle()))
+			}
+		}
 	}
 }
 
-pub struct StatusBundler {
-	pub completed: u32,
-	pub total: u32,
+/// This should be an enum of bundlers
+pub enum StatusBundler {
+	NotStarted(NotStartedStatus),
+	InProgress(InProgressStatus),
+	Completed(CompletedStatus),
+	Missed(MissedStatus),
 }
 
 impl StatusBundler {

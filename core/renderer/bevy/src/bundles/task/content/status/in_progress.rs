@@ -1,36 +1,42 @@
+use super::{StatusBundle, StatusPreBundle};
 use bevy::prelude::*;
 use bevy::ui::{Node, Val};
-use super::{StatusBundle, StatusPreBundle};
 
-pub struct InProgressStatus {
-    pub completed: u32,
-    pub total: u32,
+pub type InProgressStatusBundle = (Node, BackgroundColor, Sprite);
+
+pub struct InProgressStatusPreBundle(InProgressStatusBundle);
+
+impl InProgressStatusPreBundle {
+	pub fn bundle(self) -> InProgressStatusBundle {
+		self.0
+	}
 }
 
-impl InProgressStatus {
-    pub fn new(completed: u32, total: u32) -> Self {
-        Self { completed, total }
-    }
+pub struct InProgressStatus {
+	pub completed: u32,
+	pub total: u32,
+}
 
-    pub fn pre_bundle(self) -> StatusPreBundle {
-        let color = Color::srgb(1.0, 1.0, 0.0); // Yellow for in progress
-        
-        StatusPreBundle((
-            Node {
-                display: Display::Flex,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                align_self: AlignSelf::Center,
-                width: Val::Px(24.0),  // Fixed width for status indicator
-                height: Val::Px(24.0), // Fixed height for status indicator
-                ..default()
-            },
-            BackgroundColor(color),
-            Sprite {
-                color: color,
-                custom_size: Some(Vec2::new(24.0, 24.0)),
-                ..default()
-            },
-        ))
-    }
+impl InProgressStatusBundler {
+	pub fn new(completed: u32, total: u32) -> Self {
+		Self { completed, total }
+	}
+
+	pub fn pre_bundle(self) -> InProgressStatusPreBundle {
+		let color = Color::srgb(1.0, 1.0, 0.0); // Yellow for in progress
+
+		InProgressStatusPreBundle((
+			Node {
+				display: Display::Flex,
+				align_items: AlignItems::Center,
+				justify_content: JustifyContent::Center,
+				align_self: AlignSelf::Center,
+				width: Val::Px(24.0),  // Fixed width for status indicator
+				height: Val::Px(24.0), // Fixed height for status indicator
+				..default()
+			},
+			BackgroundColor(color),
+			Sprite { color: color, custom_size: Some(Vec2::new(24.0, 24.0)), ..default() },
+		))
+	}
 }
