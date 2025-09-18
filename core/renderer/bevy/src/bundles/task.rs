@@ -1,5 +1,4 @@
 pub mod content;
-pub use content::Content;
 
 use crate::components::{RenderState, Task};
 use bevy::ecs::spawn::SpawnOneRelated;
@@ -21,7 +20,7 @@ pub type TaskBundle = (
 			BackgroundColor,
 			BorderColor,
 			BorderRadius,
-			SpawnOneRelated<bevy::prelude::ChildOf, bevy::prelude::Text>,
+			SpawnOneRelated<bevy::prelude::ChildOf, content::ContentBundle>,
 		),
 	>,
 );
@@ -75,7 +74,7 @@ impl TaskBundler {
 				BackgroundColor(Color::srgb(0.96, 0.96, 0.96)),
 				BorderColor(Color::BLACK),
 				BorderRadius::all(Val::Px(4.0)), // Rounded corners with 4px radius
-				Children::spawn_one(Text::new(self.title)),
+				Children::spawn_one(content::ContentBundler::new(self.title).pre_bundle().bundle()),
 			)),
 		))
 	}
