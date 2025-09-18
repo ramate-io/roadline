@@ -81,4 +81,18 @@ impl TaskBundler {
 			)),
 		))
 	}
+
+	pub fn spawn(self, commands: &mut Commands) {
+
+		/*let anchor_ui_node = Anch
+
+		let task_bundle = commands
+			.spawn((
+				Task::new(self.task_id),
+				RenderState::new(),
+				Transform::from_translation(self.position),
+				Visibility::Visible,
+			))
+			.id();*/
+	}
 }

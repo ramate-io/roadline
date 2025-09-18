@@ -4,7 +4,13 @@ use bevy::ui::{Node, Val};
 #[derive(Component)]
 pub struct InProgressStatusMarker;
 
-pub type InProgressStatusBundle = (InProgressStatusMarker, Node, BackgroundColor, Sprite);
+#[derive(Bundle)]
+pub struct InProgressStatusBundle {
+	pub marker: InProgressStatusMarker,
+	pub node: Node,
+	pub background_color: BackgroundColor,
+	pub text: Text,
+}
 
 pub struct InProgressStatusPreBundle(InProgressStatusBundle);
 
@@ -27,9 +33,9 @@ impl InProgressStatusBundler {
 	pub fn pre_bundle(self) -> InProgressStatusPreBundle {
 		let color = Color::srgb(1.0, 1.0, 0.0); // Yellow for in progress
 
-		InProgressStatusPreBundle((
-			InProgressStatusMarker,
-			Node {
+		InProgressStatusPreBundle(InProgressStatusBundle {
+			marker: InProgressStatusMarker,
+			node: Node {
 				display: Display::Flex,
 				align_items: AlignItems::Center,
 				justify_content: JustifyContent::Center,
@@ -38,8 +44,8 @@ impl InProgressStatusBundler {
 				height: Val::Px(24.0), // Fixed height for status indicator
 				..default()
 			},
-			BackgroundColor(color),
-			Sprite { color: color, custom_size: Some(Vec2::new(24.0, 24.0)), ..default() },
-		))
+			background_color: BackgroundColor(color),
+			text: Text::new("Hello"),
+		})
 	}
 }

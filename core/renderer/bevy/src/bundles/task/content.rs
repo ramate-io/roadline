@@ -1,4 +1,4 @@
-use bevy::ecs::spawn::SpawnOneRelated;
+use bevy::ecs::spawn::SpawnRelatedBundle;
 use bevy::prelude::*;
 use bevy::ui::{GridTrack, Node, Val};
 
@@ -8,7 +8,7 @@ pub mod title;
 pub use title::TitleBundle;
 
 pub type ContentBundle =
-	(Node, BackgroundColor, SpawnOneRelated<ChildOf, (TitleBundle, StatusBundle)>);
+	(Node, BackgroundColor, SpawnRelatedBundle<ChildOf, (Spawn<TitleBundle>, Spawn<StatusBundle>)>);
 
 pub struct ContentPreBundle(ContentBundle);
 
@@ -44,7 +44,7 @@ impl ContentBundler {
 				..default()
 			},
 			BackgroundColor(Color::srgb(0.96, 0.96, 0.96)), // blue background
-			Children::spawn_one((title_bundle, status_bundle)),
+			children![title_bundle, status_bundle],
 		))
 	}
 }

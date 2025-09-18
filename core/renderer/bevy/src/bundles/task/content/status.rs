@@ -8,15 +8,33 @@ pub use in_progress::{InProgressStatusBundle, InProgressStatusBundler, InProgres
 pub use missed::{MissedStatusBundle, MissedStatusBundler, MissedStatusPreBundle};
 pub use not_started::{NotStartedStatusBundle, NotStartedStatusBundler, NotStartedStatusPreBundle};
 
-use bevy::prelude::Component;
+use bevy::prelude::*;
+
+/// relationship that defines which uinodes are anchored to this entity
+#[derive(Component, Reflect, Clone, Debug, PartialEq)]
+#[relationship_target(relationship = StatusUiNode, linked_spawn)]
+pub struct StatusNodes(Vec<Entity>);
+
+/// Component that will continuosly update the UI location on screen, to match an in world location either chosen as a fixed
+/// position, or chosen as another entities ['GlobalTransformation']
+#[derive(Component, Reflect, Clone, Debug, PartialEq)]
+#[relationship(relationship_target = StatusNodes)]
+#[require(Node)]
+pub struct StatusUiNode {
+	/// The Ui will be placed onto the screen, matching where this entity is located in the world
+	#[relationship]
+	pub target: Entity,
+}
+
+#[derive(Component)]
+pub struct StatusMarker;
 
 /// Use options for different status types
-#[derive(Component)]
-pub enum StatusBundle {
-	Completed(CompletedStatusBundle),
-	InProgress(InProgressStatusBundle),
-	Missed(MissedStatusBundle),
-	NotStarted(NotStartedStatusBundle),
+#[derive(Bundle)]
+pub struct StatusBundle {
+	pub marker: StatusMarker,
+	pub node: Node,
+	pub completed: Text,
 }
 
 pub enum StatusPreBundle {
@@ -28,15 +46,10 @@ pub enum StatusPreBundle {
 
 impl StatusPreBundle {
 	pub fn bundle(self) -> StatusBundle {
-		match self {
-			StatusPreBundle::Completed(completed) => StatusBundle::Completed(completed.bundle()),
-			StatusPreBundle::InProgress(in_progress) => {
-				StatusBundle::InProgress(in_progress.bundle())
-			}
-			StatusPreBundle::Missed(missed) => StatusBundle::Missed(missed.bundle()),
-			StatusPreBundle::NotStarted(not_started) => {
-				StatusBundle::NotStarted(not_started.bundle())
-			}
+		StatusBundle {
+			marker: StatusMarker,
+			node: Node::default(),
+			completed: Text::new("Completed"),
 		}
 	}
 }
