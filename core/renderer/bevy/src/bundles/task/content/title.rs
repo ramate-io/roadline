@@ -1,7 +1,8 @@
 use bevy::prelude::*;
+use bevy::text::LineHeight;
 use bevy::ui::{Node, Val};
 
-pub type TitleBundle = (Node, Text, TextColor, Children);
+pub type TitleBundle = (Node, BackgroundColor, Text, TextColor, TextFont, Children);
 
 pub struct TitlePreBundle(TitleBundle);
 
@@ -23,15 +24,17 @@ impl TitleBundler {
 	pub fn pre_bundle(self) -> TitlePreBundle {
 		TitlePreBundle((
 			Node {
-				width: Val::Percent(100.0),  // Take full width of grid cell
-				height: Val::Percent(100.0), // Take full height of grid cell
+				display: Display::Flex,
 				align_items: AlignItems::Center,
+				align_content: AlignContent::Center,
 				justify_content: JustifyContent::Start, // Left-align the text
-				padding: UiRect::all(Val::Px(4.0)),     // Small padding around text
+				align_self: AlignSelf::Center,
 				..default()
 			},
+			BackgroundColor(Color::WHITE),
 			Text::new(self.title),
 			TextColor(Color::BLACK),
+			TextFont { font_size: 8.0, ..Default::default() },
 			Children::default(),
 		))
 	}

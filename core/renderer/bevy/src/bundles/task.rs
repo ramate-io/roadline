@@ -66,12 +66,12 @@ impl TaskBundler {
 				Node {
 					width: Val::Px(self.size.x),
 					height: Val::Px(self.size.y),
-					border: UiRect::all(Val::Px(2.0)), // 2px border on all sides
+					border: UiRect::all(Val::Px(1.0)), // 2px border on all sides
 					align_items: AlignItems::Center,
 					justify_content: JustifyContent::Center,
 					..default()
 				},
-				BackgroundColor(Color::srgb(0.96, 0.96, 0.96)),
+				BackgroundColor(Color::WHITE),
 				BorderColor(Color::BLACK),
 				BorderRadius::all(Val::Px(4.0)), // Rounded corners with 4px radius
 				Children::spawn_one(content::ContentBundler::new(self.title).pre_bundle().bundle()),
