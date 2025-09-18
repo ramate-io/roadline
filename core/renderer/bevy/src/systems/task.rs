@@ -82,13 +82,13 @@ impl TaskSystemConfig {
 				let title = task.title();
 
 				// Use TaskSpawner to spawn all task entities
-				let task_spawner = TaskBundler::new(
+				let task_bundler = TaskBundler::new(
 					*task_id,
 					Vec3::new(left_justified_x, pixel_y, 0.0),
 					Vec2::new(sprite_width, sprite_height),
 					title.text.clone(),
 				);
-				commands.spawn(task_spawner.bundle().into_inner());
+				commands.spawn(task_bundler.pre_bundle().bundle());
 			}
 		}
 	}

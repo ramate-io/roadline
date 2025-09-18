@@ -1,3 +1,6 @@
+pub mod content;
+pub use content::Content;
+
 use crate::components::{RenderState, Task};
 use bevy::ecs::spawn::SpawnOneRelated;
 use bevy::prelude::*;
@@ -5,7 +8,7 @@ use bevy::ui::{BackgroundColor, BorderColor, BorderRadius, Node};
 use bevy_ui_anchor::{AnchorPoint, AnchorUiConfig, AnchorUiNode, AnchoredUiNodes};
 use roadline_util::task::Id as TaskId;
 
-pub type TaskBundleInner = (
+pub type TaskBundle = (
 	Task,
 	RenderState,
 	bevy::prelude::Transform,
@@ -23,10 +26,10 @@ pub type TaskBundleInner = (
 	>,
 );
 
-pub struct TaskBundle(TaskBundleInner);
+pub struct TaskPreBundle(TaskBundle);
 
-impl TaskBundle {
-	pub fn into_inner(self) -> TaskBundleInner {
+impl TaskPreBundle {
+	pub fn bundle(self) -> TaskBundle {
 		self.0
 	}
 }
@@ -50,8 +53,8 @@ impl TaskBundler {
 		self
 	}
 
-	pub fn bundle(self) -> TaskBundle {
-		TaskBundle((
+	pub fn pre_bundle(self) -> TaskPreBundle {
+		TaskPreBundle((
 			Task::new(self.task_id),
 			RenderState::new(),
 			Transform::from_translation(self.position),
