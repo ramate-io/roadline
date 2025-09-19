@@ -9,17 +9,30 @@ pub struct CompletedStatusMarker;
 pub struct CompletedStatusBundle {
 	pub marker: CompletedStatusMarker,
 	pub node: Node,
-	pub background_color: BackgroundColor,
 	pub text: Text,
+	pub text_color: TextColor,
+	pub text_font: TextFont,
+	pub border_radius: BorderRadius,
 }
 
 impl StatusBundlable for CompletedStatusBundle {
 	fn new_status_bundle(completed: u32, total: u32) -> Self {
 		Self {
 			marker: CompletedStatusMarker,
-			node: Node::default(),
-			background_color: BackgroundColor::default(),
-			text: Text::new("Completed"),
+			node: Node {
+				display: Display::Flex,
+				align_items: AlignItems::Center,
+				justify_content: JustifyContent::Center,
+				justify_self: JustifySelf::End,
+				align_self: AlignSelf::Center,
+				width: Val::Px(50.0), // Wider to accommodate check mark + text
+				height: Val::Px(32.0),
+				..default()
+			},
+			border_radius: BorderRadius::all(Val::Px(16.0)),
+			text: Text::new(format!("● {}/{}", completed, total)), // Filled circle + fraction
+			text_font: TextFont { font_size: 6.0, ..Default::default() },
+			text_color: TextColor(Color::srgb(0.2, 0.8, 0.2)),
 		}
 	}
 }
@@ -43,21 +56,9 @@ impl CompletedStatusBundler {
 	}
 
 	pub fn pre_bundle(self) -> CompletedStatusPreBundle {
-		let color = Color::srgb(0.0, 1.0, 0.0); // Green for completed
-
-		CompletedStatusPreBundle(CompletedStatusBundle {
-			marker: CompletedStatusMarker,
-			node: Node {
-				display: Display::Flex,
-				align_items: AlignItems::Center,
-				justify_content: JustifyContent::Center,
-				align_self: AlignSelf::Center,
-				width: Val::Px(24.0),  // Fixed width for status indicator
-				height: Val::Px(24.0), // Fixed height for status indicator
-				..default()
-			},
-			background_color: BackgroundColor(color),
-			text: Text::new("Hello"),
-		})
+		CompletedStatusPreBundle(CompletedStatusBundle::new_status_bundle(
+			self.completed,
+			self.total,
+		))
 	}
 }

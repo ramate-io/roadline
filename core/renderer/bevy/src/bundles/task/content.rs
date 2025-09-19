@@ -8,11 +8,8 @@ pub mod title;
 use std::marker::PhantomData;
 pub use title::TitleBundle;
 
-pub type ContentBundle<T: StatusBundlable> = (
-	Node,
-	BackgroundColor,
-	SpawnRelatedBundle<ChildOf, (Spawn<TitleBundle>, Spawn<StatusBundle<T>>)>,
-);
+pub type ContentBundle<T> =
+	(Node, SpawnRelatedBundle<ChildOf, (Spawn<TitleBundle>, Spawn<StatusBundle<T>>)>);
 
 pub struct ContentPreBundle<T: StatusBundlable>(ContentBundle<T>);
 
@@ -51,10 +48,10 @@ where
 				grid_template_rows: vec![GridTrack::fr(1.0)],                        // Single row
 				align_content: AlignContent::Center,
 				justify_content: JustifyContent::Center,
+				justify_self: JustifySelf::Center,
 				padding: UiRect::all(Val::Px(8.0)), // 8px padding inside the content area
 				..default()
 			},
-			BackgroundColor(Color::srgb(0.96, 0.96, 0.96)), // blue background
 			children![title_bundle, status_bundle],
 		))
 	}

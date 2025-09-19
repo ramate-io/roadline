@@ -15,7 +15,7 @@ use bevy_ui_anchor::{AnchorPoint, AnchorUiConfig, AnchorUiNode, AnchoredUiNodes}
 use roadline_util::task::Id as TaskId;
 use std::marker::PhantomData;
 
-pub type TaskBundle<T: StatusBundlable> = (
+pub type TaskBundle<T> = (
 	Task,
 	RenderState,
 	bevy::prelude::Transform,

@@ -8,7 +8,6 @@ pub struct TitleMarker;
 pub struct TitleBundle {
 	pub marker: TitleMarker,
 	pub node: Node,
-	pub background_color: BackgroundColor,
 	pub text: Text,
 	pub text_color: TextColor,
 	pub text_font: TextFont,
@@ -43,10 +42,9 @@ impl TitleBundler {
 				align_self: AlignSelf::Center,
 				..default()
 			},
-			background_color: BackgroundColor(Color::WHITE),
 			text: Text::new(self.title),
 			text_color: TextColor(Color::BLACK),
-			text_font: TextFont { font_size: 8.0, ..Default::default() },
+			text_font: TextFont { font_size: 6.0, ..Default::default() },
 			children: Children::default(),
 		})
 	}
