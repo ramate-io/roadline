@@ -8,81 +8,58 @@ pub use in_progress::{InProgressStatusBundle, InProgressStatusBundler, InProgres
 pub use missed::{MissedStatusBundle, MissedStatusBundler, MissedStatusPreBundle};
 pub use not_started::{NotStartedStatusBundle, NotStartedStatusBundler, NotStartedStatusPreBundle};
 
+use bevy::ecs::bundle::BundleFromComponents;
 use bevy::prelude::*;
+use std::marker::PhantomData;
 
-/// relationship that defines which uinodes are anchored to this entity
-#[derive(Component, Reflect, Clone, Debug, PartialEq)]
-#[relationship_target(relationship = StatusUiNode, linked_spawn)]
-pub struct StatusNodes(Vec<Entity>);
-
-/// Component that will continuosly update the UI location on screen, to match an in world location either chosen as a fixed
-/// position, or chosen as another entities ['GlobalTransformation']
-#[derive(Component, Reflect, Clone, Debug, PartialEq)]
-#[relationship(relationship_target = StatusNodes)]
-#[require(Node)]
-pub struct StatusUiNode {
-	/// The Ui will be placed onto the screen, matching where this entity is located in the world
-	#[relationship]
-	pub target: Entity,
+/// A maker trait for status bundle variants.
+pub trait StatusBundlable: Bundle + BundleFromComponents {
+	fn new_status_bundle(completed: u32, total: u32) -> Self;
 }
 
 #[derive(Component)]
 pub struct StatusMarker;
 
-/// Use options for different status types
 #[derive(Bundle)]
-pub struct StatusBundle {
+pub struct StatusBundle<T: StatusBundlable> {
 	pub marker: StatusMarker,
-	pub node: Node,
-	pub completed: Text,
+	pub bundle: T,
 }
 
-pub enum StatusPreBundle {
-	Completed(CompletedStatusPreBundle),
-	InProgress(InProgressStatusPreBundle),
-	Missed(MissedStatusPreBundle),
-	NotStarted(NotStartedStatusPreBundle),
+pub struct StatusPreBundle<T: StatusBundlable> {
+	pub bundle: StatusBundle<T>,
 }
 
-impl StatusPreBundle {
-	pub fn bundle(self) -> StatusBundle {
-		StatusBundle {
-			marker: StatusMarker,
-			node: Node::default(),
-			completed: Text::new("Completed"),
-		}
+impl<T> StatusPreBundle<T>
+where
+	T: StatusBundlable,
+{
+	pub fn bundle(self) -> StatusBundle<T> {
+		self.bundle
 	}
 }
 
 /// This should be an enum of bundlers
-pub enum StatusBundler {
-	NotStarted(NotStartedStatusBundler),
-	InProgress(InProgressStatusBundler),
-	Completed(CompletedStatusBundler),
-	Missed(MissedStatusBundler),
+pub struct StatusBundler<T: StatusBundlable> {
+	pub completed: u32,
+	pub total: u32,
+	pub phantom: PhantomData<T>,
 }
 
-impl StatusBundler {
+impl<T> StatusBundler<T>
+where
+	T: StatusBundlable,
+{
 	pub fn new(completed: u32, total: u32) -> Self {
-		// Determine status type based on completion
-		if completed == 0 {
-			// Not started - blue
-			Self::NotStarted(NotStartedStatusBundler::new(total))
-		} else if completed == total {
-			// Completed - green
-			Self::Completed(CompletedStatusBundler::new(completed, total))
-		} else {
-			// In progress - yellow
-			Self::InProgress(InProgressStatusBundler::new(completed, total))
-		}
+		Self { completed, total, phantom: PhantomData }
 	}
 
-	pub fn pre_bundle(self) -> StatusPreBundle {
-		match self {
-			StatusBundler::NotStarted(bundler) => StatusPreBundle::NotStarted(bundler.pre_bundle()),
-			StatusBundler::InProgress(bundler) => StatusPreBundle::InProgress(bundler.pre_bundle()),
-			StatusBundler::Completed(bundler) => StatusPreBundle::Completed(bundler.pre_bundle()),
-			StatusBundler::Missed(bundler) => StatusPreBundle::Missed(bundler.pre_bundle()),
+	pub fn pre_bundle(self) -> StatusPreBundle<T> {
+		StatusPreBundle {
+			bundle: StatusBundle {
+				marker: StatusMarker,
+				bundle: T::new_status_bundle(self.completed, self.total),
+			},
 		}
 	}
 }

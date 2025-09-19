@@ -3,31 +3,42 @@ use bevy::prelude::*;
 use bevy::ui::{GridTrack, Node, Val};
 
 pub mod status;
-pub use status::StatusBundle;
+pub use status::{StatusBundlable, StatusBundle};
 pub mod title;
+use std::marker::PhantomData;
 pub use title::TitleBundle;
 
-pub type ContentBundle =
-	(Node, BackgroundColor, SpawnRelatedBundle<ChildOf, (Spawn<TitleBundle>, Spawn<StatusBundle>)>);
+pub type ContentBundle<T: StatusBundlable> = (
+	Node,
+	BackgroundColor,
+	SpawnRelatedBundle<ChildOf, (Spawn<TitleBundle>, Spawn<StatusBundle<T>>)>,
+);
 
-pub struct ContentPreBundle(ContentBundle);
+pub struct ContentPreBundle<T: StatusBundlable>(ContentBundle<T>);
 
-impl ContentPreBundle {
-	pub fn bundle(self) -> ContentBundle {
+impl<T> ContentPreBundle<T>
+where
+	T: StatusBundlable,
+{
+	pub fn bundle(self) -> ContentBundle<T> {
 		self.0
 	}
 }
 
-pub struct ContentBundler {
+pub struct ContentBundler<T: StatusBundlable> {
 	pub title: String,
+	pub phantom: PhantomData<T>,
 }
 
-impl ContentBundler {
+impl<T> ContentBundler<T>
+where
+	T: StatusBundlable,
+{
 	pub fn new(title: String) -> Self {
-		Self { title }
+		Self { title, phantom: PhantomData }
 	}
 
-	pub fn pre_bundle(self) -> ContentPreBundle {
+	pub fn pre_bundle(self) -> ContentPreBundle<T> {
 		let title_bundle = title::TitleBundler::new(self.title).pre_bundle().bundle();
 		let status_bundle = status::StatusBundler::new(1, 1).pre_bundle().bundle();
 

@@ -1,3 +1,5 @@
+use super::StatusBundlable;
+
 use bevy::prelude::*;
 use bevy::ui::{Node, Val};
 
@@ -10,6 +12,17 @@ pub struct InProgressStatusBundle {
 	pub node: Node,
 	pub background_color: BackgroundColor,
 	pub text: Text,
+}
+
+impl StatusBundlable for InProgressStatusBundle {
+	fn new_status_bundle(completed: u32, total: u32) -> Self {
+		Self {
+			marker: InProgressStatusMarker,
+			node: Node::default(),
+			background_color: BackgroundColor::default(),
+			text: Text::new("In Progress"),
+		}
+	}
 }
 
 pub struct InProgressStatusPreBundle(InProgressStatusBundle);
