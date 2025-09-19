@@ -3,10 +3,10 @@ pub mod in_progress;
 pub mod missed;
 pub mod not_started;
 
-pub use completed::{CompletedStatusBundle, CompletedStatusBundler, CompletedStatusPreBundle};
-pub use in_progress::{InProgressStatusBundle, InProgressStatusBundler, InProgressStatusPreBundle};
-pub use missed::{MissedStatusBundle, MissedStatusBundler, MissedStatusPreBundle};
-pub use not_started::{NotStartedStatusBundle, NotStartedStatusBundler, NotStartedStatusPreBundle};
+pub use completed::{CompletedStatusBundle, CompletedStatusPreBundle, CompletedStatusSpawner};
+pub use in_progress::{InProgressStatusBundle, InProgressStatusPreBundle, InProgressStatusSpawner};
+pub use missed::{MissedStatusBundle, MissedStatusPreBundle, MissedStatusSpawner};
+pub use not_started::{NotStartedStatusBundle, NotStartedStatusPreBundle, NotStartedStatusSpawner};
 
 use bevy::ecs::bundle::BundleFromComponents;
 use bevy::prelude::*;
@@ -40,13 +40,13 @@ where
 }
 
 /// This should be an enum of bundlers
-pub struct StatusBundler<T: StatusBundlable> {
+pub struct StatusSpawner<T: StatusBundlable> {
 	pub completed: u32,
 	pub total: u32,
 	pub phantom: PhantomData<T>,
 }
 
-impl<T> StatusBundler<T>
+impl<T> StatusSpawner<T>
 where
 	T: StatusBundlable,
 {

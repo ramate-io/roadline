@@ -33,12 +33,12 @@ impl InProgressStatusPreBundle {
 	}
 }
 
-pub struct InProgressStatusBundler {
+pub struct InProgressStatusSpawner {
 	pub completed: u32,
 	pub total: u32,
 }
 
-impl InProgressStatusBundler {
+impl InProgressStatusSpawner {
 	pub fn new(completed: u32, total: u32) -> Self {
 		Self { completed, total }
 	}

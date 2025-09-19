@@ -33,11 +33,11 @@ impl NotStartedStatusPreBundle {
 	}
 }
 
-pub struct NotStartedStatusBundler {
+pub struct NotStartedStatusSpawner {
 	pub total: u32,
 }
 
-impl NotStartedStatusBundler {
+impl NotStartedStatusSpawner {
 	pub fn new(total: u32) -> Self {
 		Self { total }
 	}

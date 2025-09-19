@@ -33,12 +33,12 @@ impl MissedStatusPreBundle {
 	}
 }
 
-pub struct MissedStatusBundler {
+pub struct MissedStatusSpawner {
 	pub completed: u32,
 	pub total: u32,
 }
 
-impl MissedStatusBundler {
+impl MissedStatusSpawner {
 	pub fn new(completed: u32, total: u32) -> Self {
 		Self { completed, total }
 	}

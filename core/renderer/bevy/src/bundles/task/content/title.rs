@@ -22,11 +22,11 @@ impl TitlePreBundle {
 	}
 }
 
-pub struct TitleBundler {
+pub struct TitleSpawner {
 	pub title: String,
 }
 
-impl TitleBundler {
+impl TitleSpawner {
 	pub fn new(title: String) -> Self {
 		Self { title }
 	}

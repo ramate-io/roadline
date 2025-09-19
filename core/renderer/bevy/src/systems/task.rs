@@ -1,5 +1,5 @@
 use crate::bundles::task::content::{self, status, title};
-use crate::bundles::task::TaskBundlerData;
+use crate::bundles::task::{content::status::CompletedStatusBundle, TaskSpawner};
 use crate::components::Task;
 use crate::resources::{RenderUpdateEvent, Roadline};
 use crate::RoadlineRenderConfig;
@@ -82,8 +82,8 @@ impl TaskSystemConfig {
 				let task = task.unwrap();
 				let title = task.title();
 
-				// Use TaskBundler to spawn all task entities
-				let task_bundler_data = TaskBundlerData::new(
+				// Use TaskSpawner to spawn all task entities
+				let task_bundler_data = TaskSpawner::<CompletedStatusBundle>::new(
 					*task_id,
 					Vec3::new(left_justified_x, pixel_y, 0.0),
 					Vec2::new(sprite_width, sprite_height),

@@ -22,12 +22,12 @@ where
 	}
 }
 
-pub struct ContentBundler<T: StatusBundlable> {
+pub struct ContentSpawner<T: StatusBundlable> {
 	pub title: String,
 	pub phantom: PhantomData<T>,
 }
 
-impl<T> ContentBundler<T>
+impl<T> ContentSpawner<T>
 where
 	T: StatusBundlable,
 {
@@ -36,8 +36,8 @@ where
 	}
 
 	pub fn pre_bundle(self) -> ContentPreBundle<T> {
-		let title_bundle = title::TitleBundler::new(self.title).pre_bundle().bundle();
-		let status_bundle = status::StatusBundler::new(1, 1).pre_bundle().bundle();
+		let title_bundle = title::TitleSpawner::new(self.title).pre_bundle().bundle();
+		let status_bundle = status::StatusSpawner::new(1, 1).pre_bundle().bundle();
 
 		ContentPreBundle((
 			Node {
