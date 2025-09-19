@@ -3,6 +3,7 @@ use crate::components::Task;
 use crate::resources::{RenderUpdateEvent, Roadline};
 use crate::RoadlineRenderConfig;
 use bevy::prelude::*;
+use bevy::sprite::ColorMaterial;
 
 /// Configuration for task systems
 pub struct TaskSystemConfig;
@@ -15,12 +16,16 @@ impl TaskSystemConfig {
 		Option<Res<Roadline>>,
 		Res<RoadlineRenderConfig>,
 		Query<Entity, With<Task>>,
+		ResMut<Assets<Mesh>>,
+		ResMut<Assets<ColorMaterial>>,
 	) {
 		move |mut commands: Commands,
 		      render_events: EventReader<RenderUpdateEvent>,
 		      reified_opt: Option<Res<Roadline>>,
 		      _config: Res<RoadlineRenderConfig>,
-		      existing_tasks: Query<Entity, With<Task>>| {
+		      existing_tasks: Query<Entity, With<Task>>,
+		      mut meshes: ResMut<Assets<Mesh>>,
+		      mut materials: ResMut<Assets<ColorMaterial>>| {
 			// Only update if we received a render event and have reified data
 			if render_events.is_empty() || reified_opt.is_none() {
 				return;
@@ -89,7 +94,7 @@ impl TaskSystemConfig {
 					title.text.clone(),
 				);
 
-				task_spawner.spawn(&mut commands);
+				task_spawner.spawn(&mut commands, &mut meshes, &mut materials);
 			}
 		}
 	}

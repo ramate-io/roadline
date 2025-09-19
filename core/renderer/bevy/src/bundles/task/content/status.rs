@@ -35,11 +35,17 @@ impl StatusSpawner {
 		}
 	}
 
-	pub fn spawn(self, commands: &mut Commands, parent: Entity) {
+	pub fn spawn(
+		self,
+		commands: &mut Commands,
+		meshes: &mut ResMut<Assets<Mesh>>,
+		materials: &mut ResMut<Assets<ColorMaterial>>,
+		parent: Entity,
+	) {
 		match self {
 			StatusSpawner::NotStarted(spawner) => spawner.spawn(commands, parent),
 			StatusSpawner::InProgress(spawner) => spawner.spawn(commands, parent),
-			StatusSpawner::Completed(spawner) => spawner.spawn(commands, parent),
+			StatusSpawner::Completed(spawner) => spawner.spawn(commands, meshes, materials, parent),
 			StatusSpawner::Missed(spawner) => spawner.spawn(commands, parent),
 		}
 	}

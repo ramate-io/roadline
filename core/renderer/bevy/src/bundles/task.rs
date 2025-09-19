@@ -41,7 +41,12 @@ impl TaskSpawner {
 		self
 	}
 
-	pub fn spawn(self, commands: &mut Commands) {
+	pub fn spawn(
+		self,
+		commands: &mut Commands,
+		meshes: &mut ResMut<Assets<Mesh>>,
+		materials: &mut ResMut<Assets<ColorMaterial>>,
+	) {
 		let task_entity = commands
 			.spawn((
 				Task::new(self.data.task_id),
@@ -70,7 +75,11 @@ impl TaskSpawner {
 			.id();
 
 		// Spawn content using the new imperative spawner
-		ContentSpawner::new(self.data.title, self.data.completed, self.data.total)
-			.spawn(commands, parent_entity);
+		ContentSpawner::new(self.data.title, self.data.completed, self.data.total).spawn(
+			commands,
+			meshes,
+			materials,
+			parent_entity,
+		);
 	}
 }
