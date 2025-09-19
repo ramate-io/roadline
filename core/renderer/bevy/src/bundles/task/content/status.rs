@@ -13,11 +13,6 @@ use bevy::prelude::*;
 #[derive(Component)]
 pub struct StatusMarker;
 
-pub struct StatusSpawnerData {
-	pub completed: u32,
-	pub total: u32,
-}
-
 pub enum StatusSpawner {
 	NotStarted(NotStartedStatusSpawner),
 	InProgress(InProgressStatusSpawner),

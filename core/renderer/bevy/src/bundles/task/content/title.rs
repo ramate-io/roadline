@@ -4,17 +4,13 @@ use bevy::ui::Node;
 #[derive(Component)]
 pub struct TitleMarker;
 
-pub struct TitleSpawnerData {
-	pub title: String,
-}
-
 pub struct TitleSpawner {
-	pub data: TitleSpawnerData,
+	pub title: String,
 }
 
 impl TitleSpawner {
 	pub fn new(title: String) -> Self {
-		Self { data: TitleSpawnerData { title } }
+		Self { title }
 	}
 
 	pub fn spawn(self, commands: &mut Commands, parent: Entity) {
@@ -29,7 +25,7 @@ impl TitleSpawner {
 					align_self: AlignSelf::Center,
 					..default()
 				},
-				Text::new(self.data.title),
+				Text::new(self.title),
 				TextColor(Color::BLACK),
 				TextFont { font_size: 8.0, ..Default::default() },
 			))

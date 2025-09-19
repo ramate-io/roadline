@@ -6,19 +6,15 @@ pub use status::StatusSpawner;
 pub mod title;
 pub use title::TitleSpawner;
 
-pub struct ContentSpawnerData {
+pub struct ContentSpawner {
 	pub title: String,
 	pub completed: u32,
 	pub total: u32,
 }
 
-pub struct ContentSpawner {
-	pub data: ContentSpawnerData,
-}
-
 impl ContentSpawner {
 	pub fn new(title: String, completed: u32, total: u32) -> Self {
-		Self { data: ContentSpawnerData { title, completed, total } }
+		Self { title, completed, total }
 	}
 
 	pub fn spawn(self, commands: &mut Commands, parent: Entity) {
@@ -38,10 +34,10 @@ impl ContentSpawner {
 			.id();
 
 		// Spawn title
-		TitleSpawner::new(self.data.title).spawn(commands, content_entity);
+		TitleSpawner::new(self.title).spawn(commands, content_entity);
 
 		// Spawn status
-		StatusSpawner::new(self.data.completed, self.data.total).spawn(commands, content_entity);
+		StatusSpawner::new(self.completed, self.total).spawn(commands, content_entity);
 
 		// Attach content to parent
 		commands.entity(parent).add_child(content_entity);

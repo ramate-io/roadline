@@ -4,20 +4,14 @@ use bevy::ui::{Node, Val};
 #[derive(Component)]
 pub struct CompletedStatusMarker;
 
-pub struct CompletedStatusSpawnerData {
+pub struct CompletedStatusSpawner {
 	pub completed: u32,
 	pub total: u32,
 }
 
-pub struct CompletedStatusSpawner {
-	pub data: CompletedStatusSpawnerData,
-}
-
 impl CompletedStatusSpawner {
 	pub fn new(completed: u32, total: u32) -> Self {
-		Self {
-			data: CompletedStatusSpawnerData { completed, total },
-		}
+		Self { completed, total }
 	}
 
 	pub fn spawn(self, commands: &mut Commands, parent: Entity) {
@@ -32,7 +26,7 @@ impl CompletedStatusSpawner {
 					align_self: AlignSelf::Center,
 					..default()
 				},
-				Text::new(format!("{}/{}", self.data.completed, self.data.total)),
+				Text::new(format!("{}/{}", self.completed, self.total)),
 				TextColor(Color::oklch(0.40, 0.08, 149.0)),
 				TextFont { font_size: 8.0, ..Default::default() },
 				BorderRadius::all(Val::Px(16.0)),
