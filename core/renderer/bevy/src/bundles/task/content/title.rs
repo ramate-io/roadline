@@ -44,7 +44,7 @@ impl TitleBundler {
 			},
 			text: Text::new(self.title),
 			text_color: TextColor(Color::BLACK),
-			text_font: TextFont { font_size: 6.0, ..Default::default() },
+			text_font: TextFont { font_size: 8.0, ..Default::default() },
 			children: Children::default(),
 		})
 	}

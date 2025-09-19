@@ -1,4 +1,4 @@
-use bevy::prelude::{load_internal_binary_asset, *};
+use bevy::{asset::load_internal_binary_asset, prelude::*};
 use roadline_bevy_renderer::{RoadlineRenderConfig, RoadlineRenderer};
 
 // Import test utilities for the example
@@ -31,15 +31,14 @@ fn main() -> Result<(), anyhow::Error> {
 	let mut app = renderer.create_app();
 
 	// Add some additional systems for better visual experience
-	app.add_plugins(DefaultPlugins)
-		.add_systems(Update, (keyboard_input_system, camera_control_system, info_display_system));
+	app.add_systems(Update, (keyboard_input_system, camera_control_system, info_display_system));
 
-	load_internal_binary_asset!(
+	/*load_internal_binary_asset!(
 		app,
 		TextStyle::default().font,
 		"../assets/fonts/FiraSans-Bold.ttf",
 		|bytes: &[u8], _path: String| { Font::try_from_bytes(bytes.to_vec()).unwrap() }
-	);
+	);*/
 
 	// Render the reified data
 	renderer.render(&mut app, reified)?;

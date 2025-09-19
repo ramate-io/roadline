@@ -25,14 +25,12 @@ impl StatusBundlable for CompletedStatusBundle {
 				justify_content: JustifyContent::Center,
 				justify_self: JustifySelf::End,
 				align_self: AlignSelf::Center,
-				width: Val::Px(50.0), // Wider to accommodate check mark + text
-				height: Val::Px(32.0),
 				..default()
 			},
 			border_radius: BorderRadius::all(Val::Px(16.0)),
-			text: Text::new(format!("● {}/{}", completed, total)), // Filled circle + fraction
-			text_font: TextFont { font_size: 6.0, ..Default::default() },
-			text_color: TextColor(Color::srgb(0.2, 0.8, 0.2)),
+			text: Text::new(format!("{}/{}", completed, total)), // Filled circle + fraction
+			text_font: TextFont { font_size: 8.0, ..Default::default() },
+			text_color: TextColor(Color::oklch(0.40, 0.08, 149.0)),
 		}
 	}
 }
