@@ -1,19 +1,11 @@
 pub mod content;
-pub use content::{
-	status::{
-		CompletedStatusBundle, InProgressStatusBundle, MissedStatusBundle, NotStartedStatusBundle,
-		StatusBundlable,
-	},
-	ContentBundle, ContentSpawner,
-};
+pub use content::ContentSpawner;
 
 use crate::components::{RenderState, Task};
 use bevy::prelude::*;
 use bevy::ui::{BackgroundColor, BorderColor, BorderRadius, Node};
-use bevy_ui_anchor::{AnchorPoint, AnchorUiConfig, AnchorUiNode, AnchoredUiNodes};
+use bevy_ui_anchor::{AnchorPoint, AnchorUiConfig, AnchorUiNode};
 use roadline_util::task::Id as TaskId;
-use std::marker::PhantomData;
-
 pub struct TaskSpawnerData {
 	pub task_id: TaskId,
 	pub position: Vec3,
@@ -25,24 +17,11 @@ pub struct TaskSpawnerData {
 }
 
 /// Helper struct for spawning all task entities
-pub struct TaskSpawner<T: StatusBundlable> {
+pub struct TaskSpawner {
 	pub data: TaskSpawnerData,
-	pub phantom: PhantomData<T>,
 }
 
-impl<T> From<TaskSpawnerData> for TaskSpawner<T>
-where
-	T: StatusBundlable,
-{
-	fn from(data: TaskSpawnerData) -> Self {
-		Self { data, phantom: PhantomData }
-	}
-}
-
-impl<T> TaskSpawner<T>
-where
-	T: StatusBundlable,
-{
+impl TaskSpawner {
 	pub fn new(task_id: TaskId, position: Vec3, size: Vec2, title: String) -> Self {
 		Self {
 			data: TaskSpawnerData {
@@ -54,7 +33,6 @@ where
 				completed: 3,
 				total: 3,
 			},
-			phantom: PhantomData,
 		}
 	}
 
@@ -91,12 +69,8 @@ where
 			))
 			.id();
 
-		let content_bundle = ContentSpawner::<T>::new(self.data.title).pre_bundle().bundle();
-
-		// Spawn child content imperatively
-		let content_entity = commands.spawn(content_bundle).id();
-
-		// Attach child to parent
-		commands.entity(parent_entity).add_child(content_entity);
+		// Spawn content using the new imperative spawner
+		ContentSpawner::new(self.data.title, self.data.completed, self.data.total)
+			.spawn(commands, parent_entity);
 	}
 }

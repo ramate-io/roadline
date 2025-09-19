@@ -1,46 +1,29 @@
-use bevy::ecs::spawn::SpawnRelatedBundle;
 use bevy::prelude::*;
 use bevy::ui::{GridTrack, Node, Val};
 
 pub mod status;
-pub use status::{StatusBundlable, StatusBundle};
+pub use status::StatusSpawner;
 pub mod title;
-use std::marker::PhantomData;
-pub use title::TitleBundle;
+pub use title::TitleSpawner;
 
-pub type ContentBundle<T> =
-	(Node, SpawnRelatedBundle<ChildOf, (Spawn<TitleBundle>, Spawn<StatusBundle<T>>)>);
-
-pub struct ContentPreBundle<T: StatusBundlable>(ContentBundle<T>);
-
-impl<T> ContentPreBundle<T>
-where
-	T: StatusBundlable,
-{
-	pub fn bundle(self) -> ContentBundle<T> {
-		self.0
-	}
-}
-
-pub struct ContentSpawner<T: StatusBundlable> {
+pub struct ContentSpawnerData {
 	pub title: String,
-	pub phantom: PhantomData<T>,
+	pub completed: u32,
+	pub total: u32,
 }
 
-impl<T> ContentSpawner<T>
-where
-	T: StatusBundlable,
-{
-	pub fn new(title: String) -> Self {
-		Self { title, phantom: PhantomData }
+pub struct ContentSpawner {
+	pub data: ContentSpawnerData,
+}
+
+impl ContentSpawner {
+	pub fn new(title: String, completed: u32, total: u32) -> Self {
+		Self { data: ContentSpawnerData { title, completed, total } }
 	}
 
-	pub fn pre_bundle(self) -> ContentPreBundle<T> {
-		let title_bundle = title::TitleSpawner::new(self.title).pre_bundle().bundle();
-		let status_bundle = status::StatusSpawner::new(1, 1).pre_bundle().bundle();
-
-		ContentPreBundle((
-			Node {
+	pub fn spawn(self, commands: &mut Commands, parent: Entity) {
+		let content_entity = commands
+			.spawn(Node {
 				width: Val::Percent(100.0),  // Take full width of parent
 				height: Val::Percent(100.0), // Take full height of parent
 				display: Display::Grid,
@@ -51,8 +34,16 @@ where
 				justify_self: JustifySelf::Center,
 				padding: UiRect::all(Val::Px(8.0)), // 8px padding inside the content area
 				..default()
-			},
-			children![title_bundle, status_bundle],
-		))
+			})
+			.id();
+
+		// Spawn title
+		TitleSpawner::new(self.data.title).spawn(commands, content_entity);
+
+		// Spawn status
+		StatusSpawner::new(self.data.completed, self.data.total).spawn(commands, content_entity);
+
+		// Attach content to parent
+		commands.entity(parent).add_child(content_entity);
 	}
 }
