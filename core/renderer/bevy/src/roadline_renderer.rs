@@ -105,7 +105,7 @@ impl RoadlineRenderer {
 	}
 
 	/// Fit the camera to show all content with some padding
-	pub fn fit_camera_to_content(&self, app: &mut App, padding_ratio: f32) {
+	pub fn fit_camera_to_content(&self, app: &mut App, _padding_ratio: f32) {
 		if let Some((min_x, max_x, min_y, max_y)) = self.get_visual_bounds(app) {
 			println!(
 				"Visual bounds: min_x: {}, max_x: {}, min_y: {}, max_y: {}",
