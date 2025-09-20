@@ -10,6 +10,7 @@ pub use down_stretch::{DownStretch, Trim};
 pub use joint::{BezierConnection, ConnectionPoint, Joint};
 pub use reified_unit::ReifiedUnit;
 
+use crate::graph::Graph;
 use crate::grid_algebra::GridAlgebra;
 use roadline_util::dependency::{Dependency, Id as DependencyId};
 use roadline_util::task::{Id as TaskId, Task};
@@ -153,6 +154,11 @@ pub struct ReifiedDependency {
 }
 
 impl Reified {
+	/// Borrows the graph algebra.
+	pub fn graph(&self) -> &Graph {
+		self.grid().graph()
+	}
+
 	/// Gets the task for a given task id.
 	pub fn task(&self, task_id: &TaskId) -> Option<&Task> {
 		self.grid.task(task_id)

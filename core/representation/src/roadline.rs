@@ -393,6 +393,13 @@ impl Roadline {
 		Self { reified }
 	}
 
+	/// === Borrows ===
+
+	/// Borrows the graph algebra.
+	pub fn graph(&self) -> &Graph {
+		self.reified.graph()
+	}
+
 	// === High-level Statistics ===
 
 	/// Get the total number of tasks in the roadline.
@@ -435,6 +442,26 @@ impl Roadline {
 	/// Get all task IDs in the roadline.
 	pub fn task_ids(&self) -> impl Iterator<Item = &TaskId> {
 		self.reified.task_bounds().map(|(id, _)| id)
+	}
+
+	// === Traversals ===
+
+	/// Performs a depth-first search starting from the given task.
+	pub fn dfs(
+		&self,
+		start_task: &TaskId,
+		visit: impl FnMut(&TaskId, usize) -> Result<(), Box<dyn std::error::Error + Send + Sync>>,
+	) -> Result<(), GraphError> {
+		self.graph().dfs(start_task, visit)
+	}
+
+	/// Performs a breadth-first search starting from the given task.
+	pub fn bfs(
+		&self,
+		start_task: &TaskId,
+		visit: impl FnMut(&TaskId, usize) -> Result<(), Box<dyn std::error::Error + Send + Sync>>,
+	) -> Result<(), GraphError> {
+		self.graph().bfs(start_task, visit)
 	}
 
 	// === Connection Access ===
