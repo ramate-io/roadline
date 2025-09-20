@@ -461,6 +461,21 @@ impl Roadline {
 
 	// === Rendering Helpers ===
 
+	/// Gets the task bounds for a given task id.
+	pub fn task_bounds(&self, task_id: &TaskId) -> (u16, u16, u16, u16) {
+		self.reified
+			.get_down_cell(task_id)
+			.map(|cell| {
+				(
+					cell.down_stretch().down_stretch().start().value(),
+					cell.down_lane().range().start().value(),
+					cell.down_stretch().down_stretch().end().value(),
+					cell.down_lane().range().end().value(),
+				)
+			})
+			.unwrap()
+	}
+
 	/// Get all task rectangles for rendering.
 	/// Returns (task_id, x_start, y_start, x_end, y_end) tuples.
 	pub fn task_rectangles(&self) -> impl Iterator<Item = (&TaskId, u16, u16, u16, u16)> {

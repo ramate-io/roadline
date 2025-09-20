@@ -47,6 +47,7 @@ impl Plugin for RoadlinePlugin {
 					systems::TaskSystemConfig::build(),
 					systems::DependencySystemConfig::build(),
 					systems::dependency::dependency_hover_system,
+					systems::task_hover_system,
 				),
 			);
 	}
