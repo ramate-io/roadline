@@ -1,5 +1,5 @@
-use crate::components::Dependency;
-use crate::resources::{RenderUpdateEvent, Roadline};
+use crate::components::{Dependency, SelectionState};
+use crate::resources::{RenderUpdateEvent, Roadline, SelectionResource};
 use crate::RoadlineRenderConfig;
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;
@@ -248,7 +248,7 @@ fn distance_to_bezier_curve(point: Vec3, p0: Vec3, p1: Vec3, p2: Vec3, p3: Vec3)
 	min_distance
 }
 
-/// System to handle hover effects on dependency curves
+/// System to handle hover effects and selection coloring on dependency curves
 pub fn dependency_hover_system(
 	mut materials: ResMut<Assets<ColorMaterial>>,
 	camera_query: Query<
@@ -257,9 +257,10 @@ pub fn dependency_hover_system(
 	>,
 	windows: Query<&Window>,
 	dependency_query: Query<
-		(Entity, &Transform, &MeshMaterial2d<ColorMaterial>, &DependencyCurveData),
+		(Entity, &Transform, &MeshMaterial2d<ColorMaterial>, &DependencyCurveData, &Dependency),
 		With<DependencyHoverable>,
 	>,
+	selection_resource: Res<SelectionResource>,
 ) {
 	// Get camera and window info
 	let Ok((camera, camera_transform)) = camera_query.single() else {
@@ -274,9 +275,17 @@ pub fn dependency_hover_system(
 		// Convert screen coordinates to world coordinates
 		let world_pos_result = camera.viewport_to_world_2d(camera_transform, cursor_position);
 		if let Ok(world_pos) = world_pos_result {
-			// Check each dependency curve for hover
-			for (_entity, _transform, mesh_material, curve_data) in dependency_query.iter() {
-				// Calculate distance to the bezier curve
+			// Check each dependency curve for hover and selection
+			for (_entity, _transform, mesh_material, curve_data, dependency) in
+				dependency_query.iter()
+			{
+				// Check if this dependency starts from a selected/descendant task
+				let from_task_state =
+					selection_resource.get_task_state(&dependency.dependency_id.from());
+				let is_connected_to_selection = from_task_state == SelectionState::Selected
+					|| from_task_state == SelectionState::Descendant;
+
+				// Calculate distance to the bezier curve for hover detection
 				let mouse_pos_3d = Vec3::new(world_pos.x, world_pos.y, 0.0);
 				let distance_to_curve = distance_to_bezier_curve(
 					mouse_pos_3d,
@@ -286,17 +295,21 @@ pub fn dependency_hover_system(
 					curve_data.end,
 				);
 
-				// If mouse is within 30 pixels of the curve
-				if distance_to_curve < 30.0 {
-					// Change color to dark blue
-					if let Some(material) = materials.get_mut(&mesh_material.0) {
-						material.color = Color::oklch(0.5, 0.137, 235.06); // Dark blue
-					}
+				// Determine the color based on selection state and hover
+				let new_color = if is_connected_to_selection {
+					// If connected to selection, always show dark blue
+					Color::oklch(0.5, 0.137, 235.06) // Dark blue
+				} else if distance_to_curve < 30.0 {
+					// If hovering and not connected to selection, show dark blue
+					Color::oklch(0.5, 0.137, 235.06) // Dark blue
 				} else {
-					// Change back to black
-					if let Some(material) = materials.get_mut(&mesh_material.0) {
-						material.color = Color::BLACK;
-					}
+					// Default black
+					Color::BLACK
+				};
+
+				// Apply the color
+				if let Some(material) = materials.get_mut(&mesh_material.0) {
+					material.color = new_color;
 				}
 			}
 		}
