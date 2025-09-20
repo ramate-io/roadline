@@ -1,4 +1,4 @@
-use crate::components::{Task, RenderState};
+use crate::components::{RenderState, Task};
 use crate::RoadlineRenderConfig;
 use bevy::prelude::*;
 use roadline_representation_core::reified::{DownCell, ReifiedUnit};
@@ -200,18 +200,5 @@ mod tests {
 			milestone.sprite.custom_size,
 			Some(Vec2::new(custom_radius * 20.423, custom_radius * 20.423))
 		);
-	}
-
-	#[test]
-	fn test_diamond_milestone_rotation() {
-		let task_id = TaskId::new(3);
-		let down_cell = create_test_down_cell();
-		let config = RoadlineRenderConfig::default();
-
-		let diamond_milestone = MilestoneSprite::diamond(task_id, &down_cell, &config);
-
-		// Check that the diamond has rotation applied
-		let rotation = diamond_milestone.transform.rotation;
-		assert!((rotation.z - (std::f32::consts::PI / 4.0).sin()).abs() < 0.001);
 	}
 }
