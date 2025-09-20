@@ -1,5 +1,5 @@
+pub mod bundles;
 pub mod components;
-pub mod milestone;
 pub mod resources;
 pub mod roadline_renderer;
 pub mod systems;
@@ -8,9 +8,14 @@ pub mod systems;
 pub mod test_utils;
 
 use bevy::prelude::*;
+use bevy::render::view::RenderLayers;
+use bevy_ui_anchor::AnchorUiPlugin;
 
-pub use milestone::MilestoneSprite;
 pub use roadline_renderer::RoadlineRenderer;
+
+/// Marker component for the UI camera
+#[derive(Component)]
+pub struct UiCameraMarker;
 
 /// Main plugin for the Roadline Bevy renderer
 #[derive(Default)]
@@ -30,20 +35,40 @@ impl Plugin for RoadlinePlugin {
 				}),
 				..default()
 			}))
+			// Add bevy_ui_anchor plugin
+			.add_plugins(AnchorUiPlugin::<UiCameraMarker>::new())
 			// Set white background
 			.insert_resource(ClearColor(Color::WHITE))
 			// Add our custom systems
 			.add_systems(Startup, setup_camera)
 			.add_systems(
 				Update,
-				(systems::update_milestone_sprites, systems::update_edge_renderers),
+				(systems::TaskSystemConfig::build(), systems::DependencySystemConfig::build()),
 			);
 	}
 }
 
 /// Setup the 2D camera for rendering
 fn setup_camera(mut commands: Commands) {
-	commands.spawn(Camera2d);
+	// Spawn the sprite camera
+	commands.spawn((
+		Camera2d,
+		Camera {
+			order: 1,
+			// Don't draw anything in the background, to see the previous camera.
+			clear_color: ClearColorConfig::None,
+			..default()
+		},
+		// This camera will only render entities which are on the same render layer.
+		RenderLayers::layer(2),
+	));
+
+	commands.spawn((
+		Camera2d,
+		IsDefaultUiCamera,
+		UiCameraMarker, // Mark this camera for bevy_ui_anchor
+		RenderLayers::layer(1),
+	));
 }
 
 /// Configuration for the renderer

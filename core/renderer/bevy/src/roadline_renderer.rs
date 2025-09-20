@@ -105,7 +105,7 @@ impl RoadlineRenderer {
 	}
 
 	/// Fit the camera to show all content with some padding
-	pub fn fit_camera_to_content(&self, app: &mut App, padding_ratio: f32) {
+	pub fn fit_camera_to_content(&self, app: &mut App, _padding_ratio: f32) {
 		if let Some((min_x, max_x, min_y, max_y)) = self.get_visual_bounds(app) {
 			println!(
 				"Visual bounds: min_x: {}, max_x: {}, min_y: {}, max_y: {}",
@@ -128,9 +128,11 @@ impl RoadlineRenderer {
 
 			// Apply scale to camera
 			let mut camera_query =
-				app.world_mut().query_filtered::<&mut OrthographicProjection, With<Camera2d>>();
+				app.world_mut().query_filtered::<&mut Projection, With<Camera2d>>();
 			for mut projection in camera_query.iter_mut(app.world_mut()) {
-				projection.scale = scale;
+				if let Projection::Orthographic(ref mut orthographic) = *projection {
+					orthographic.scale = scale;
+				}
 			}
 		}
 	}
