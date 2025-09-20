@@ -24,16 +24,18 @@ impl ContentSpawner {
 		materials: &mut ResMut<Assets<ColorMaterial>>,
 		parent: Entity,
 		world_position: Vec3,
+		task_size: Vec2,
 	) {
 		let content_entity = commands
 			.spawn(Node {
 				width: Val::Percent(100.0),  // Take full width of parent
 				height: Val::Percent(100.0), // Take full height of parent
 				display: Display::Grid,
-				grid_template_columns: vec![GridTrack::fr(2.0), GridTrack::fr(1.0)], // 2fr 1fr grid
-				grid_template_rows: vec![GridTrack::fr(1.0)],                        // Single row
+				grid_template_columns: vec![GridTrack::auto(), GridTrack::auto()], // 2fr 1fr grid
+				grid_template_rows: vec![GridTrack::fr(1.0)],
+				column_gap: Val::Px(8.0), // Single row
 				align_content: AlignContent::Center,
-				justify_content: JustifyContent::Center,
+				justify_content: JustifyContent::Start,
 				justify_self: JustifySelf::Center,
 				padding: UiRect::all(Val::Px(8.0)), // 8px padding inside the content area
 				..default()
@@ -50,6 +52,7 @@ impl ContentSpawner {
 			materials,
 			content_entity,
 			world_position,
+			task_size,
 		);
 
 		// Attach content to parent

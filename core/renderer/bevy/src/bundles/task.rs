@@ -81,6 +81,7 @@ impl TaskSpawner {
 			materials,
 			parent_entity,
 			self.data.position, // Pass the world position
+			self.data.size,     // Pass the task size
 		);
 	}
 }

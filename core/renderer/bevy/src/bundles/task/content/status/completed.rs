@@ -29,11 +29,12 @@ impl CompletedStatusSpawner {
 		materials: &mut ResMut<Assets<ColorMaterial>>,
 		parent: Entity,
 		world_position: Vec3,
+		task_size: Vec2,
 	) {
 		// Create the check mark mesh
 		let check_mark_mesh = self.create_check_mark_mesh();
 		let mesh_handle = meshes.add(check_mark_mesh);
-		let material_handle = materials.add(ColorMaterial::from(Color::srgb(0.2, 0.8, 0.2)));
+		let material_handle = materials.add(ColorMaterial::from(Color::oklch(0.40, 0.08, 149.0)));
 
 		let status_entity = commands
 			.spawn((
@@ -42,7 +43,7 @@ impl CompletedStatusSpawner {
 					display: Display::Flex,
 					align_items: AlignItems::Center,
 					justify_content: JustifyContent::Center,
-					justify_self: JustifySelf::End,
+					justify_self: JustifySelf::Start,
 					align_self: AlignSelf::Center,
 					..default()
 				},
@@ -53,7 +54,10 @@ impl CompletedStatusSpawner {
 			))
 			.id();
 
-		let check_mark_position = world_position + Vec3::new(0.0, 0.0, 100.0);
+		// Position the check mark at the right side of the task box
+		// Offset by half the task width to get to the right edge
+		let task_width_offset = task_size.x / 2.0;
+		let check_mark_position = world_position + Vec3::new(task_width_offset - 20.0, 0.0, 0.1);
 		println!(
 			"Spawning check mark mesh at world_position: {:?}, final_position: {:?}",
 			world_position, check_mark_position
@@ -79,21 +83,21 @@ impl CompletedStatusSpawner {
 	fn create_check_mark_mesh(&self) -> Mesh {
 		let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default());
 
-		// Define check mark vertices - creating a stylized check mark shape
+		// Define check mark vertices - creating a stylized check mark shape (flipped)
 		let vertices = vec![
-			// Left arm of check mark (going up-right)
-			[-0.4, -0.1, 0.0], // Bottom left
-			[-0.2, 0.1, 0.0],  // Top left
-			[-0.1, 0.0, 0.0],  // Middle left
-			// Right arm of check mark (going down-right)
-			[-0.1, 0.0, 0.0], // Middle left
-			[0.1, -0.2, 0.0], // Bottom right
-			[0.3, -0.4, 0.0], // Far right
-			// Add some thickness to make it look more solid
-			[-0.35, -0.15, 0.0], // Thickened bottom left
-			[-0.15, 0.15, 0.0],  // Thickened top left
-			[0.15, -0.15, 0.0],  // Thickened bottom right
-			[0.35, -0.35, 0.0],  // Thickened far right
+			// Left arm of check mark (going up-right) - flipped y coordinates
+			[-0.4, 0.1, 0.0],  // Bottom left (was -0.1)
+			[-0.2, -0.1, 0.0], // Top left (was 0.1)
+			[-0.1, 0.0, 0.0],  // Middle left (unchanged)
+			// Right arm of check mark (going down-right) - flipped y coordinates
+			[-0.1, 0.0, 0.0], // Middle left (unchanged)
+			[0.1, 0.2, 0.0],  // Bottom right (was -0.2)
+			[0.3, 0.4, 0.0],  // Far right (was -0.4)
+			// Add some thickness to make it look more solid - flipped y coordinates
+			[-0.35, 0.15, 0.0],  // Thickened bottom left (was -0.15)
+			[-0.15, -0.15, 0.0], // Thickened top left (was 0.15)
+			[0.15, 0.15, 0.0],   // Thickened bottom right (was -0.15)
+			[0.35, 0.35, 0.0],   // Thickened far right (was -0.35)
 		];
 
 		// Define triangles to create the check mark shape
