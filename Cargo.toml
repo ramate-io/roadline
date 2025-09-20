@@ -5,7 +5,8 @@ resolver = "2"
 members = [
 
   "util/roadline/*",
-  "core/representation"
+  "core/representation",
+  "core/renderer/*"
   
 ]
 
@@ -67,6 +68,9 @@ web-sys = "0.3"
 wasm-bindgen-futures = "0.4"
 gloo-timers = { version = "0.2" }
 chrono = { version = "0.4.41" }
+bevy = "0.16"
+bevy_egui = "0.36.0"
+js-sys = "0.3"
 
 
 # kestrel 
@@ -84,6 +88,7 @@ clap-markdown-ext = { git = "https://github.com/movementlabsxyz/clap-markdown-ex
 
 # internal
 roadline-util = { path = "util/roadline/roadline" }
+roadline-representation-core = { path = "core/representation" }
 
 [workspace.lints.clippy]
 debug_assert_with_mut_call = "deny"
