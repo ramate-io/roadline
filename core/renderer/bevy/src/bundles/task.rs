@@ -63,7 +63,7 @@ impl TaskSpawner {
 				Node {
 					width: Val::Px(self.data.size.x),
 					height: Val::Px(self.data.size.y),
-					border: UiRect::all(Val::Px(1.0)),
+					border: UiRect::all(Val::Px(1.5)),
 					align_items: AlignItems::Center,
 					justify_content: JustifyContent::Center,
 					..default()

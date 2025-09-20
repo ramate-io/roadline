@@ -49,7 +49,7 @@ impl CompletedStatusSpawner {
 				},
 				Text::new(format!("{}/{}", self.completed, self.total)),
 				TextColor(Color::oklch(0.40, 0.08, 149.0)),
-				TextFont { font_size: 8.0, ..Default::default() },
+				TextFont { font_size: 12.0, ..Default::default() },
 				BorderRadius::all(Val::Px(16.0)),
 			))
 			.id();
