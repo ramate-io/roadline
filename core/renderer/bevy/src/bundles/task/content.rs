@@ -17,7 +17,14 @@ impl ContentSpawner {
 		Self { title, completed, total }
 	}
 
-	pub fn spawn(self, commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<ColorMaterial>>, parent: Entity) {
+	pub fn spawn(
+		self,
+		commands: &mut Commands,
+		meshes: &mut ResMut<Assets<Mesh>>,
+		materials: &mut ResMut<Assets<ColorMaterial>>,
+		parent: Entity,
+		world_position: Vec3,
+	) {
 		let content_entity = commands
 			.spawn(Node {
 				width: Val::Percent(100.0),  // Take full width of parent
@@ -37,7 +44,13 @@ impl ContentSpawner {
 		TitleSpawner::new(self.title).spawn(commands, content_entity);
 
 		// Spawn status
-		StatusSpawner::new(self.completed, self.total).spawn(commands, meshes, materials, content_entity);
+		StatusSpawner::new(self.completed, self.total).spawn(
+			commands,
+			meshes,
+			materials,
+			content_entity,
+			world_position,
+		);
 
 		// Attach content to parent
 		commands.entity(parent).add_child(content_entity);

@@ -41,11 +41,14 @@ impl StatusSpawner {
 		meshes: &mut ResMut<Assets<Mesh>>,
 		materials: &mut ResMut<Assets<ColorMaterial>>,
 		parent: Entity,
+		world_position: Vec3,
 	) {
 		match self {
 			StatusSpawner::NotStarted(spawner) => spawner.spawn(commands, parent),
 			StatusSpawner::InProgress(spawner) => spawner.spawn(commands, parent),
-			StatusSpawner::Completed(spawner) => spawner.spawn(commands, meshes, materials, parent),
+			StatusSpawner::Completed(spawner) => {
+				spawner.spawn(commands, meshes, materials, parent, world_position)
+			}
 			StatusSpawner::Missed(spawner) => spawner.spawn(commands, parent),
 		}
 	}

@@ -9,6 +9,7 @@ pub mod systems;
 pub mod test_utils;
 
 use bevy::prelude::*;
+use bevy::render::view::RenderLayers;
 use bevy_ui_anchor::AnchorUiPlugin;
 
 pub use milestone::MilestoneSprite;
@@ -51,9 +52,24 @@ impl Plugin for RoadlinePlugin {
 
 /// Setup the 2D camera for rendering
 fn setup_camera(mut commands: Commands) {
+	// Spawn the sprite camera
 	commands.spawn((
 		Camera2d,
+		Camera {
+			order: 1,
+			// Don't draw anything in the background, to see the previous camera.
+			clear_color: ClearColorConfig::None,
+			..default()
+		},
+		// This camera will only render entities which are on the same render layer.
+		RenderLayers::layer(2),
+	));
+
+	commands.spawn((
+		Camera2d,
+		IsDefaultUiCamera,
 		UiCameraMarker, // Mark this camera for bevy_ui_anchor
+		RenderLayers::layer(1),
 	));
 }
 

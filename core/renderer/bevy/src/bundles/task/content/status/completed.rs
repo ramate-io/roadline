@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;
 use bevy::render::mesh::{Indices, Mesh, PrimitiveTopology};
 use bevy::render::render_asset::RenderAssetUsages;
+use bevy::render::view::RenderLayers;
 use bevy::sprite::{ColorMaterial, MeshMaterial2d};
 use bevy::ui::{Node, Val};
 
@@ -27,6 +28,7 @@ impl CompletedStatusSpawner {
 		meshes: &mut ResMut<Assets<Mesh>>,
 		materials: &mut ResMut<Assets<ColorMaterial>>,
 		parent: Entity,
+		world_position: Vec3,
 	) {
 		// Create the check mark mesh
 		let check_mark_mesh = self.create_check_mark_mesh();
@@ -51,19 +53,23 @@ impl CompletedStatusSpawner {
 			))
 			.id();
 
-		// Spawn the check mark mesh as a child
-		let check_mark_entity = commands
+		let check_mark_position = world_position + Vec3::new(0.0, 0.0, 100.0);
+		println!(
+			"Spawning check mark mesh at world_position: {:?}, final_position: {:?}",
+			world_position, check_mark_position
+		);
+
+		// Spawn the check mark mesh at the same world position as the UI node
+		let _check_mark_entity = commands
 			.spawn((
 				CheckMarkMesh,
 				Mesh2d(mesh_handle),
 				MeshMaterial2d(material_handle),
-				Transform::from_scale(Vec3::splat(8.0)), // Scale up the mesh
+				Transform::from_translation(check_mark_position).with_scale(Vec3::splat(20.0)), // Scale up the mesh to match test triangle
 				Visibility::Visible,
+				RenderLayers::layer(2),
 			))
 			.id();
-
-		// Attach check mark to status
-		commands.entity(status_entity).add_child(check_mark_entity);
 
 		// Attach status to parent
 		commands.entity(parent).add_child(status_entity);

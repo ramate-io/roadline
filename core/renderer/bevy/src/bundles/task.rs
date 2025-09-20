@@ -80,6 +80,7 @@ impl TaskSpawner {
 			meshes,
 			materials,
 			parent_entity,
+			self.data.position, // Pass the world position
 		);
 	}
 }
