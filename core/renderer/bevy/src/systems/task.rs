@@ -3,11 +3,10 @@ use crate::components::Task;
 use crate::resources::{RenderUpdateEvent, Roadline};
 use crate::RoadlineRenderConfig;
 use bevy::prelude::*;
+use bevy::render::mesh::Mesh;
 use bevy::render::mesh::Mesh2d;
-use bevy::render::mesh::{Indices, Mesh, PrimitiveTopology};
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::sprite::ColorMaterial;
-use bevy::sprite::MeshMaterial2d;
 
 /// Configuration for task systems
 pub struct TaskSystemConfig;
@@ -56,30 +55,6 @@ impl TaskSystemConfig {
 			let content_height_pixels = max_height_f32 * pixels_per_unit;
 			let offset_x = -content_width_pixels / 2.0;
 			let offset_y = -content_height_pixels / 2.0;
-
-			// Spawn a test mesh at world position (0,0) to verify mesh placement
-			let test_mesh =
-				Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default());
-			let test_vertices = vec![
-				[-0.5, -0.5, 0.0], // Bottom left
-				[0.5, -0.5, 0.0],  // Bottom right
-				[0.0, 0.5, 0.0],   // Top center
-			];
-			let test_indices = vec![0, 1, 2];
-			let mut test_mesh = test_mesh;
-			test_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, test_vertices);
-			test_mesh.insert_indices(Indices::U32(test_indices));
-
-			let test_mesh_handle = meshes.add(test_mesh);
-			let test_material_handle =
-				materials.add(ColorMaterial::from(Color::srgb(1.0, 0.0, 0.0))); // Red
-
-			commands.spawn((
-				Mesh2d(test_mesh_handle),
-				MeshMaterial2d(test_material_handle),
-				Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)).with_scale(Vec3::splat(20.0)), // Scale up to be visible
-				Visibility::Visible,
-			));
 
 			// Create new task sprites for each task
 			for (task_id, start_x, start_y, end_x, end_y) in reified.task_rectangles() {
