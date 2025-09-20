@@ -96,7 +96,7 @@ impl DependencySystemConfig {
 
 				// Create ribbon mesh for this dependency
 				let ribbon_mesh =
-					ribbon_between(start_pos, end_pos, noisy_control1, noisy_control2, 1.0, 64);
+					ribbon_between(start_pos, end_pos, noisy_control1, noisy_control2, 2.0, 64);
 				let mesh_handle = meshes.add(ribbon_mesh);
 				let material_handle = materials.add(ColorMaterial::from(Color::BLACK)); // Dark gray
 
@@ -127,8 +127,7 @@ fn hash_f32(x: f32) -> f32 {
 
 /// Generate noisy control points for elbow joint behavior
 fn control_points(a: Vec3, b: Vec3) -> (Vec3, Vec3) {
-	let _mid = (a + b) * 0.5;
-	let dir = (b - a).normalize();
+	let midpoint = (a + b) * 0.5;
 	let distance = (a - b).length();
 
 	// Deterministic "random" offset based on anchor positions
@@ -136,29 +135,24 @@ fn control_points(a: Vec3, b: Vec3) -> (Vec3, Vec3) {
 	let noise1 = hash_f32(seed) - 0.5;
 	let noise2 = hash_f32(seed * 1.37) - 0.5;
 
-	// For elbow joints, we want predictable bumps
-	// Determine if this is more horizontal or vertical
-	let is_more_horizontal = dir.x.abs() > dir.y.abs();
+	// Create elbow joints: control_1 = (midpoint_x, start_y), control_2 = (midpoint_x, end_y)
+	// Add more variation around midpoint_x, less variation in y
+	let midpoint_noise_strength = distance * 0.05; // More variation in midpoint x position
+	let y_noise_strength = distance * 0.01; // Much less variation in y positions
 
-	let strength = distance * 0.3; // 30% of distance for more pronounced elbows
+	let control1 = Vec3::new(
+		midpoint.x + noise1 * midpoint_noise_strength, // More variation in midpoint x
+		a.y + noise2 * y_noise_strength,               // Subtle variation in start y
+		0.0,
+	);
 
-	let (offset1, offset2) = if is_more_horizontal {
-		// Horizontal line - bump vertically
-		let vertical_offset = Vec3::new(0.0, noise1 * strength, 0.0);
-		let vertical_offset2 = Vec3::new(0.0, noise2 * strength, 0.0);
-		(vertical_offset, vertical_offset2)
-	} else {
-		// Vertical line - bump horizontally
-		let horizontal_offset = Vec3::new(noise1 * strength, 0.0, 0.0);
-		let horizontal_offset2 = Vec3::new(noise2 * strength, 0.0, 0.0);
-		(horizontal_offset, horizontal_offset2)
-	};
+	let control2 = Vec3::new(
+		midpoint.x + noise2 * midpoint_noise_strength, // More variation in midpoint x
+		b.y + noise1 * y_noise_strength,               // Subtle variation in end y
+		0.0,
+	);
 
-	// Position control points at 1/3 and 2/3 along the line for elbow effect
-	let control1_pos = a + (b - a) * 0.33 + offset1;
-	let control2_pos = a + (b - a) * 0.67 + offset2;
-
-	(control1_pos, control2_pos)
+	(control1, control2)
 }
 
 /// Build a ribbon mesh along a cubic bezier curve using provided control points
@@ -190,8 +184,13 @@ fn ribbon_between(
 		let tangent = (points[i + 1] - p).normalize();
 		let normal = Vec3::new(-tangent.y, tangent.x, 0.0).normalize(); // 2D sideways
 
-		let v1 = p + normal * width * 0.5;
-		let v2 = p - normal * width * 0.5;
+		// Add ribboning variation - width changes along the curve
+		let t = i as f32 / (points.len() - 1) as f32;
+		let ribbon_variation = 1.0 + 0.3 * (t * 6.28).sin(); // Sine wave for organic ribboning
+		let current_width = width * ribbon_variation;
+
+		let v1 = p + normal * current_width * 0.5;
+		let v2 = p - normal * current_width * 0.5;
 
 		positions.push(v1.into());
 		positions.push(v2.into());
