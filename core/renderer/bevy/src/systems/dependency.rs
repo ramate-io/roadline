@@ -261,16 +261,6 @@ pub fn dependency_hover_system(
 		With<DependencyHoverable>,
 	>,
 ) {
-	// Debug: Check if system is running (simplified)
-	static mut FRAME_COUNT: u32 = 0;
-	unsafe {
-		FRAME_COUNT += 1;
-		if FRAME_COUNT % 300 == 0 {
-			// Print every 5 seconds
-			println!("Hover system is running! Frame: {}", FRAME_COUNT);
-		}
-	}
-
 	// Get camera and window info
 	let Ok((camera, camera_transform)) = camera_query.single() else {
 		return;
@@ -300,7 +290,7 @@ pub fn dependency_hover_system(
 				if distance_to_curve < 30.0 {
 					// Change color to dark blue
 					if let Some(material) = materials.get_mut(&mesh_material.0) {
-						material.color = Color::srgb(0.0, 0.0, 0.8); // Dark blue
+						material.color = Color::oklch(0.5, 0.137, 235.06); // Dark blue
 					}
 				} else {
 					// Change back to black
