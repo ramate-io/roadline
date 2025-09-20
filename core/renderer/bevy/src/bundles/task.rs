@@ -3,9 +3,18 @@ pub use content::ContentSpawner;
 
 use crate::components::{RenderState, Task};
 use bevy::prelude::*;
+use bevy::render::view::RenderLayers;
 use bevy::ui::{BackgroundColor, BorderColor, BorderRadius, Node};
 use bevy_ui_anchor::{AnchorPoint, AnchorUiConfig, AnchorUiNode};
 use roadline_util::task::Id as TaskId;
+
+#[derive(Component)]
+pub struct TaskHoverable;
+
+#[derive(Component)]
+pub struct TaskSize {
+	pub size: Vec2,
+}
 pub struct TaskSpawnerData {
 	pub task_id: TaskId,
 	pub position: Vec3,
@@ -47,19 +56,10 @@ impl TaskSpawner {
 		meshes: &mut ResMut<Assets<Mesh>>,
 		materials: &mut ResMut<Assets<ColorMaterial>>,
 	) {
-		let task_entity = commands
-			.spawn((
-				Task::new(self.data.task_id),
-				RenderState::new(),
-				Transform::from_translation(self.data.position),
-				Visibility::Visible,
-			))
-			.id();
-
 		let parent_entity = commands
 			.spawn((
-				AnchorUiNode::to_entity(task_entity),
-				AnchorUiConfig { anchorpoint: AnchorPoint::middle(), offset: None },
+				TaskHoverable,
+				TaskSize { size: self.data.size },
 				Node {
 					width: Val::Px(self.data.size.x),
 					height: Val::Px(self.data.size.y),
@@ -73,6 +73,22 @@ impl TaskSpawner {
 				BorderRadius::all(Val::Px(4.0)),
 			))
 			.id();
+
+		let task_entity = commands
+			.spawn((
+				Task::new(self.data.task_id).with_ui_entity(parent_entity),
+				RenderState::new(),
+				Transform::from_translation(self.data.position),
+				Visibility::Visible,
+				RenderLayers::layer(2),
+			))
+			.id();
+
+		// Add the anchor relationship
+		commands.entity(parent_entity).insert((
+			AnchorUiNode::to_entity(task_entity),
+			AnchorUiConfig { anchorpoint: AnchorPoint::middle(), offset: None },
+		));
 
 		// Spawn content using the new imperative spawner
 		ContentSpawner::new(self.data.title, self.data.completed, self.data.total).spawn(

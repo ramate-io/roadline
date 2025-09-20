@@ -8,6 +8,17 @@ use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::view::RenderLayers;
 use bevy::sprite::{ColorMaterial, MeshMaterial2d};
 
+#[derive(Component)]
+pub struct DependencyHoverable;
+
+#[derive(Component)]
+pub struct DependencyCurveData {
+	pub start: Vec3,
+	pub end: Vec3,
+	pub control1: Vec3,
+	pub control2: Vec3,
+}
+
 /// Configuration for dependency systems
 pub struct DependencySystemConfig;
 
@@ -103,6 +114,13 @@ impl DependencySystemConfig {
 				// Spawn the dependency curve
 				commands.spawn((
 					Dependency::new(*dependency_id),
+					DependencyHoverable,
+					DependencyCurveData {
+						start: start_pos,
+						end: end_pos,
+						control1: noisy_control1,
+						control2: noisy_control2,
+					},
 					Mesh2d(mesh_handle),
 					MeshMaterial2d(material_handle),
 					Transform::default(),
@@ -212,4 +230,75 @@ fn ribbon_between(
 	mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
 	mesh.insert_indices(Indices::U32(indices));
 	mesh
+}
+
+/// Calculate the distance from a point to a cubic bezier curve
+fn distance_to_bezier_curve(point: Vec3, p0: Vec3, p1: Vec3, p2: Vec3, p3: Vec3) -> f32 {
+	// Sample points along the curve and find the minimum distance
+	let mut min_distance = f32::INFINITY;
+	let steps = 32; // Number of samples along the curve
+
+	for i in 0..=steps {
+		let t = i as f32 / steps as f32;
+		let curve_point = cubic_bezier(p0, p1, p2, p3, t);
+		let distance = point.distance(curve_point);
+		min_distance = min_distance.min(distance);
+	}
+
+	min_distance
+}
+
+/// System to handle hover effects on dependency curves
+pub fn dependency_hover_system(
+	mut materials: ResMut<Assets<ColorMaterial>>,
+	camera_query: Query<
+		(&Camera, &GlobalTransform),
+		(With<Camera2d>, Without<bevy::ui::IsDefaultUiCamera>),
+	>,
+	windows: Query<&Window>,
+	dependency_query: Query<
+		(Entity, &Transform, &MeshMaterial2d<ColorMaterial>, &DependencyCurveData),
+		With<DependencyHoverable>,
+	>,
+) {
+	// Get camera and window info
+	let Ok((camera, camera_transform)) = camera_query.single() else {
+		return;
+	};
+	let Ok(window) = windows.single() else {
+		return;
+	};
+
+	// Get mouse position
+	if let Some(cursor_position) = window.cursor_position() {
+		// Convert screen coordinates to world coordinates
+		let world_pos_result = camera.viewport_to_world_2d(camera_transform, cursor_position);
+		if let Ok(world_pos) = world_pos_result {
+			// Check each dependency curve for hover
+			for (_entity, _transform, mesh_material, curve_data) in dependency_query.iter() {
+				// Calculate distance to the bezier curve
+				let mouse_pos_3d = Vec3::new(world_pos.x, world_pos.y, 0.0);
+				let distance_to_curve = distance_to_bezier_curve(
+					mouse_pos_3d,
+					curve_data.start,
+					curve_data.control1,
+					curve_data.control2,
+					curve_data.end,
+				);
+
+				// If mouse is within 30 pixels of the curve
+				if distance_to_curve < 30.0 {
+					// Change color to dark blue
+					if let Some(material) = materials.get_mut(&mesh_material.0) {
+						material.color = Color::oklch(0.5, 0.137, 235.06); // Dark blue
+					}
+				} else {
+					// Change back to black
+					if let Some(material) = materials.get_mut(&mesh_material.0) {
+						material.color = Color::BLACK;
+					}
+				}
+			}
+		}
+	}
 }
