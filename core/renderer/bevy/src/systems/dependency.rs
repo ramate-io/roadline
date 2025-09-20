@@ -184,9 +184,10 @@ fn ribbon_between(
 		let tangent = (points[i + 1] - p).normalize();
 		let normal = Vec3::new(-tangent.y, tangent.x, 0.0).normalize(); // 2D sideways
 
-		// Add ribboning variation - width changes along the curve
+		// Add ribboning variation - width changes along the curve with phase offset
 		let t = i as f32 / (points.len() - 1) as f32;
-		let ribbon_variation = 1.0 + 0.3 * (t * 6.28).sin(); // Sine wave for organic ribboning
+		let phase_offset = (start.x + start.y + end.x + end.y) * 0.1; // Phase offset based on curve position
+		let ribbon_variation = 1.0 + 0.3 * ((t * 6.28) + phase_offset).sin(); // Sine wave with offset
 		let current_width = width * ribbon_variation;
 
 		let v1 = p + normal * current_width * 0.5;
