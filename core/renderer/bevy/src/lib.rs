@@ -1,6 +1,5 @@
 pub mod bundles;
 pub mod components;
-pub mod milestone;
 pub mod resources;
 pub mod roadline_renderer;
 pub mod systems;
@@ -12,7 +11,6 @@ use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
 use bevy_ui_anchor::AnchorUiPlugin;
 
-pub use milestone::MilestoneSprite;
 pub use roadline_renderer::RoadlineRenderer;
 
 /// Marker component for the UI camera
