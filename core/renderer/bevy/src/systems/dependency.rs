@@ -138,17 +138,17 @@ fn control_points(a: Vec3, b: Vec3) -> (Vec3, Vec3) {
 	// Create elbow joints: control_1 = (midpoint_x, start_y), control_2 = (midpoint_x, end_y)
 	// Add more variation around midpoint_x, less variation in y
 	let midpoint_noise_strength = distance * 0.05; // More variation in midpoint x position
-	let y_noise_strength = distance * 0.01; // Much less variation in y positions
+	let y_noise_strength = distance * 0.005; // Much less variation in y positions
 
 	let control1 = Vec3::new(
-		midpoint.x + noise1 * midpoint_noise_strength, // More variation in midpoint x
-		a.y + noise2 * y_noise_strength,               // Subtle variation in start y
+		midpoint.x + 0.25 * distance + noise1 * midpoint_noise_strength,
+		a.y + noise1 * y_noise_strength,
 		0.0,
 	);
 
 	let control2 = Vec3::new(
-		midpoint.x + noise2 * midpoint_noise_strength, // More variation in midpoint x
-		b.y + noise1 * y_noise_strength,               // Subtle variation in end y
+		midpoint.x - 0.25 * distance + noise2 * midpoint_noise_strength,
+		b.y + noise2 * y_noise_strength,
 		0.0,
 	);
 

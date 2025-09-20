@@ -27,7 +27,7 @@ impl TitleSpawner {
 				},
 				Text::new(self.title),
 				TextColor(Color::BLACK),
-				TextFont { font_size: 8.0, ..Default::default() },
+				TextFont { font_size: 12.0, ..Default::default() },
 			))
 			.id();
 
