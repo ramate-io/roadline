@@ -142,6 +142,7 @@ mod tests {
 		Ok(())
 	}
 
+	#[derive(Clone)]
 	struct TestTaskParams {
 		task_id: TaskId,
 		position: Vec3,
@@ -159,14 +160,19 @@ mod tests {
 			}
 		}
 
-		fn spawn_system(
-			mut commands: Commands,
-			mut meshes: ResMut<Assets<Mesh>>,
-			mut materials: ResMut<Assets<ColorMaterial>>,
-		) {
-			let params = Self::new();
-			let spawner = TaskSpawner::new(params.task_id, params.position, params.size, params.title);
-			spawner.spawn(&mut commands, &mut meshes, &mut materials);
+		fn build(
+			&self,
+		) -> impl FnMut(Commands, ResMut<Assets<Mesh>>, ResMut<Assets<ColorMaterial>>) {
+			let task_id = self.task_id;
+			let position = self.position;
+			let size = self.size;
+			let title = self.title.clone();
+			move |mut commands: Commands,
+			      mut meshes: ResMut<Assets<Mesh>>,
+			      mut materials: ResMut<Assets<ColorMaterial>>| {
+				let spawner = TaskSpawner::new(task_id, position, size, title.clone());
+				spawner.spawn(&mut commands, &mut meshes, &mut materials);
+			}
 		}
 	}
 
@@ -176,8 +182,10 @@ mod tests {
 		let mut app = App::new();
 		app.add_plugins(MinimalPlugins);
 
-		// Spawn the task
-		app.world_mut().run_system_once(TestTaskParams::spawn_system);
+		let params = TestTaskParams::new();
+
+		// Spawn the task using the builder
+		app.world_mut().run_system_once(params.build());
 
 		// Check that entities were spawned
 		let world = app.world_mut();
@@ -201,6 +209,7 @@ mod tests {
 		Ok(())
 	}
 
+	#[derive(Clone)]
 	struct TestComponentParams {
 		task_id: TaskId,
 		position: Vec3,
@@ -218,14 +227,19 @@ mod tests {
 			}
 		}
 
-		fn spawn_system(
-			mut commands: Commands,
-			mut meshes: ResMut<Assets<Mesh>>,
-			mut materials: ResMut<Assets<ColorMaterial>>,
-		) {
-			let params = Self::new();
-			let spawner = TaskSpawner::new(params.task_id, params.position, params.size, params.title);
-			spawner.spawn(&mut commands, &mut meshes, &mut materials);
+		fn build(
+			&self,
+		) -> impl FnMut(Commands, ResMut<Assets<Mesh>>, ResMut<Assets<ColorMaterial>>) {
+			let task_id = self.task_id;
+			let position = self.position;
+			let size = self.size;
+			let title = self.title.clone();
+			move |mut commands: Commands,
+			      mut meshes: ResMut<Assets<Mesh>>,
+			      mut materials: ResMut<Assets<ColorMaterial>>| {
+				let spawner = TaskSpawner::new(task_id, position, size, title.clone());
+				spawner.spawn(&mut commands, &mut meshes, &mut materials);
+			}
 		}
 	}
 
@@ -237,8 +251,8 @@ mod tests {
 
 		let params = TestComponentParams::new();
 
-		// Spawn the task
-		app.world_mut().run_system_once(TestComponentParams::spawn_system);
+		// Spawn the task using the builder
+		app.world_mut().run_system_once(params.build());
 
 		let world = app.world_mut();
 
@@ -270,6 +284,7 @@ mod tests {
 		Ok(())
 	}
 
+	#[derive(Clone)]
 	struct TestUINodeParams {
 		task_id: TaskId,
 		position: Vec3,
@@ -287,14 +302,19 @@ mod tests {
 			}
 		}
 
-		fn spawn_system(
-			mut commands: Commands,
-			mut meshes: ResMut<Assets<Mesh>>,
-			mut materials: ResMut<Assets<ColorMaterial>>,
-		) {
-			let params = Self::new();
-			let spawner = TaskSpawner::new(params.task_id, params.position, params.size, params.title);
-			spawner.spawn(&mut commands, &mut meshes, &mut materials);
+		fn build(
+			&self,
+		) -> impl FnMut(Commands, ResMut<Assets<Mesh>>, ResMut<Assets<ColorMaterial>>) {
+			let task_id = self.task_id;
+			let position = self.position;
+			let size = self.size;
+			let title = self.title.clone();
+			move |mut commands: Commands,
+			      mut meshes: ResMut<Assets<Mesh>>,
+			      mut materials: ResMut<Assets<ColorMaterial>>| {
+				let spawner = TaskSpawner::new(task_id, position, size, title.clone());
+				spawner.spawn(&mut commands, &mut meshes, &mut materials);
+			}
 		}
 	}
 
@@ -306,8 +326,8 @@ mod tests {
 
 		let params = TestUINodeParams::new();
 
-		// Spawn the task
-		app.world_mut().run_system_once(TestUINodeParams::spawn_system);
+		// Spawn the task using the builder
+		app.world_mut().run_system_once(params.build());
 
 		let world = app.world_mut();
 
@@ -348,6 +368,7 @@ mod tests {
 		Ok(())
 	}
 
+	#[derive(Clone)]
 	struct TestAnchorParams {
 		task_id: TaskId,
 		position: Vec3,
@@ -365,14 +386,19 @@ mod tests {
 			}
 		}
 
-		fn spawn_system(
-			mut commands: Commands,
-			mut meshes: ResMut<Assets<Mesh>>,
-			mut materials: ResMut<Assets<ColorMaterial>>,
-		) {
-			let params = Self::new();
-			let spawner = TaskSpawner::new(params.task_id, params.position, params.size, params.title);
-			spawner.spawn(&mut commands, &mut meshes, &mut materials);
+		fn build(
+			&self,
+		) -> impl FnMut(Commands, ResMut<Assets<Mesh>>, ResMut<Assets<ColorMaterial>>) {
+			let task_id = self.task_id;
+			let position = self.position;
+			let size = self.size;
+			let title = self.title.clone();
+			move |mut commands: Commands,
+			      mut meshes: ResMut<Assets<Mesh>>,
+			      mut materials: ResMut<Assets<ColorMaterial>>| {
+				let spawner = TaskSpawner::new(task_id, position, size, title.clone());
+				spawner.spawn(&mut commands, &mut meshes, &mut materials);
+			}
 		}
 	}
 
@@ -384,8 +410,8 @@ mod tests {
 
 		let params = TestAnchorParams::new();
 
-		// Spawn the task
-		app.world_mut().run_system_once(TestAnchorParams::spawn_system);
+		// Spawn the task using the builder
+		app.world_mut().run_system_once(params.build());
 
 		let world = app.world_mut();
 
@@ -679,6 +705,7 @@ mod tests {
 		spawner.spawn(&mut commands, &mut meshes, &mut materials);
 	}
 
+	#[derive(Clone)]
 	struct TestCustomFontParams {
 		task_id: TaskId,
 		position: Vec3,
@@ -698,15 +725,21 @@ mod tests {
 			}
 		}
 
-		fn spawn_system(
-			mut commands: Commands,
-			mut meshes: ResMut<Assets<Mesh>>,
-			mut materials: ResMut<Assets<ColorMaterial>>,
-		) {
-			let params = Self::new();
-			let spawner = TaskSpawner::new(params.task_id, params.position, params.size, params.title)
-				.with_font_size(params.font_size);
-			spawner.spawn(&mut commands, &mut meshes, &mut materials);
+		fn build(
+			&self,
+		) -> impl FnMut(Commands, ResMut<Assets<Mesh>>, ResMut<Assets<ColorMaterial>>) {
+			let task_id = self.task_id;
+			let position = self.position;
+			let size = self.size;
+			let title = self.title.clone();
+			let font_size = self.font_size;
+			move |mut commands: Commands,
+			      mut meshes: ResMut<Assets<Mesh>>,
+			      mut materials: ResMut<Assets<ColorMaterial>>| {
+				let spawner = TaskSpawner::new(task_id, position, size, title.clone())
+					.with_font_size(font_size);
+				spawner.spawn(&mut commands, &mut meshes, &mut materials);
+			}
 		}
 	}
 
@@ -718,8 +751,8 @@ mod tests {
 
 		let params = TestCustomFontParams::new();
 
-		// Spawn the task
-		app.world_mut().run_system_once(TestCustomFontParams::spawn_system);
+		// Spawn the task using the builder
+		app.world_mut().run_system_once(params.build());
 
 		let world = app.world_mut();
 
