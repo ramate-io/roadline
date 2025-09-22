@@ -106,7 +106,6 @@ impl TaskSpawner {
 mod tests {
 	use super::*;
 	use bevy::ecs::system::RunSystemOnce;
-	use bevy::prelude::*;
 
 	#[test]
 	fn test_task_spawner_creation() -> Result<(), Box<dyn std::error::Error>> {
@@ -185,7 +184,7 @@ mod tests {
 		let params = TestTaskParams::new();
 
 		// Spawn the task using the builder
-		app.world_mut().run_system_once(params.build());
+		app.world_mut().run_system_once(params.build())?;
 
 		// Check that entities were spawned
 		let world = app.world_mut();
@@ -252,7 +251,7 @@ mod tests {
 		let params = TestComponentParams::new();
 
 		// Spawn the task using the builder
-		app.world_mut().run_system_once(params.build());
+		app.world_mut().run_system_once(params.build())?;
 
 		let world = app.world_mut();
 
@@ -327,7 +326,7 @@ mod tests {
 		let params = TestUINodeParams::new();
 
 		// Spawn the task using the builder
-		app.world_mut().run_system_once(params.build());
+		app.world_mut().run_system_once(params.build())?;
 
 		let world = app.world_mut();
 
@@ -411,7 +410,7 @@ mod tests {
 		let params = TestAnchorParams::new();
 
 		// Spawn the task using the builder
-		app.world_mut().run_system_once(params.build());
+		app.world_mut().run_system_once(params.build())?;
 
 		let world = app.world_mut();
 
@@ -458,7 +457,7 @@ mod tests {
 		}
 
 		// Spawn the complete task
-		app.world_mut().run_system_once(spawner_system);
+		app.world_mut().run_system_once(spawner_system)?;
 
 		let world = app.world_mut();
 
@@ -557,7 +556,7 @@ mod tests {
 		// Test not started status
 		let mut app1 = App::new();
 		app1.add_plugins(MinimalPlugins);
-		app1.world_mut().run_system_once(spawn_not_started_task_system);
+		app1.world_mut().run_system_once(spawn_not_started_task_system)?;
 
 		let world1 = app1.world_mut();
 		let mut not_started_query =
@@ -574,7 +573,7 @@ mod tests {
 		// Test in progress status
 		let mut app2 = App::new();
 		app2.add_plugins(MinimalPlugins);
-		app2.world_mut().run_system_once(spawn_in_progress_task_system);
+		app2.world_mut().run_system_once(spawn_in_progress_task_system)?;
 
 		let world2 = app2.world_mut();
 		let mut in_progress_query =
@@ -591,7 +590,7 @@ mod tests {
 		// Test completed status
 		let mut app3 = App::new();
 		app3.add_plugins(MinimalPlugins);
-		app3.world_mut().run_system_once(spawn_completed_task_system);
+		app3.world_mut().run_system_once(spawn_completed_task_system)?;
 
 		let world3 = app3.world_mut();
 		let mut completed_query =
@@ -652,7 +651,7 @@ mod tests {
 		app.add_plugins(MinimalPlugins);
 
 		// Spawn multiple tasks
-		app.world_mut().run_system_once(spawn_multiple_tasks_system);
+		app.world_mut().run_system_once(spawn_multiple_tasks_system)?;
 
 		let world = app.world_mut();
 
@@ -687,22 +686,6 @@ mod tests {
 		assert_eq!(texts.len(), 6, "Should spawn exactly 6 Text entities (3 titles + 3 statuses)");
 
 		Ok(())
-	}
-
-	fn spawn_custom_font_size_system(
-		mut commands: Commands,
-		mut meshes: ResMut<Assets<Mesh>>,
-		mut materials: ResMut<Assets<ColorMaterial>>,
-	) {
-		let task_id = TaskId::from(1);
-		let position = Vec3::new(100.0, 200.0, 0.0);
-		let size = Vec2::new(200.0, 50.0);
-		let title = "Custom Font Size Task".to_string();
-		let custom_font_size = 16.0;
-
-		let spawner =
-			TaskSpawner::new(task_id, position, size, title).with_font_size(custom_font_size);
-		spawner.spawn(&mut commands, &mut meshes, &mut materials);
 	}
 
 	#[derive(Clone)]
@@ -752,7 +735,7 @@ mod tests {
 		let params = TestCustomFontParams::new();
 
 		// Spawn the task using the builder
-		app.world_mut().run_system_once(params.build());
+		app.world_mut().run_system_once(params.build())?;
 
 		let world = app.world_mut();
 

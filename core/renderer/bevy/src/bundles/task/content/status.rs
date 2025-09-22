@@ -209,7 +209,7 @@ mod tests {
 		let params = TestStatusParams::new();
 
 		// Spawn the status using the builder
-		app.world_mut().run_system_once(params.build());
+		app.world_mut().run_system_once(params.build())?;
 
 		let world = app.world_mut();
 
@@ -244,7 +244,7 @@ mod tests {
 		};
 
 		// Spawn the status using the builder
-		app.world_mut().run_system_once(params.build());
+		app.world_mut().run_system_once(params.build())?;
 
 		let world = app.world_mut();
 
@@ -279,7 +279,7 @@ mod tests {
 		};
 
 		// Spawn the status using the builder
-		app.world_mut().run_system_once(params.build());
+		app.world_mut().run_system_once(params.build())?;
 
 		let world = app.world_mut();
 
@@ -320,7 +320,7 @@ mod tests {
 		};
 
 		// Spawn the status using the builder
-		app.world_mut().run_system_once(params.build());
+		app.world_mut().run_system_once(params.build())?;
 
 		let world = app.world_mut();
 

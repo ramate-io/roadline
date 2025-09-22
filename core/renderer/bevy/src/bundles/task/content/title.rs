@@ -58,22 +58,15 @@ mod tests {
 		let mut app = App::new();
 		app.add_plugins(MinimalPlugins);
 
-		let title = "Spawn Test Title".to_string();
+		let params = TestTitleParams { title_text: "Spawn Test Title".to_string() };
 
-		let spawner = TitleSpawner::new(title);
+		// Spawn the title using the builder
+		app.world_mut().run_system_once(params.build())?;
 
-		// Create a parent entity
-		let parent_entity = app.world_mut().spawn_empty().id();
-
-		// Spawn the title
-		app.world_mut().run_system_once(|mut commands: Commands| {
-			spawner.spawn(&mut commands, parent_entity);
-		});
-
-		let world = app.world();
+		let world = app.world_mut();
 
 		// Check that TitleMarker was spawned
-		let title_marker_query = world.query::<&TitleMarker>();
+		let mut title_marker_query = world.query::<&TitleMarker>();
 		let title_markers: Vec<_> = title_marker_query.iter(world).collect();
 		assert_eq!(title_markers.len(), 1, "Should spawn exactly one TitleMarker entity");
 
@@ -109,7 +102,7 @@ mod tests {
 		let params = TestTitleParams::new();
 
 		// Spawn the title using the builder
-		app.world_mut().run_system_once(params.build());
+		app.world_mut().run_system_once(params.build())?;
 
 		let world = app.world_mut();
 
@@ -133,7 +126,7 @@ mod tests {
 		let params = TestTitleParams { title_text: "Styling Test Title".to_string() };
 
 		// Spawn the title using the builder
-		app.world_mut().run_system_once(params.build());
+		app.world_mut().run_system_once(params.build())?;
 
 		let world = app.world_mut();
 
@@ -161,7 +154,7 @@ mod tests {
 		let params = TestTitleParams { title_text: "Layout Test Title".to_string() };
 
 		// Spawn the title using the builder
-		app.world_mut().run_system_once(params.build());
+		app.world_mut().run_system_once(params.build())?;
 
 		let world = app.world_mut();
 
@@ -193,7 +186,7 @@ mod tests {
 		let params = TestTitleParams { title_text: "Parent Attachment Test".to_string() };
 
 		// Spawn the title using the builder
-		app.world_mut().run_system_once(params.build());
+		app.world_mut().run_system_once(params.build())?;
 
 		let world = app.world_mut();
 
@@ -225,7 +218,7 @@ mod tests {
 		};
 
 		// Spawn the title using the builder
-		app.world_mut().run_system_once(params.build());
+		app.world_mut().run_system_once(params.build())?;
 
 		let world = app.world_mut();
 
@@ -254,7 +247,7 @@ mod tests {
 		};
 
 		// Spawn the title using the builder
-		app.world_mut().run_system_once(params.build());
+		app.world_mut().run_system_once(params.build())?;
 
 		let world = app.world_mut();
 
