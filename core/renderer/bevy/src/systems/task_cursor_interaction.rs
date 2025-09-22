@@ -224,7 +224,6 @@ fn handle_task_click(
 	update_selection_states_persistent(selection_resource, ui_query, roadline, task_query);
 }
 
-
 /// Update visual feedback for a task
 fn update_task_visual_feedback(
 	task_id: TaskId,
@@ -262,7 +261,6 @@ fn update_selection_states_persistent(
 	roadline: &Roadline,
 	task_query: &Query<(Entity, &Transform, &Task)>,
 ) {
-
 	// Clear all descendant and parent states first
 	let mut tasks_to_clear = Vec::new();
 	let mut dependencies_to_clear = Vec::new();
@@ -292,7 +290,13 @@ fn update_selection_states_persistent(
 	// Now mark descendants and parents for all selected tasks
 	for (task_id, state) in &selection_resource.tasks.clone() {
 		if *state == SelectionState::Selected {
-			mark_descendants_persistent(task_id, selection_resource, ui_query, roadline, task_query);
+			mark_descendants_persistent(
+				task_id,
+				selection_resource,
+				ui_query,
+				roadline,
+				task_query,
+			);
 			mark_parents_persistent(task_id, selection_resource, ui_query, roadline, task_query);
 		}
 	}
@@ -325,7 +329,8 @@ fn mark_descendants_persistent(
 			if &dependency_id.to() == task_id {
 				let dep_state = selection_resource.get_dependency_state(&dependency_id);
 				if dep_state == SelectionState::Unselected {
-					selection_resource.set_dependency_state(*dependency_id, SelectionState::Descendant);
+					selection_resource
+						.set_dependency_state(*dependency_id, SelectionState::Descendant);
 				}
 			}
 		}

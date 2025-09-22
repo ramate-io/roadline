@@ -282,9 +282,16 @@ pub fn dependency_hover_system(
 				// Check if this dependency starts from a selected/descendant/parent task
 				let from_task_state =
 					selection_resource.get_task_state(&dependency.dependency_id.from());
+				let to_task_state =
+					selection_resource.get_task_state(&dependency.dependency_id.to());
 				let is_connected_to_selection = from_task_state == SelectionState::Selected
 					|| from_task_state == SelectionState::Descendant
-					|| from_task_state == SelectionState::Parent;
+					|| (from_task_state == SelectionState::Parent
+						&& to_task_state == SelectionState::Selected)
+					|| (from_task_state == SelectionState::Parent
+						&& to_task_state == SelectionState::Selected)
+					|| (from_task_state == SelectionState::Parent
+						&& to_task_state == SelectionState::Parent);
 
 				// Calculate distance to the bezier curve for hover detection
 				let mouse_pos_3d = Vec3::new(world_pos.x, world_pos.y, 0.0);
@@ -297,7 +304,13 @@ pub fn dependency_hover_system(
 				);
 
 				// Determine the color based on selection state and hover
-				let new_color = if from_task_state == SelectionState::Parent {
+				let new_color = if (from_task_state == SelectionState::Parent
+					&& to_task_state == SelectionState::Selected)
+					|| (from_task_state == SelectionState::Parent
+						&& to_task_state == SelectionState::Selected)
+					|| (from_task_state == SelectionState::Parent
+						&& to_task_state == SelectionState::Parent)
+				{
 					// If connected to parent task, show red
 					Color::oklch(0.5, 0.137, 0.0) // Red
 				} else if is_connected_to_selection {
