@@ -1,5 +1,5 @@
 [package]
-name = "bevy-plugins-ext"
+name = "bevy-type-safe"
 version = { workspace = true }
 authors = ["Kristoffer Ödmark <kristoffer.odmark90@gmail.com>"]
 edition = "2021"

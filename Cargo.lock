@@ -315,7 +315,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy-plugins-ext"
+name = "bevy-type-safe"
 version = "0.0.1"
 dependencies = [
  "bevy",
