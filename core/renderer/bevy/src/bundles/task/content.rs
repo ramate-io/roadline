@@ -65,6 +65,8 @@ mod tests {
 	use super::*;
 	use crate::bundles::task::content::{status::StatusMarker, title::TitleMarker};
 	use bevy::ecs::system::RunSystemOnce;
+	use bevy::prelude::*;
+	use bevy_ui_anchor::AnchorUiPlugin;
 
 	#[test]
 	fn test_content_spawner_creation() -> Result<(), Box<dyn std::error::Error>> {
@@ -130,7 +132,7 @@ mod tests {
 	fn test_content_spawner_spawns_content_node() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
 		let mut app = App::new();
-		app.add_plugins(MinimalPlugins);
+		app.add_plugins(MinimalPlugins).add_plugins(AssetPlugin::default());
 
 		let params = TestContentParams::new();
 
@@ -191,7 +193,7 @@ mod tests {
 	fn test_content_spawner_spawns_title_and_status() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
 		let mut app = App::new();
-		app.add_plugins(MinimalPlugins);
+		app.add_plugins(MinimalPlugins).add_plugins(AssetPlugin::default());
 
 		let params = TestContentParams {
 			title: "Title and Status Test".to_string(),
@@ -223,7 +225,7 @@ mod tests {
 	fn test_content_spawner_attaches_to_parent() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
 		let mut app = App::new();
-		app.add_plugins(MinimalPlugins);
+		app.add_plugins(MinimalPlugins).add_plugins(AssetPlugin::default());
 
 		let params = TestContentParams {
 			title: "Parent Attachment Test".to_string(),
@@ -266,7 +268,7 @@ mod tests {
 	fn test_content_spawner_grid_layout() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
 		let mut app = App::new();
-		app.add_plugins(MinimalPlugins);
+		app.add_plugins(MinimalPlugins).add_plugins(AssetPlugin::default());
 
 		let params = TestContentParams {
 			title: "Grid Layout Test".to_string(),

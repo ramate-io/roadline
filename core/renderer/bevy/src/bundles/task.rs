@@ -105,7 +105,10 @@ impl TaskSpawner {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::UiCameraMarker;
 	use bevy::ecs::system::RunSystemOnce;
+	use bevy::prelude::*;
+	use bevy_ui_anchor::AnchorUiPlugin;
 
 	#[test]
 	fn test_task_spawner_creation() -> Result<(), Box<dyn std::error::Error>> {
@@ -179,7 +182,9 @@ mod tests {
 	fn test_task_spawner_spawns_entities() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
 		let mut app = App::new();
-		app.add_plugins(MinimalPlugins);
+		app.add_plugins(MinimalPlugins)
+			.add_plugins(AssetPlugin::default())
+			.add_plugins(AnchorUiPlugin::<UiCameraMarker>::new());
 
 		let params = TestTaskParams::new();
 
@@ -246,7 +251,9 @@ mod tests {
 	fn test_task_spawner_sets_correct_components() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
 		let mut app = App::new();
-		app.add_plugins(MinimalPlugins);
+		app.add_plugins(MinimalPlugins)
+			.add_plugins(AssetPlugin::default())
+			.add_plugins(AnchorUiPlugin::<UiCameraMarker>::new());
 
 		let params = TestComponentParams::new();
 
@@ -321,7 +328,9 @@ mod tests {
 	fn test_task_spawner_ui_node_properties() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
 		let mut app = App::new();
-		app.add_plugins(MinimalPlugins);
+		app.add_plugins(MinimalPlugins)
+			.add_plugins(AssetPlugin::default())
+			.add_plugins(AnchorUiPlugin::<UiCameraMarker>::new());
 
 		let params = TestUINodeParams::new();
 
@@ -405,7 +414,9 @@ mod tests {
 	fn test_task_spawner_anchor_relationship() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
 		let mut app = App::new();
-		app.add_plugins(MinimalPlugins);
+		app.add_plugins(MinimalPlugins)
+			.add_plugins(AssetPlugin::default())
+			.add_plugins(AnchorUiPlugin::<UiCameraMarker>::new());
 
 		let params = TestAnchorParams::new();
 
@@ -439,7 +450,9 @@ mod tests {
 	fn test_complete_task_spawning_pipeline() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
 		let mut app = App::new();
-		app.add_plugins(MinimalPlugins);
+		app.add_plugins(MinimalPlugins)
+			.add_plugins(AssetPlugin::default())
+			.add_plugins(AnchorUiPlugin::<UiCameraMarker>::new());
 
 		fn spawner_system(
 			mut commands: Commands,
@@ -648,7 +661,9 @@ mod tests {
 	fn test_multiple_task_spawning() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
 		let mut app = App::new();
-		app.add_plugins(MinimalPlugins);
+		app.add_plugins(MinimalPlugins)
+			.add_plugins(AssetPlugin::default())
+			.add_plugins(AnchorUiPlugin::<UiCameraMarker>::new());
 
 		// Spawn multiple tasks
 		app.world_mut().run_system_once(spawn_multiple_tasks_system)?;
@@ -730,7 +745,9 @@ mod tests {
 	fn test_task_spawning_with_custom_font_size() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
 		let mut app = App::new();
-		app.add_plugins(MinimalPlugins);
+		app.add_plugins(MinimalPlugins)
+			.add_plugins(AssetPlugin::default())
+			.add_plugins(AnchorUiPlugin::<UiCameraMarker>::new());
 
 		let params = TestCustomFontParams::new();
 

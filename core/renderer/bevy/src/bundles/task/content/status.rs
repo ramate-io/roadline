@@ -63,6 +63,7 @@ mod tests {
 		not_started::NotStartedStatusMarker,
 	};
 	use bevy::ecs::system::RunSystemOnce;
+	use bevy::prelude::*;
 
 	#[test]
 	fn test_status_spawner_not_started() -> Result<(), Box<dyn std::error::Error>> {
@@ -204,7 +205,7 @@ mod tests {
 	fn test_status_spawner_spawns_not_started() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
 		let mut app = App::new();
-		app.add_plugins(MinimalPlugins);
+		app.add_plugins(MinimalPlugins).add_plugins(AssetPlugin::default());
 
 		let params = TestStatusParams::new();
 
@@ -234,7 +235,7 @@ mod tests {
 	fn test_status_spawner_spawns_in_progress() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
 		let mut app = App::new();
-		app.add_plugins(MinimalPlugins);
+		app.add_plugins(MinimalPlugins).add_plugins(AssetPlugin::default());
 
 		let params = TestStatusParams {
 			completed: 2,
@@ -269,7 +270,7 @@ mod tests {
 	fn test_status_spawner_spawns_completed() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
 		let mut app = App::new();
-		app.add_plugins(MinimalPlugins);
+		app.add_plugins(MinimalPlugins).add_plugins(AssetPlugin::default());
 
 		let params = TestStatusParams {
 			completed: 3,
@@ -310,7 +311,7 @@ mod tests {
 	fn test_status_spawner_attaches_to_parent() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
 		let mut app = App::new();
-		app.add_plugins(MinimalPlugins);
+		app.add_plugins(MinimalPlugins).add_plugins(AssetPlugin::default());
 
 		let params = TestStatusParams {
 			completed: 1,
