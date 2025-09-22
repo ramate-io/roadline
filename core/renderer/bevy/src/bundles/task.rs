@@ -108,6 +108,10 @@ mod tests {
 	use crate::UiCameraMarker;
 	use bevy::ecs::system::RunSystemOnce;
 	use bevy::prelude::*;
+	use bevy::render::mesh::MeshPlugin;
+	use bevy::render::view::VisibilityPlugin;
+	use bevy::scene::ScenePlugin;
+	use bevy::transform::TransformPlugin;
 	use bevy_ui_anchor::AnchorUiPlugin;
 
 	#[test]
@@ -182,9 +186,21 @@ mod tests {
 	fn test_task_spawner_spawns_entities() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
 		let mut app = App::new();
-		app.add_plugins(MinimalPlugins)
-			.add_plugins(AssetPlugin::default())
-			.add_plugins(AnchorUiPlugin::<UiCameraMarker>::new());
+		app.add_plugins((
+			MinimalPlugins,
+			AssetPlugin::default(),
+			ScenePlugin,
+			MeshPlugin, // <-- Important for this issue
+			TransformPlugin,
+			VisibilityPlugin,
+			AnchorUiPlugin::<UiCameraMarker>::new(),
+		))
+		.init_asset::<ColorMaterial>()
+		.init_asset::<Mesh>()
+		.register_type::<Visibility>()
+		.register_type::<InheritedVisibility>()
+		.register_type::<ViewVisibility>()
+		.register_type::<MeshMaterial2d<ColorMaterial>>();
 
 		let params = TestTaskParams::new();
 
@@ -251,9 +267,21 @@ mod tests {
 	fn test_task_spawner_sets_correct_components() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
 		let mut app = App::new();
-		app.add_plugins(MinimalPlugins)
-			.add_plugins(AssetPlugin::default())
-			.add_plugins(AnchorUiPlugin::<UiCameraMarker>::new());
+		app.add_plugins((
+			MinimalPlugins,
+			AssetPlugin::default(),
+			ScenePlugin,
+			MeshPlugin, // <-- Important for this issue
+			TransformPlugin,
+			VisibilityPlugin,
+			AnchorUiPlugin::<UiCameraMarker>::new(),
+		))
+		.init_asset::<ColorMaterial>()
+		.init_asset::<Mesh>()
+		.register_type::<Visibility>()
+		.register_type::<InheritedVisibility>()
+		.register_type::<ViewVisibility>()
+		.register_type::<MeshMaterial2d<ColorMaterial>>();
 
 		let params = TestComponentParams::new();
 
@@ -328,9 +356,21 @@ mod tests {
 	fn test_task_spawner_ui_node_properties() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
 		let mut app = App::new();
-		app.add_plugins(MinimalPlugins)
-			.add_plugins(AssetPlugin::default())
-			.add_plugins(AnchorUiPlugin::<UiCameraMarker>::new());
+		app.add_plugins((
+			MinimalPlugins,
+			AssetPlugin::default(),
+			ScenePlugin,
+			MeshPlugin, // <-- Important for this issue
+			TransformPlugin,
+			VisibilityPlugin,
+			AnchorUiPlugin::<UiCameraMarker>::new(),
+		))
+		.init_asset::<ColorMaterial>()
+		.init_asset::<Mesh>()
+		.register_type::<Visibility>()
+		.register_type::<InheritedVisibility>()
+		.register_type::<ViewVisibility>()
+		.register_type::<MeshMaterial2d<ColorMaterial>>();
 
 		let params = TestUINodeParams::new();
 
@@ -412,11 +452,22 @@ mod tests {
 
 	#[test]
 	fn test_task_spawner_anchor_relationship() -> Result<(), Box<dyn std::error::Error>> {
-		// Setup app
 		let mut app = App::new();
-		app.add_plugins(MinimalPlugins)
-			.add_plugins(AssetPlugin::default())
-			.add_plugins(AnchorUiPlugin::<UiCameraMarker>::new());
+		app.add_plugins((
+			MinimalPlugins,
+			AssetPlugin::default(),
+			ScenePlugin,
+			MeshPlugin, // <-- Important for this issue
+			TransformPlugin,
+			VisibilityPlugin,
+			AnchorUiPlugin::<UiCameraMarker>::new(),
+		))
+		.init_asset::<ColorMaterial>()
+		.init_asset::<Mesh>()
+		.register_type::<Visibility>()
+		.register_type::<InheritedVisibility>()
+		.register_type::<ViewVisibility>()
+		.register_type::<MeshMaterial2d<ColorMaterial>>();
 
 		let params = TestAnchorParams::new();
 
@@ -448,11 +499,22 @@ mod tests {
 
 	#[test]
 	fn test_complete_task_spawning_pipeline() -> Result<(), Box<dyn std::error::Error>> {
-		// Setup app
 		let mut app = App::new();
-		app.add_plugins(MinimalPlugins)
-			.add_plugins(AssetPlugin::default())
-			.add_plugins(AnchorUiPlugin::<UiCameraMarker>::new());
+		app.add_plugins((
+			MinimalPlugins,
+			AssetPlugin::default(),
+			ScenePlugin,
+			MeshPlugin, // <-- Important for this issue
+			TransformPlugin,
+			VisibilityPlugin,
+			AnchorUiPlugin::<UiCameraMarker>::new(),
+		))
+		.init_asset::<ColorMaterial>()
+		.init_asset::<Mesh>()
+		.register_type::<Visibility>()
+		.register_type::<InheritedVisibility>()
+		.register_type::<ViewVisibility>()
+		.register_type::<MeshMaterial2d<ColorMaterial>>();
 
 		fn spawner_system(
 			mut commands: Commands,
@@ -566,10 +628,22 @@ mod tests {
 
 	#[test]
 	fn test_task_spawning_with_different_statuses() -> Result<(), Box<dyn std::error::Error>> {
-		// Test not started status
 		let mut app1 = App::new();
-		app1.add_plugins(MinimalPlugins);
-		app1.world_mut().run_system_once(spawn_not_started_task_system)?;
+		app1.add_plugins((
+			MinimalPlugins,
+			AssetPlugin::default(),
+			ScenePlugin,
+			MeshPlugin, // <-- Important for this issue
+			TransformPlugin,
+			VisibilityPlugin,
+			AnchorUiPlugin::<UiCameraMarker>::new(),
+		))
+		.init_asset::<ColorMaterial>()
+		.init_asset::<Mesh>()
+		.register_type::<Visibility>()
+		.register_type::<InheritedVisibility>()
+		.register_type::<ViewVisibility>()
+		.register_type::<MeshMaterial2d<ColorMaterial>>();
 
 		let world1 = app1.world_mut();
 		let mut not_started_query =
@@ -583,10 +657,22 @@ mod tests {
 			"Should spawn NotStartedStatusMarker for not started task"
 		);
 
-		// Test in progress status
 		let mut app2 = App::new();
-		app2.add_plugins(MinimalPlugins);
-		app2.world_mut().run_system_once(spawn_in_progress_task_system)?;
+		app2.add_plugins((
+			MinimalPlugins,
+			AssetPlugin::default(),
+			ScenePlugin,
+			MeshPlugin, // <-- Important for this issue
+			TransformPlugin,
+			VisibilityPlugin,
+			AnchorUiPlugin::<UiCameraMarker>::new(),
+		))
+		.init_asset::<ColorMaterial>()
+		.init_asset::<Mesh>()
+		.register_type::<Visibility>()
+		.register_type::<InheritedVisibility>()
+		.register_type::<ViewVisibility>()
+		.register_type::<MeshMaterial2d<ColorMaterial>>();
 
 		let world2 = app2.world_mut();
 		let mut in_progress_query =
@@ -602,8 +688,21 @@ mod tests {
 
 		// Test completed status
 		let mut app3 = App::new();
-		app3.add_plugins(MinimalPlugins);
-		app3.world_mut().run_system_once(spawn_completed_task_system)?;
+		app3.add_plugins((
+			MinimalPlugins,
+			AssetPlugin::default(),
+			ScenePlugin,
+			MeshPlugin, // <-- Important for this issue
+			TransformPlugin,
+			VisibilityPlugin,
+			AnchorUiPlugin::<UiCameraMarker>::new(),
+		))
+		.init_asset::<ColorMaterial>()
+		.init_asset::<Mesh>()
+		.register_type::<Visibility>()
+		.register_type::<InheritedVisibility>()
+		.register_type::<ViewVisibility>()
+		.register_type::<MeshMaterial2d<ColorMaterial>>();
 
 		let world3 = app3.world_mut();
 		let mut completed_query =
@@ -659,11 +758,22 @@ mod tests {
 
 	#[test]
 	fn test_multiple_task_spawning() -> Result<(), Box<dyn std::error::Error>> {
-		// Setup app
 		let mut app = App::new();
-		app.add_plugins(MinimalPlugins)
-			.add_plugins(AssetPlugin::default())
-			.add_plugins(AnchorUiPlugin::<UiCameraMarker>::new());
+		app.add_plugins((
+			MinimalPlugins,
+			AssetPlugin::default(),
+			ScenePlugin,
+			MeshPlugin, // <-- Important for this issue
+			TransformPlugin,
+			VisibilityPlugin,
+			AnchorUiPlugin::<UiCameraMarker>::new(),
+		))
+		.init_asset::<ColorMaterial>()
+		.init_asset::<Mesh>()
+		.register_type::<Visibility>()
+		.register_type::<InheritedVisibility>()
+		.register_type::<ViewVisibility>()
+		.register_type::<MeshMaterial2d<ColorMaterial>>();
 
 		// Spawn multiple tasks
 		app.world_mut().run_system_once(spawn_multiple_tasks_system)?;
@@ -743,11 +853,22 @@ mod tests {
 
 	#[test]
 	fn test_task_spawning_with_custom_font_size() -> Result<(), Box<dyn std::error::Error>> {
-		// Setup app
 		let mut app = App::new();
-		app.add_plugins(MinimalPlugins)
-			.add_plugins(AssetPlugin::default())
-			.add_plugins(AnchorUiPlugin::<UiCameraMarker>::new());
+		app.add_plugins((
+			MinimalPlugins,
+			AssetPlugin::default(),
+			ScenePlugin,
+			MeshPlugin, // <-- Important for this issue
+			TransformPlugin,
+			VisibilityPlugin,
+			AnchorUiPlugin::<UiCameraMarker>::new(),
+		))
+		.init_asset::<ColorMaterial>()
+		.init_asset::<Mesh>()
+		.register_type::<Visibility>()
+		.register_type::<InheritedVisibility>()
+		.register_type::<ViewVisibility>()
+		.register_type::<MeshMaterial2d<ColorMaterial>>();
 
 		let params = TestCustomFontParams::new();
 
