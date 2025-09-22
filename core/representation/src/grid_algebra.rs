@@ -6,6 +6,7 @@ pub use cell::Cell;
 pub use lane::LaneId;
 pub use stretch::{Stretch, StretchRange, StretchUnit};
 
+use crate::graph::Graph;
 use crate::range_algebra::{Date, RangeAlgebra};
 use roadline_util::dependency::{Dependency, Id as DependencyId};
 use roadline_util::task::{Id as TaskId, Task};
@@ -422,6 +423,11 @@ pub struct GridAlgebra {
 }
 
 impl GridAlgebra {
+	/// Borrows the graph algebra.
+	pub fn graph(&self) -> &Graph {
+		self.range_algebra.graph()
+	}
+
 	/// Get a reference to the underlying range algebra.
 	pub fn range_algebra(&self) -> &RangeAlgebra {
 		&self.range_algebra

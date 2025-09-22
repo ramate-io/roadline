@@ -4,8 +4,6 @@ use crate::resources::{RenderUpdateEvent, Roadline};
 use crate::RoadlineRenderConfig;
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh;
-use bevy::render::mesh::Mesh2d;
-use bevy::render::render_asset::RenderAssetUsages;
 use bevy::sprite::ColorMaterial;
 
 /// Configuration for task systems

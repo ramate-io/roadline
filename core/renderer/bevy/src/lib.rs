@@ -11,6 +11,8 @@ use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
 use bevy_ui_anchor::AnchorUiPlugin;
 
+use crate::resources::SelectionResource;
+
 pub use roadline_renderer::RoadlineRenderer;
 
 /// Marker component for the UI camera
@@ -39,6 +41,8 @@ impl Plugin for RoadlinePlugin {
 			.add_plugins(AnchorUiPlugin::<UiCameraMarker>::new())
 			// Set white background
 			.insert_resource(ClearColor(Color::WHITE))
+			// Add selection resource
+			.insert_resource(SelectionResource::new())
 			// Add our custom systems
 			.add_systems(Startup, setup_camera)
 			.add_systems(
@@ -47,7 +51,8 @@ impl Plugin for RoadlinePlugin {
 					systems::TaskSystemConfig::build(),
 					systems::DependencySystemConfig::build(),
 					systems::dependency::dependency_hover_system,
-					systems::task_hover_system,
+					systems::task_cursor_interaction_system,
+					// systems::click_selection_system,
 				),
 			);
 	}
