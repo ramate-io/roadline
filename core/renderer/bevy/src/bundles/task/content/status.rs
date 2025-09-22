@@ -312,36 +312,20 @@ mod tests {
 		let mut app = App::new();
 		app.add_plugins(MinimalPlugins);
 
-		let completed = 1;
-		let total = 4;
-		let world_position = Vec3::new(100.0, 200.0, 0.0);
-		let task_size = Vec2::new(200.0, 50.0);
+		let params = TestStatusParams {
+			completed: 1,
+			total: 4,
+			world_position: Vec3::new(100.0, 200.0, 0.0),
+			task_size: Vec2::new(200.0, 50.0),
+		};
 
-		let spawner = StatusSpawner::new(completed, total);
+		// Spawn the status using the builder
+		app.world_mut().run_system_once(params.build());
 
-		// Create a parent entity
-		let parent_entity = app.world_mut().spawn_empty().id();
-
-		// Spawn the status
-		app.world_mut().run_system_once(
-			|mut commands: Commands,
-			 mut meshes: ResMut<Assets<Mesh>>,
-			 mut materials: ResMut<Assets<ColorMaterial>>| {
-				spawner.spawn(
-					&mut commands,
-					&mut meshes,
-					&mut materials,
-					parent_entity,
-					world_position,
-					task_size,
-				);
-			},
-		);
-
-		let world = app.world();
+		let world = app.world_mut();
 
 		// Check that the parent entity has children
-		let children_query = world.query::<&Children>();
+		let mut children_query = world.query::<&Children>();
 		let children_components: Vec<_> = children_query.iter(world).collect();
 
 		// Find the parent's children component

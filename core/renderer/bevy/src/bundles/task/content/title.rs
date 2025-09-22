@@ -111,15 +111,15 @@ mod tests {
 		// Spawn the title using the builder
 		app.world_mut().run_system_once(params.build());
 
-		let world = app.world();
+		let world = app.world_mut();
 
 		// Check that Text component has correct content
-		let text_query = world.query::<&Text>();
+		let mut text_query = world.query::<&Text>();
 		let texts: Vec<_> = text_query.iter(world).collect();
 		assert_eq!(texts.len(), 1, "Should spawn exactly one Text entity");
 
 		let text = texts[0];
-		assert_eq!(text.content, title_text, "Text content should match title");
+		assert_eq!(text.0, params.title_text, "Text content should match title");
 
 		Ok(())
 	}
@@ -135,16 +135,16 @@ mod tests {
 		// Spawn the title using the builder
 		app.world_mut().run_system_once(params.build());
 
-		let world = app.world();
+		let world = app.world_mut();
 
 		// Check TextColor component
-		let text_color_query = world.query::<&TextColor>();
+		let mut text_color_query = world.query::<&TextColor>();
 		let text_colors: Vec<_> = text_color_query.iter(world).collect();
 		assert_eq!(text_colors.len(), 1, "Should spawn exactly one TextColor entity");
 		assert_eq!(text_colors[0].0, Color::BLACK, "Text color should be black");
 
 		// Check TextFont component
-		let text_font_query = world.query::<&TextFont>();
+		let mut text_font_query = world.query::<&TextFont>();
 		let text_fonts: Vec<_> = text_font_query.iter(world).collect();
 		assert_eq!(text_fonts.len(), 1, "Should spawn exactly one TextFont entity");
 		assert_eq!(text_fonts[0].font_size, 12.0, "Font size should be 12.0");
@@ -158,22 +158,15 @@ mod tests {
 		let mut app = App::new();
 		app.add_plugins(MinimalPlugins);
 
-		let title = "Layout Test Title".to_string();
+		let params = TestTitleParams { title_text: "Layout Test Title".to_string() };
 
-		let spawner = TitleSpawner::new(title);
+		// Spawn the title using the builder
+		app.world_mut().run_system_once(params.build());
 
-		// Create a parent entity
-		let parent_entity = app.world_mut().spawn_empty().id();
-
-		// Spawn the title
-		app.world_mut().run_system_once(|mut commands: Commands| {
-			spawner.spawn(&mut commands, parent_entity);
-		});
-
-		let world = app.world();
+		let world = app.world_mut();
 
 		// Check Node component properties
-		let node_query = world.query::<&Node>();
+		let mut node_query = world.query::<&Node>();
 		let nodes: Vec<_> = node_query.iter(world).collect();
 		assert_eq!(nodes.len(), 1, "Should spawn exactly one Node entity");
 
@@ -202,15 +195,15 @@ mod tests {
 		// Spawn the title using the builder
 		app.world_mut().run_system_once(params.build());
 
-		let world = app.world();
+		let world = app.world_mut();
 
 		// Check that the parent entity has children
-		let children_query = world.query::<&Children>();
+		let mut children_query = world.query::<&Children>();
 		let children_components: Vec<_> = children_query.iter(world).collect();
 
 		// Find the parent's children component
 		let parent_children = children_components.iter().find(|children| {
-			children.iter().any(|&child| {
+			children.iter().any(|child| {
 				// Check if this child has a title marker
 				world.get::<TitleMarker>(child).is_some()
 			})
@@ -234,18 +227,18 @@ mod tests {
 		// Spawn the title using the builder
 		app.world_mut().run_system_once(params.build());
 
-		let world = app.world();
+		let world = app.world_mut();
 
 		// Check that TitleMarker was still spawned
-		let title_marker_query = world.query::<&TitleMarker>();
+		let mut title_marker_query = world.query::<&TitleMarker>();
 		let title_markers: Vec<_> = title_marker_query.iter(world).collect();
 		assert_eq!(title_markers.len(), 1, "Should spawn TitleMarker even with empty title");
 
 		// Check that Text component has empty content
-		let text_query = world.query::<&Text>();
+		let mut text_query = world.query::<&Text>();
 		let texts: Vec<_> = text_query.iter(world).collect();
 		assert_eq!(texts.len(), 1, "Should spawn Text entity even with empty title");
-		assert_eq!(texts[0].content, "", "Text content should be empty");
+		assert_eq!(texts[0].0, "", "Text content should be empty");
 
 		Ok(())
 	}
@@ -263,18 +256,18 @@ mod tests {
 		// Spawn the title using the builder
 		app.world_mut().run_system_once(params.build());
 
-		let world = app.world();
+		let world = app.world_mut();
 
 		// Check that TitleMarker was spawned
-		let title_marker_query = world.query::<&TitleMarker>();
+		let mut title_marker_query = world.query::<&TitleMarker>();
 		let title_markers: Vec<_> = title_marker_query.iter(world).collect();
 		assert_eq!(title_markers.len(), 1, "Should spawn TitleMarker for long title");
 
 		// Check that Text component has correct content
-		let text_query = world.query::<&Text>();
+		let mut text_query = world.query::<&Text>();
 		let texts: Vec<_> = text_query.iter(world).collect();
 		assert_eq!(texts.len(), 1, "Should spawn Text entity for long title");
-		assert_eq!(texts[0].content, title, "Text content should match long title");
+		assert_eq!(texts[0].0, params.title_text, "Text content should match long title");
 
 		Ok(())
 	}
