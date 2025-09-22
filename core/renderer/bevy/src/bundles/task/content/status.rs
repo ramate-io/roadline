@@ -158,27 +158,36 @@ mod tests {
 		Ok(())
 	}
 
-	#[test]
-	fn test_status_spawner_spawns_not_started() -> Result<(), Box<dyn std::error::Error>> {
-		// Setup app
-		let mut app = App::new();
-		app.add_plugins(MinimalPlugins);
+	#[derive(Clone)]
+	struct TestStatusParams {
+		completed: u32,
+		total: u32,
+		world_position: Vec3,
+		task_size: Vec2,
+	}
 
-		let completed = 0;
-		let total = 3;
-		let world_position = Vec3::new(100.0, 200.0, 0.0);
-		let task_size = Vec2::new(200.0, 50.0);
+	impl TestStatusParams {
+		fn new() -> Self {
+			Self {
+				completed: 0,
+				total: 3,
+				world_position: Vec3::new(100.0, 200.0, 0.0),
+				task_size: Vec2::new(200.0, 50.0),
+			}
+		}
 
-		let spawner = StatusSpawner::new(completed, total);
-
-		// Create a parent entity
-		let parent_entity = app.world_mut().spawn_empty().id();
-
-		// Spawn the status
-		app.world_mut().run_system_once(
-			|mut commands: Commands,
-			 mut meshes: ResMut<Assets<Mesh>>,
-			 mut materials: ResMut<Assets<ColorMaterial>>| {
+		fn build(
+			&self,
+		) -> impl FnMut(Commands, ResMut<Assets<Mesh>>, ResMut<Assets<ColorMaterial>>) {
+			let completed = self.completed;
+			let total = self.total;
+			let world_position = self.world_position;
+			let task_size = self.task_size;
+			move |mut commands: Commands,
+			      mut meshes: ResMut<Assets<Mesh>>,
+			      mut materials: ResMut<Assets<ColorMaterial>>| {
+				let spawner = StatusSpawner::new(completed, total);
+				let parent_entity = commands.spawn_empty().id();
 				spawner.spawn(
 					&mut commands,
 					&mut meshes,
@@ -187,8 +196,20 @@ mod tests {
 					world_position,
 					task_size,
 				);
-			},
-		);
+			}
+		}
+	}
+
+	#[test]
+	fn test_status_spawner_spawns_not_started() -> Result<(), Box<dyn std::error::Error>> {
+		// Setup app
+		let mut app = App::new();
+		app.add_plugins(MinimalPlugins);
+
+		let params = TestStatusParams::new();
+
+		// Spawn the status using the builder
+		app.world_mut().run_system_once(params.build());
 
 		let world = app.world();
 
@@ -215,31 +236,15 @@ mod tests {
 		let mut app = App::new();
 		app.add_plugins(MinimalPlugins);
 
-		let completed = 2;
-		let total = 5;
-		let world_position = Vec3::new(100.0, 200.0, 0.0);
-		let task_size = Vec2::new(200.0, 50.0);
+		let params = TestStatusParams {
+			completed: 2,
+			total: 5,
+			world_position: Vec3::new(100.0, 200.0, 0.0),
+			task_size: Vec2::new(200.0, 50.0),
+		};
 
-		let spawner = StatusSpawner::new(completed, total);
-
-		// Create a parent entity
-		let parent_entity = app.world_mut().spawn_empty().id();
-
-		// Spawn the status
-		app.world_mut().run_system_once(
-			|mut commands: Commands,
-			 mut meshes: ResMut<Assets<Mesh>>,
-			 mut materials: ResMut<Assets<ColorMaterial>>| {
-				spawner.spawn(
-					&mut commands,
-					&mut meshes,
-					&mut materials,
-					parent_entity,
-					world_position,
-					task_size,
-				);
-			},
-		);
+		// Spawn the status using the builder
+		app.world_mut().run_system_once(params.build());
 
 		let world = app.world();
 
@@ -266,31 +271,15 @@ mod tests {
 		let mut app = App::new();
 		app.add_plugins(MinimalPlugins);
 
-		let completed = 3;
-		let total = 3;
-		let world_position = Vec3::new(100.0, 200.0, 0.0);
-		let task_size = Vec2::new(200.0, 50.0);
+		let params = TestStatusParams {
+			completed: 3,
+			total: 3,
+			world_position: Vec3::new(100.0, 200.0, 0.0),
+			task_size: Vec2::new(200.0, 50.0),
+		};
 
-		let spawner = StatusSpawner::new(completed, total);
-
-		// Create a parent entity
-		let parent_entity = app.world_mut().spawn_empty().id();
-
-		// Spawn the status
-		app.world_mut().run_system_once(
-			|mut commands: Commands,
-			 mut meshes: ResMut<Assets<Mesh>>,
-			 mut materials: ResMut<Assets<ColorMaterial>>| {
-				spawner.spawn(
-					&mut commands,
-					&mut meshes,
-					&mut materials,
-					parent_entity,
-					world_position,
-					task_size,
-				);
-			},
-		);
+		// Spawn the status using the builder
+		app.world_mut().run_system_once(params.build());
 
 		let world = app.world();
 

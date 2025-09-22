@@ -80,23 +80,36 @@ mod tests {
 		Ok(())
 	}
 
+	#[derive(Clone)]
+	struct TestTitleParams {
+		title_text: String,
+	}
+
+	impl TestTitleParams {
+		fn new() -> Self {
+			Self { title_text: "Specific Title Text".to_string() }
+		}
+
+		fn build(&self) -> impl FnMut(Commands) {
+			let title_text = self.title_text.clone();
+			move |mut commands: Commands| {
+				let spawner = TitleSpawner::new(title_text.clone());
+				let parent_entity = commands.spawn_empty().id();
+				spawner.spawn(&mut commands, parent_entity);
+			}
+		}
+	}
+
 	#[test]
 	fn test_title_spawner_sets_correct_text() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
 		let mut app = App::new();
 		app.add_plugins(MinimalPlugins);
 
-		let title_text = "Specific Title Text".to_string();
+		let params = TestTitleParams::new();
 
-		let spawner = TitleSpawner::new(title_text.clone());
-
-		// Create a parent entity
-		let parent_entity = app.world_mut().spawn_empty().id();
-
-		// Spawn the title
-		app.world_mut().run_system_once(|mut commands: Commands| {
-			spawner.spawn(&mut commands, parent_entity);
-		});
+		// Spawn the title using the builder
+		app.world_mut().run_system_once(params.build());
 
 		let world = app.world();
 
@@ -117,17 +130,10 @@ mod tests {
 		let mut app = App::new();
 		app.add_plugins(MinimalPlugins);
 
-		let title = "Styling Test Title".to_string();
+		let params = TestTitleParams { title_text: "Styling Test Title".to_string() };
 
-		let spawner = TitleSpawner::new(title);
-
-		// Create a parent entity
-		let parent_entity = app.world_mut().spawn_empty().id();
-
-		// Spawn the title
-		app.world_mut().run_system_once(|mut commands: Commands| {
-			spawner.spawn(&mut commands, parent_entity);
-		});
+		// Spawn the title using the builder
+		app.world_mut().run_system_once(params.build());
 
 		let world = app.world();
 
@@ -191,17 +197,10 @@ mod tests {
 		let mut app = App::new();
 		app.add_plugins(MinimalPlugins);
 
-		let title = "Parent Attachment Test".to_string();
+		let params = TestTitleParams { title_text: "Parent Attachment Test".to_string() };
 
-		let spawner = TitleSpawner::new(title);
-
-		// Create a parent entity
-		let parent_entity = app.world_mut().spawn_empty().id();
-
-		// Spawn the title
-		app.world_mut().run_system_once(|mut commands: Commands| {
-			spawner.spawn(&mut commands, parent_entity);
-		});
+		// Spawn the title using the builder
+		app.world_mut().run_system_once(params.build());
 
 		let world = app.world();
 
@@ -228,17 +227,12 @@ mod tests {
 		let mut app = App::new();
 		app.add_plugins(MinimalPlugins);
 
-		let title = "".to_string(); // Empty title
+		let params = TestTitleParams {
+			title_text: "".to_string(), // Empty title
+		};
 
-		let spawner = TitleSpawner::new(title);
-
-		// Create a parent entity
-		let parent_entity = app.world_mut().spawn_empty().id();
-
-		// Spawn the title
-		app.world_mut().run_system_once(|mut commands: Commands| {
-			spawner.spawn(&mut commands, parent_entity);
-		});
+		// Spawn the title using the builder
+		app.world_mut().run_system_once(params.build());
 
 		let world = app.world();
 
@@ -262,17 +256,12 @@ mod tests {
 		let mut app = App::new();
 		app.add_plugins(MinimalPlugins);
 
-		let title = "This is a very long title that might wrap or overflow depending on the container size and styling".to_string();
+		let params = TestTitleParams {
+			title_text: "This is a very long title that might wrap or overflow depending on the container size and styling".to_string(),
+		};
 
-		let spawner = TitleSpawner::new(title.clone());
-
-		// Create a parent entity
-		let parent_entity = app.world_mut().spawn_empty().id();
-
-		// Spawn the title
-		app.world_mut().run_system_once(|mut commands: Commands| {
-			spawner.spawn(&mut commands, parent_entity);
-		});
+		// Spawn the title using the builder
+		app.world_mut().run_system_once(params.build());
 
 		let world = app.world();
 

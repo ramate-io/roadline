@@ -81,28 +81,39 @@ mod tests {
 		Ok(())
 	}
 
-	#[test]
-	fn test_content_spawner_spawns_content_node() -> Result<(), Box<dyn std::error::Error>> {
-		// Setup app
-		let mut app = App::new();
-		app.add_plugins(MinimalPlugins);
+	#[derive(Clone)]
+	struct TestContentParams {
+		title: String,
+		completed: u32,
+		total: u32,
+		world_position: Vec3,
+		task_size: Vec2,
+	}
 
-		let title = "Content Test".to_string();
-		let completed = 3;
-		let total = 7;
-		let world_position = Vec3::new(100.0, 200.0, 0.0);
-		let task_size = Vec2::new(200.0, 50.0);
+	impl TestContentParams {
+		fn new() -> Self {
+			Self {
+				title: "Content Test".to_string(),
+				completed: 3,
+				total: 7,
+				world_position: Vec3::new(100.0, 200.0, 0.0),
+				task_size: Vec2::new(200.0, 50.0),
+			}
+		}
 
-		let spawner = ContentSpawner::new(title, completed, total);
-
-		// Create a parent entity
-		let parent_entity = app.world_mut().spawn_empty().id();
-
-		// Spawn the content
-		app.world_mut().run_system_once(
-			|mut commands: Commands,
-			 mut meshes: ResMut<Assets<Mesh>>,
-			 mut materials: ResMut<Assets<ColorMaterial>>| {
+		fn build(
+			&self,
+		) -> impl FnMut(Commands, ResMut<Assets<Mesh>>, ResMut<Assets<ColorMaterial>>) {
+			let title = self.title.clone();
+			let completed = self.completed;
+			let total = self.total;
+			let world_position = self.world_position;
+			let task_size = self.task_size;
+			move |mut commands: Commands,
+			      mut meshes: ResMut<Assets<Mesh>>,
+			      mut materials: ResMut<Assets<ColorMaterial>>| {
+				let spawner = ContentSpawner::new(title.clone(), completed, total);
+				let parent_entity = commands.spawn_empty().id();
 				spawner.spawn(
 					&mut commands,
 					&mut meshes,
@@ -111,10 +122,22 @@ mod tests {
 					world_position,
 					task_size,
 				);
-			},
-		);
+			}
+		}
+	}
 
-		let world = app.world();
+	#[test]
+	fn test_content_spawner_spawns_content_node() -> Result<(), Box<dyn std::error::Error>> {
+		// Setup app
+		let mut app = App::new();
+		app.add_plugins(MinimalPlugins);
+
+		let params = TestContentParams::new();
+
+		// Spawn the content using the builder
+		app.world_mut().run_system_once(params.build());
+
+		let world = app.world_mut();
 
 		// Check that content node was spawned with correct properties
 		let node_query = world.query::<&Node>();
@@ -170,42 +193,26 @@ mod tests {
 		let mut app = App::new();
 		app.add_plugins(MinimalPlugins);
 
-		let title = "Title and Status Test".to_string();
-		let completed = 1;
-		let total = 3;
-		let world_position = Vec3::new(100.0, 200.0, 0.0);
-		let task_size = Vec2::new(200.0, 50.0);
+		let params = TestContentParams {
+			title: "Title and Status Test".to_string(),
+			completed: 1,
+			total: 3,
+			world_position: Vec3::new(100.0, 200.0, 0.0),
+			task_size: Vec2::new(200.0, 50.0),
+		};
 
-		let spawner = ContentSpawner::new(title, completed, total);
+		// Spawn the content using the builder
+		app.world_mut().run_system_once(params.build());
 
-		// Create a parent entity
-		let parent_entity = app.world_mut().spawn_empty().id();
-
-		// Spawn the content
-		app.world_mut().run_system_once(
-			|mut commands: Commands,
-			 mut meshes: ResMut<Assets<Mesh>>,
-			 mut materials: ResMut<Assets<ColorMaterial>>| {
-				spawner.spawn(
-					&mut commands,
-					&mut meshes,
-					&mut materials,
-					parent_entity,
-					world_position,
-					task_size,
-				);
-			},
-		);
-
-		let world = app.world();
+		let world = app.world_mut();
 
 		// Check that title marker was spawned
-		let title_marker_query = world.query::<&TitleMarker>();
+		let mut title_marker_query = world.query::<&TitleMarker>();
 		let title_markers: Vec<_> = title_marker_query.iter(world).collect();
 		assert_eq!(title_markers.len(), 1, "Should spawn exactly one TitleMarker entity");
 
 		// Check that status marker was spawned
-		let status_marker_query = world.query::<&StatusMarker>();
+		let mut status_marker_query = world.query::<&StatusMarker>();
 		let status_markers: Vec<_> = status_marker_query.iter(world).collect();
 		assert_eq!(status_markers.len(), 1, "Should spawn exactly one StatusMarker entity");
 
@@ -218,34 +225,18 @@ mod tests {
 		let mut app = App::new();
 		app.add_plugins(MinimalPlugins);
 
-		let title = "Parent Attachment Test".to_string();
-		let completed = 0;
-		let total = 1;
-		let world_position = Vec3::new(100.0, 200.0, 0.0);
-		let task_size = Vec2::new(200.0, 50.0);
+		let params = TestContentParams {
+			title: "Parent Attachment Test".to_string(),
+			completed: 0,
+			total: 1,
+			world_position: Vec3::new(100.0, 200.0, 0.0),
+			task_size: Vec2::new(200.0, 50.0),
+		};
 
-		let spawner = ContentSpawner::new(title, completed, total);
+		// Spawn the content using the builder
+		app.world_mut().run_system_once(params.build());
 
-		// Create a parent entity
-		let parent_entity = app.world_mut().spawn_empty().id();
-
-		// Spawn the content
-		app.world_mut().run_system_once(
-			|mut commands: Commands,
-			 mut meshes: ResMut<Assets<Mesh>>,
-			 mut materials: ResMut<Assets<ColorMaterial>>| {
-				spawner.spawn(
-					&mut commands,
-					&mut meshes,
-					&mut materials,
-					parent_entity,
-					world_position,
-					task_size,
-				);
-			},
-		);
-
-		let world = app.world();
+		let world = app.world_mut();
 
 		// Check that the parent entity has children
 		let children_query = world.query::<&Children>();
@@ -277,34 +268,18 @@ mod tests {
 		let mut app = App::new();
 		app.add_plugins(MinimalPlugins);
 
-		let title = "Grid Layout Test".to_string();
-		let completed = 2;
-		let total = 4;
-		let world_position = Vec3::new(100.0, 200.0, 0.0);
-		let task_size = Vec2::new(200.0, 50.0);
+		let params = TestContentParams {
+			title: "Grid Layout Test".to_string(),
+			completed: 2,
+			total: 4,
+			world_position: Vec3::new(100.0, 200.0, 0.0),
+			task_size: Vec2::new(200.0, 50.0),
+		};
 
-		let spawner = ContentSpawner::new(title, completed, total);
+		// Spawn the content using the builder
+		app.world_mut().run_system_once(params.build());
 
-		// Create a parent entity
-		let parent_entity = app.world_mut().spawn_empty().id();
-
-		// Spawn the content
-		app.world_mut().run_system_once(
-			|mut commands: Commands,
-			 mut meshes: ResMut<Assets<Mesh>>,
-			 mut materials: ResMut<Assets<ColorMaterial>>| {
-				spawner.spawn(
-					&mut commands,
-					&mut meshes,
-					&mut materials,
-					parent_entity,
-					world_position,
-					task_size,
-				);
-			},
-		);
-
-		let world = app.world();
+		let world = app.world_mut();
 
 		// Check grid template columns
 		let node_query = world.query::<&Node>();
