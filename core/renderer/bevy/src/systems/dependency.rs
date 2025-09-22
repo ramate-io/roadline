@@ -8,6 +8,36 @@ use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::view::RenderLayers;
 use bevy::sprite::{ColorMaterial, MeshMaterial2d};
 
+/// Helper struct for edge selection logic
+#[derive(Debug, Clone, Copy)]
+struct EdgeSelection {
+	from: SelectionState,
+	to: SelectionState,
+}
+
+impl EdgeSelection {
+	/// Create an EdgeSelection from two SelectionStates
+	fn new(from: SelectionState, to: SelectionState) -> Self {
+		Self { from, to }
+	}
+
+	/// Check if this edge is connected to any selection (selected, descendant, or parent)
+	fn is_connected_to_selection(&self) -> bool {
+		self.from == SelectionState::Selected
+			|| self.from == SelectionState::Descendant
+			|| (self.from == SelectionState::Parent && self.to == SelectionState::Selected)
+			|| (self.from == SelectionState::Parent && self.to == SelectionState::Descendant)
+			|| (self.from == SelectionState::Parent && self.to == SelectionState::Parent)
+	}
+
+	/// Check if this edge should be colored red (parent-related)
+	fn should_be_red(&self) -> bool {
+		(self.from == SelectionState::Parent && self.to == SelectionState::Selected)
+			|| (self.from == SelectionState::Parent && self.to == SelectionState::Descendant)
+			|| (self.from == SelectionState::Parent && self.to == SelectionState::Parent)
+	}
+}
+
 #[derive(Component)]
 pub struct DependencyHoverable;
 
@@ -279,19 +309,12 @@ pub fn dependency_hover_system(
 			for (_entity, _transform, mesh_material, curve_data, dependency) in
 				dependency_query.iter()
 			{
-				// Check if this dependency starts from a selected/descendant/parent task
+				// Create edge selection helper
 				let from_task_state =
 					selection_resource.get_task_state(&dependency.dependency_id.from());
 				let to_task_state =
 					selection_resource.get_task_state(&dependency.dependency_id.to());
-				let is_connected_to_selection = from_task_state == SelectionState::Selected
-					|| from_task_state == SelectionState::Descendant
-					|| (from_task_state == SelectionState::Parent
-						&& to_task_state == SelectionState::Selected)
-					|| (from_task_state == SelectionState::Parent
-						&& to_task_state == SelectionState::Selected)
-					|| (from_task_state == SelectionState::Parent
-						&& to_task_state == SelectionState::Parent);
+				let edge_selection = EdgeSelection::new(from_task_state, to_task_state);
 
 				// Calculate distance to the bezier curve for hover detection
 				let mouse_pos_3d = Vec3::new(world_pos.x, world_pos.y, 0.0);
@@ -304,16 +327,10 @@ pub fn dependency_hover_system(
 				);
 
 				// Determine the color based on selection state and hover
-				let new_color = if (from_task_state == SelectionState::Parent
-					&& to_task_state == SelectionState::Selected)
-					|| (from_task_state == SelectionState::Parent
-						&& to_task_state == SelectionState::Selected)
-					|| (from_task_state == SelectionState::Parent
-						&& to_task_state == SelectionState::Parent)
-				{
+				let new_color = if edge_selection.should_be_red() {
 					// If connected to parent task, show red
 					Color::oklch(0.5, 0.137, 0.0) // Red
-				} else if is_connected_to_selection {
+				} else if edge_selection.is_connected_to_selection() {
 					// If connected to selection/descendant, show dark blue
 					Color::oklch(0.5, 0.137, 235.06) // Dark blue
 				} else if distance_to_curve < 30.0 {
