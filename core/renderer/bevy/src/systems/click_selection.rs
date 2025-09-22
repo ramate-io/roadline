@@ -181,10 +181,16 @@ fn handle_dependency_click(
 	// Update visual feedback
 	update_dependency_visual_feedback(*dependency_id, new_state, materials);
 
-	// If selecting, mark all descendants from the "to" task
+	// If selecting, mark the "to" task and all its descendants
 	if new_state == SelectionState::Selected {
 		// Get the "to" task from the dependency
 		let to_task_id = &dependency_id.to();
+
+		// First, mark the "to" task itself as selected
+		selection_resource.set_task_state(*to_task_id, SelectionState::Selected);
+		update_task_visual_feedback(*to_task_id, SelectionState::Selected, ui_query, task_query);
+
+		// Then mark all descendants
 		mark_descendants(to_task_id, selection_resource, ui_query, materials, roadline, task_query);
 	} else {
 		// If deselecting, clear all descendants
