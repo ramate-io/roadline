@@ -66,7 +66,30 @@ mod tests {
 	use crate::bundles::task::content::{status::StatusMarker, title::TitleMarker};
 	use bevy::ecs::system::RunSystemOnce;
 	use bevy::prelude::*;
-	use bevy_ui_anchor::AnchorUiPlugin;
+	use bevy::render::mesh::MeshPlugin;
+	use bevy::render::view::VisibilityPlugin;
+	use bevy::scene::ScenePlugin;
+	use bevy::transform::TransformPlugin;
+
+	/// Helper function to set up an app with minimal plugins for content spawning
+	fn setup_content_test_app() -> App {
+		let mut app = App::new();
+		app.add_plugins((
+			MinimalPlugins,
+			AssetPlugin::default(),
+			ScenePlugin,
+			MeshPlugin,
+			TransformPlugin,
+			VisibilityPlugin,
+		))
+		.init_asset::<ColorMaterial>()
+		.init_asset::<Mesh>()
+		.register_type::<Visibility>()
+		.register_type::<InheritedVisibility>()
+		.register_type::<ViewVisibility>()
+		.register_type::<MeshMaterial2d<ColorMaterial>>();
+		app
+	}
 
 	#[test]
 	fn test_content_spawner_creation() -> Result<(), Box<dyn std::error::Error>> {
@@ -131,8 +154,7 @@ mod tests {
 	#[test]
 	fn test_content_spawner_spawns_content_node() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
-		let mut app = App::new();
-		app.add_plugins(MinimalPlugins).add_plugins(AssetPlugin::default());
+		let mut app = setup_content_test_app();
 
 		let params = TestContentParams::new();
 
@@ -192,8 +214,7 @@ mod tests {
 	#[test]
 	fn test_content_spawner_spawns_title_and_status() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
-		let mut app = App::new();
-		app.add_plugins(MinimalPlugins).add_plugins(AssetPlugin::default());
+		let mut app = setup_content_test_app();
 
 		let params = TestContentParams {
 			title: "Title and Status Test".to_string(),
@@ -224,8 +245,7 @@ mod tests {
 	#[test]
 	fn test_content_spawner_attaches_to_parent() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
-		let mut app = App::new();
-		app.add_plugins(MinimalPlugins).add_plugins(AssetPlugin::default());
+		let mut app = setup_content_test_app();
 
 		let params = TestContentParams {
 			title: "Parent Attachment Test".to_string(),
@@ -267,8 +287,7 @@ mod tests {
 	#[test]
 	fn test_content_spawner_grid_layout() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
-		let mut app = App::new();
-		app.add_plugins(MinimalPlugins).add_plugins(AssetPlugin::default());
+		let mut app = setup_content_test_app();
 
 		let params = TestContentParams {
 			title: "Grid Layout Test".to_string(),

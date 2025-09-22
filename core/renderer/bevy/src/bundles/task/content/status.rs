@@ -64,6 +64,30 @@ mod tests {
 	};
 	use bevy::ecs::system::RunSystemOnce;
 	use bevy::prelude::*;
+	use bevy::render::mesh::MeshPlugin;
+	use bevy::render::view::VisibilityPlugin;
+	use bevy::scene::ScenePlugin;
+	use bevy::transform::TransformPlugin;
+
+	/// Helper function to set up an app with minimal plugins for status spawning
+	fn setup_status_test_app() -> App {
+		let mut app = App::new();
+		app.add_plugins((
+			MinimalPlugins,
+			AssetPlugin::default(),
+			ScenePlugin,
+			MeshPlugin,
+			TransformPlugin,
+			VisibilityPlugin,
+		))
+		.init_asset::<ColorMaterial>()
+		.init_asset::<Mesh>()
+		.register_type::<Visibility>()
+		.register_type::<InheritedVisibility>()
+		.register_type::<ViewVisibility>()
+		.register_type::<MeshMaterial2d<ColorMaterial>>();
+		app
+	}
 
 	#[test]
 	fn test_status_spawner_not_started() -> Result<(), Box<dyn std::error::Error>> {
@@ -204,8 +228,7 @@ mod tests {
 	#[test]
 	fn test_status_spawner_spawns_not_started() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
-		let mut app = App::new();
-		app.add_plugins(MinimalPlugins).add_plugins(AssetPlugin::default());
+		let mut app = setup_status_test_app();
 
 		let params = TestStatusParams::new();
 
@@ -234,8 +257,7 @@ mod tests {
 	#[test]
 	fn test_status_spawner_spawns_in_progress() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
-		let mut app = App::new();
-		app.add_plugins(MinimalPlugins).add_plugins(AssetPlugin::default());
+		let mut app = setup_status_test_app();
 
 		let params = TestStatusParams {
 			completed: 2,
@@ -269,8 +291,7 @@ mod tests {
 	#[test]
 	fn test_status_spawner_spawns_completed() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
-		let mut app = App::new();
-		app.add_plugins(MinimalPlugins).add_plugins(AssetPlugin::default());
+		let mut app = setup_status_test_app();
 
 		let params = TestStatusParams {
 			completed: 3,
@@ -310,8 +331,7 @@ mod tests {
 	#[test]
 	fn test_status_spawner_attaches_to_parent() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
-		let mut app = App::new();
-		app.add_plugins(MinimalPlugins).add_plugins(AssetPlugin::default());
+		let mut app = setup_status_test_app();
 
 		let params = TestStatusParams {
 			completed: 1,
