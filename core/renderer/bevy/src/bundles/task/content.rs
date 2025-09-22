@@ -59,3 +59,276 @@ impl ContentSpawner {
 		commands.entity(parent).add_child(content_entity);
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::bundles::task::content::{status::StatusMarker, title::TitleMarker};
+	use bevy::ecs::system::RunSystemOnce;
+
+	#[test]
+	fn test_content_spawner_creation() -> Result<(), Box<dyn std::error::Error>> {
+		let title = "Test Content".to_string();
+		let completed = 2;
+		let total = 5;
+
+		let spawner = ContentSpawner::new(title.clone(), completed, total);
+
+		assert_eq!(spawner.title, title);
+		assert_eq!(spawner.completed, completed);
+		assert_eq!(spawner.total, total);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_content_spawner_spawns_content_node() -> Result<(), Box<dyn std::error::Error>> {
+		// Setup app
+		let mut app = App::new();
+		app.add_plugins(MinimalPlugins);
+
+		let title = "Content Test".to_string();
+		let completed = 3;
+		let total = 7;
+		let world_position = Vec3::new(100.0, 200.0, 0.0);
+		let task_size = Vec2::new(200.0, 50.0);
+
+		let spawner = ContentSpawner::new(title, completed, total);
+
+		// Create a parent entity
+		let parent_entity = app.world_mut().spawn_empty().id();
+
+		// Spawn the content
+		app.world_mut().run_system_once(
+			|mut commands: Commands,
+			 mut meshes: ResMut<Assets<Mesh>>,
+			 mut materials: ResMut<Assets<ColorMaterial>>| {
+				spawner.spawn(
+					&mut commands,
+					&mut meshes,
+					&mut materials,
+					parent_entity,
+					world_position,
+					task_size,
+				);
+			},
+		);
+
+		let world = app.world();
+
+		// Check that content node was spawned with correct properties
+		let node_query = world.query::<&Node>();
+		let nodes: Vec<_> = node_query.iter(world).collect();
+
+		// Should have at least one node (the content node)
+		assert!(nodes.len() >= 1, "Should spawn at least one Node entity");
+
+		// Find the content node (the one with grid display)
+		let content_node = nodes.iter().find(|node| node.display == Display::Grid);
+		assert!(content_node.is_some(), "Should spawn a content node with grid display");
+
+		let content_node = content_node.unwrap();
+		assert_eq!(content_node.width, Val::Percent(100.0), "Content node should take full width");
+		assert_eq!(
+			content_node.height,
+			Val::Percent(100.0),
+			"Content node should take full height"
+		);
+		assert_eq!(content_node.display, Display::Grid, "Content node should use grid display");
+		assert_eq!(
+			content_node.column_gap,
+			Val::Px(8.0),
+			"Content node should have 8px column gap"
+		);
+		assert_eq!(
+			content_node.align_content,
+			AlignContent::Center,
+			"Content node should center align content"
+		);
+		assert_eq!(
+			content_node.justify_content,
+			JustifyContent::Start,
+			"Content node should start justify content"
+		);
+		assert_eq!(
+			content_node.justify_self,
+			JustifySelf::Center,
+			"Content node should center justify self"
+		);
+		assert_eq!(
+			content_node.padding,
+			UiRect::all(Val::Px(8.0)),
+			"Content node should have 8px padding"
+		);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_content_spawner_spawns_title_and_status() -> Result<(), Box<dyn std::error::Error>> {
+		// Setup app
+		let mut app = App::new();
+		app.add_plugins(MinimalPlugins);
+
+		let title = "Title and Status Test".to_string();
+		let completed = 1;
+		let total = 3;
+		let world_position = Vec3::new(100.0, 200.0, 0.0);
+		let task_size = Vec2::new(200.0, 50.0);
+
+		let spawner = ContentSpawner::new(title, completed, total);
+
+		// Create a parent entity
+		let parent_entity = app.world_mut().spawn_empty().id();
+
+		// Spawn the content
+		app.world_mut().run_system_once(
+			|mut commands: Commands,
+			 mut meshes: ResMut<Assets<Mesh>>,
+			 mut materials: ResMut<Assets<ColorMaterial>>| {
+				spawner.spawn(
+					&mut commands,
+					&mut meshes,
+					&mut materials,
+					parent_entity,
+					world_position,
+					task_size,
+				);
+			},
+		);
+
+		let world = app.world();
+
+		// Check that title marker was spawned
+		let title_marker_query = world.query::<&TitleMarker>();
+		let title_markers: Vec<_> = title_marker_query.iter(world).collect();
+		assert_eq!(title_markers.len(), 1, "Should spawn exactly one TitleMarker entity");
+
+		// Check that status marker was spawned
+		let status_marker_query = world.query::<&StatusMarker>();
+		let status_markers: Vec<_> = status_marker_query.iter(world).collect();
+		assert_eq!(status_markers.len(), 1, "Should spawn exactly one StatusMarker entity");
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_content_spawner_attaches_to_parent() -> Result<(), Box<dyn std::error::Error>> {
+		// Setup app
+		let mut app = App::new();
+		app.add_plugins(MinimalPlugins);
+
+		let title = "Parent Attachment Test".to_string();
+		let completed = 0;
+		let total = 1;
+		let world_position = Vec3::new(100.0, 200.0, 0.0);
+		let task_size = Vec2::new(200.0, 50.0);
+
+		let spawner = ContentSpawner::new(title, completed, total);
+
+		// Create a parent entity
+		let parent_entity = app.world_mut().spawn_empty().id();
+
+		// Spawn the content
+		app.world_mut().run_system_once(
+			|mut commands: Commands,
+			 mut meshes: ResMut<Assets<Mesh>>,
+			 mut materials: ResMut<Assets<ColorMaterial>>| {
+				spawner.spawn(
+					&mut commands,
+					&mut meshes,
+					&mut materials,
+					parent_entity,
+					world_position,
+					task_size,
+				);
+			},
+		);
+
+		let world = app.world();
+
+		// Check that the parent entity has children
+		let children_query = world.query::<&Children>();
+		let children_components: Vec<_> = children_query.iter(world).collect();
+
+		// Find the parent's children component
+		let parent_children = children_components.iter().find(|children| {
+			children.iter().any(|&child| {
+				// Check if this child has a grid node (our content node)
+				if let Some(node) = world.get::<Node>(child) {
+					node.display == Display::Grid
+				} else {
+					false
+				}
+			})
+		});
+
+		assert!(
+			parent_children.is_some(),
+			"Parent should have a child with grid display (content node)"
+		);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_content_spawner_grid_layout() -> Result<(), Box<dyn std::error::Error>> {
+		// Setup app
+		let mut app = App::new();
+		app.add_plugins(MinimalPlugins);
+
+		let title = "Grid Layout Test".to_string();
+		let completed = 2;
+		let total = 4;
+		let world_position = Vec3::new(100.0, 200.0, 0.0);
+		let task_size = Vec2::new(200.0, 50.0);
+
+		let spawner = ContentSpawner::new(title, completed, total);
+
+		// Create a parent entity
+		let parent_entity = app.world_mut().spawn_empty().id();
+
+		// Spawn the content
+		app.world_mut().run_system_once(
+			|mut commands: Commands,
+			 mut meshes: ResMut<Assets<Mesh>>,
+			 mut materials: ResMut<Assets<ColorMaterial>>| {
+				spawner.spawn(
+					&mut commands,
+					&mut meshes,
+					&mut materials,
+					parent_entity,
+					world_position,
+					task_size,
+				);
+			},
+		);
+
+		let world = app.world();
+
+		// Check grid template columns
+		let node_query = world.query::<&Node>();
+		let nodes: Vec<_> = node_query.iter(world).collect();
+
+		let content_node = nodes.iter().find(|node| node.display == Display::Grid);
+		assert!(content_node.is_some(), "Should have a grid content node");
+
+		let content_node = content_node.unwrap();
+		assert_eq!(content_node.grid_template_columns.len(), 2, "Grid should have 2 columns");
+		assert_eq!(
+			content_node.grid_template_columns[0],
+			GridTrack::auto(),
+			"First column should be auto"
+		);
+		assert_eq!(
+			content_node.grid_template_columns[1],
+			GridTrack::auto(),
+			"Second column should be auto"
+		);
+
+		assert_eq!(content_node.grid_template_rows.len(), 1, "Grid should have 1 row");
+		assert_eq!(content_node.grid_template_rows[0], GridTrack::fr(1.0), "Row should be 1fr");
+
+		Ok(())
+	}
+}
