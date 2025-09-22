@@ -220,18 +220,86 @@ fn handle_task_click(
 	// Update visual feedback
 	update_task_visual_feedback(task_id, new_state, ui_query, task_query);
 
-	// If selecting, mark all descendants and parents
-	if new_state == SelectionState::Selected {
-		mark_descendants(&task_id, selection_resource, ui_query, roadline, task_query);
-		mark_parents(&task_id, selection_resource, ui_query, roadline, task_query);
-	} else {
-		// If deselecting, clear all descendants
-		clear_all_selections(selection_resource, ui_query, task_query);
+	// Update descendant and parent states based on current selections
+	update_selection_states_persistent(selection_resource, ui_query, roadline, task_query);
+}
+
+
+/// Update visual feedback for a task
+fn update_task_visual_feedback(
+	task_id: TaskId,
+	state: SelectionState,
+	ui_query: &mut Query<&mut BorderColor>,
+	task_query: &Query<(Entity, &Transform, &Task)>,
+) {
+	// Find the task entity and get its UI entity
+	if let Some((_, _, task)) = task_query.iter().find(|(_, _, t)| t.task_id == task_id) {
+		if let Some(ui_entity) = task.ui_entity {
+			if let Ok(mut border_color) = ui_query.get_mut(ui_entity) {
+				match state {
+					SelectionState::Unselected => {
+						border_color.0 = Color::BLACK;
+					}
+					SelectionState::Selected => {
+						border_color.0 = Color::oklch(0.5, 0.137, 235.06); // Dark blue
+					}
+					SelectionState::Descendant => {
+						border_color.0 = Color::oklch(0.5, 0.137, 235.06); // Same as selected for now
+					}
+					SelectionState::Parent => {
+						border_color.0 = Color::oklch(0.5, 0.137, 0.0); // Red
+					}
+				}
+			}
+		}
 	}
 }
 
-/// Mark all descendants of a task using DFS
-fn mark_descendants(
+/// Update descendant and parent states based on selected nodes
+fn update_selection_states_persistent(
+	selection_resource: &mut ResMut<SelectionResource>,
+	ui_query: &mut Query<&mut BorderColor>,
+	roadline: &Roadline,
+	task_query: &Query<(Entity, &Transform, &Task)>,
+) {
+
+	// Clear all descendant and parent states first
+	let mut tasks_to_clear = Vec::new();
+	let mut dependencies_to_clear = Vec::new();
+
+	for (task_id, state) in &selection_resource.tasks {
+		if *state == SelectionState::Descendant || *state == SelectionState::Parent {
+			tasks_to_clear.push(*task_id);
+		}
+	}
+
+	for (dependency_id, state) in &selection_resource.dependencies {
+		if *state == SelectionState::Descendant || *state == SelectionState::Parent {
+			dependencies_to_clear.push(*dependency_id);
+		}
+	}
+
+	// Clear descendant and parent states
+	for task_id in tasks_to_clear {
+		selection_resource.set_task_state(task_id, SelectionState::Unselected);
+		update_task_visual_feedback(task_id, SelectionState::Unselected, ui_query, task_query);
+	}
+
+	for dependency_id in dependencies_to_clear {
+		selection_resource.set_dependency_state(dependency_id, SelectionState::Unselected);
+	}
+
+	// Now mark descendants and parents for all selected tasks
+	for (task_id, state) in &selection_resource.tasks.clone() {
+		if *state == SelectionState::Selected {
+			mark_descendants_persistent(task_id, selection_resource, ui_query, roadline, task_query);
+			mark_parents_persistent(task_id, selection_resource, ui_query, roadline, task_query);
+		}
+	}
+}
+
+/// Mark all descendants of a task using DFS (persistent version)
+fn mark_descendants_persistent(
 	start_task_id: &TaskId,
 	selection_resource: &mut ResMut<SelectionResource>,
 	ui_query: &mut Query<&mut BorderColor>,
@@ -245,14 +313,20 @@ fn mark_descendants(
 			return Ok(());
 		}
 
-		// Mark the task as descendant
-		selection_resource.set_task_state(*task_id, SelectionState::Descendant);
-		update_task_visual_feedback(*task_id, SelectionState::Descendant, ui_query, task_query);
+		// Only mark as descendant if not already selected
+		let current_state = selection_resource.get_task_state(task_id);
+		if current_state == SelectionState::Unselected {
+			selection_resource.set_task_state(*task_id, SelectionState::Descendant);
+			update_task_visual_feedback(*task_id, SelectionState::Descendant, ui_query, task_query);
+		}
 
 		// Find and mark dependencies that lead to this task
 		for (dependency_id, _) in roadline.connections() {
 			if &dependency_id.to() == task_id {
-				selection_resource.set_dependency_state(*dependency_id, SelectionState::Descendant);
+				let dep_state = selection_resource.get_dependency_state(&dependency_id);
+				if dep_state == SelectionState::Unselected {
+					selection_resource.set_dependency_state(*dependency_id, SelectionState::Descendant);
+				}
 			}
 		}
 
@@ -264,8 +338,8 @@ fn mark_descendants(
 	}
 }
 
-/// Mark all parents of a task using reverse DFS
-fn mark_parents(
+/// Mark all parents of a task using reverse DFS (persistent version)
+fn mark_parents_persistent(
 	start_task_id: &TaskId,
 	selection_resource: &mut ResMut<SelectionResource>,
 	ui_query: &mut Query<&mut BorderColor>,
@@ -301,55 +375,5 @@ fn mark_parents(
 
 	if let Err(e) = result {
 		eprintln!("Error during reverse DFS traversal: {:?}", e);
-	}
-}
-
-/// Clear all selections
-fn clear_all_selections(
-	selection_resource: &mut ResMut<SelectionResource>,
-	ui_query: &mut Query<&mut BorderColor>,
-	task_query: &Query<(Entity, &Transform, &Task)>,
-) {
-	// Clear all task selections
-	let task_ids: Vec<TaskId> = selection_resource.tasks.keys().copied().collect();
-	for task_id in task_ids {
-		selection_resource.set_task_state(task_id, SelectionState::Unselected);
-		update_task_visual_feedback(task_id, SelectionState::Unselected, ui_query, task_query);
-	}
-
-	// Clear all dependency selections
-	let dependency_ids: Vec<_> = selection_resource.dependencies.keys().copied().collect();
-	for dependency_id in dependency_ids {
-		selection_resource.set_dependency_state(dependency_id, SelectionState::Unselected);
-	}
-}
-
-/// Update visual feedback for a task
-fn update_task_visual_feedback(
-	task_id: TaskId,
-	state: SelectionState,
-	ui_query: &mut Query<&mut BorderColor>,
-	task_query: &Query<(Entity, &Transform, &Task)>,
-) {
-	// Find the task entity and get its UI entity
-	if let Some((_, _, task)) = task_query.iter().find(|(_, _, t)| t.task_id == task_id) {
-		if let Some(ui_entity) = task.ui_entity {
-			if let Ok(mut border_color) = ui_query.get_mut(ui_entity) {
-				match state {
-					SelectionState::Unselected => {
-						border_color.0 = Color::BLACK;
-					}
-					SelectionState::Selected => {
-						border_color.0 = Color::oklch(0.5, 0.137, 235.06); // Dark blue
-					}
-					SelectionState::Descendant => {
-						border_color.0 = Color::oklch(0.5, 0.137, 235.06); // Same as selected for now
-					}
-					SelectionState::Parent => {
-						border_color.0 = Color::oklch(0.5, 0.137, 0.0); // Red
-					}
-				}
-			}
-		}
 	}
 }
