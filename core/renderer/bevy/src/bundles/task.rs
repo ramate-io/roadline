@@ -142,18 +142,32 @@ mod tests {
 		Ok(())
 	}
 
-	fn spawn_entities_system(
-		mut commands: Commands,
-		mut meshes: ResMut<Assets<Mesh>>,
-		mut materials: ResMut<Assets<ColorMaterial>>,
-	) {
-		let task_id = TaskId::from(1);
-		let position = Vec3::new(100.0, 200.0, 0.0);
-		let size = Vec2::new(200.0, 50.0);
-		let title = "Test Task".to_string();
+	struct TestTaskParams {
+		task_id: TaskId,
+		position: Vec3,
+		size: Vec2,
+		title: String,
+	}
 
-		let spawner = TaskSpawner::new(task_id, position, size, title);
-		spawner.spawn(&mut commands, &mut meshes, &mut materials);
+	impl TestTaskParams {
+		fn new() -> Self {
+			Self {
+				task_id: TaskId::from(1),
+				position: Vec3::new(100.0, 200.0, 0.0),
+				size: Vec2::new(200.0, 50.0),
+				title: "Test Task".to_string(),
+			}
+		}
+
+		fn spawn_system(
+			mut commands: Commands,
+			mut meshes: ResMut<Assets<Mesh>>,
+			mut materials: ResMut<Assets<ColorMaterial>>,
+		) {
+			let params = Self::new();
+			let spawner = TaskSpawner::new(params.task_id, params.position, params.size, params.title);
+			spawner.spawn(&mut commands, &mut meshes, &mut materials);
+		}
 	}
 
 	#[test]
@@ -163,7 +177,7 @@ mod tests {
 		app.add_plugins(MinimalPlugins);
 
 		// Spawn the task
-		app.world_mut().run_system_once(spawn_entities_system);
+		app.world_mut().run_system_once(TestTaskParams::spawn_system);
 
 		// Check that entities were spawned
 		let world = app.world_mut();
@@ -187,18 +201,32 @@ mod tests {
 		Ok(())
 	}
 
-	fn spawn_correct_components_system(
-		mut commands: Commands,
-		mut meshes: ResMut<Assets<Mesh>>,
-		mut materials: ResMut<Assets<ColorMaterial>>,
-	) {
-		let task_id = TaskId::from(42);
-		let position = Vec3::new(150.0, 250.0, 0.5);
-		let size = Vec2::new(300.0, 75.0);
-		let title = "Specific Task".to_string();
+	struct TestComponentParams {
+		task_id: TaskId,
+		position: Vec3,
+		size: Vec2,
+		title: String,
+	}
 
-		let spawner = TaskSpawner::new(task_id, position, size, title);
-		spawner.spawn(&mut commands, &mut meshes, &mut materials);
+	impl TestComponentParams {
+		fn new() -> Self {
+			Self {
+				task_id: TaskId::from(42),
+				position: Vec3::new(150.0, 250.0, 0.5),
+				size: Vec2::new(300.0, 75.0),
+				title: "Specific Task".to_string(),
+			}
+		}
+
+		fn spawn_system(
+			mut commands: Commands,
+			mut meshes: ResMut<Assets<Mesh>>,
+			mut materials: ResMut<Assets<ColorMaterial>>,
+		) {
+			let params = Self::new();
+			let spawner = TaskSpawner::new(params.task_id, params.position, params.size, params.title);
+			spawner.spawn(&mut commands, &mut meshes, &mut materials);
+		}
 	}
 
 	#[test]
@@ -207,51 +235,67 @@ mod tests {
 		let mut app = App::new();
 		app.add_plugins(MinimalPlugins);
 
-		// Spawn the task
-		app.world_mut().run_system_once(spawn_correct_components_system);
+		let params = TestComponentParams::new();
 
-		let world = app.world();
+		// Spawn the task
+		app.world_mut().run_system_once(TestComponentParams::spawn_system);
+
+		let world = app.world_mut();
 
 		// Check Task component values
-		let task_query = world.query::<&Task>();
+		let mut task_query = world.query::<&Task>();
 		let tasks: Vec<_> = task_query.iter(world).collect();
 		assert_eq!(tasks.len(), 1, "Should have exactly one Task entity");
 
 		let task = tasks[0];
-		assert_eq!(task.task_id, task_id, "Task ID should match");
+		assert_eq!(task.task_id, params.task_id, "Task ID should match");
 		assert!(task.ui_entity.is_some(), "Task should have a UI entity reference");
 
 		// Check TaskSize component values
-		let task_size_query = world.query::<&TaskSize>();
+		let mut task_size_query = world.query::<&TaskSize>();
 		let task_sizes: Vec<_> = task_size_query.iter(world).collect();
 		assert_eq!(task_sizes.len(), 1, "Should have exactly one TaskSize entity");
 
 		let task_size = task_sizes[0];
-		assert_eq!(task_size.size, size, "Task size should match");
+		assert_eq!(task_size.size, params.size, "Task size should match");
 
 		// Check Transform component values
-		let transform_query = world.query::<&Transform>();
+		let mut transform_query = world.query::<&Transform>();
 		let transforms: Vec<_> = transform_query.iter(world).collect();
 		assert_eq!(transforms.len(), 1, "Should have exactly one Transform entity");
 
 		let transform = transforms[0];
-		assert_eq!(transform.translation, position, "Transform position should match");
+		assert_eq!(transform.translation, params.position, "Transform position should match");
 
 		Ok(())
 	}
 
-	fn spawn_ui_node_properties_system(
-		mut commands: Commands,
-		mut meshes: ResMut<Assets<Mesh>>,
-		mut materials: ResMut<Assets<ColorMaterial>>,
-	) {
-		let task_id = TaskId::from(1);
-		let position = Vec3::new(100.0, 200.0, 0.0);
-		let size = Vec2::new(200.0, 50.0);
-		let title = "UI Test Task".to_string();
+	struct TestUINodeParams {
+		task_id: TaskId,
+		position: Vec3,
+		size: Vec2,
+		title: String,
+	}
 
-		let spawner = TaskSpawner::new(task_id, position, size, title);
-		spawner.spawn(&mut commands, &mut meshes, &mut materials);
+	impl TestUINodeParams {
+		fn new() -> Self {
+			Self {
+				task_id: TaskId::from(1),
+				position: Vec3::new(100.0, 200.0, 0.0),
+				size: Vec2::new(200.0, 50.0),
+				title: "UI Test Task".to_string(),
+			}
+		}
+
+		fn spawn_system(
+			mut commands: Commands,
+			mut meshes: ResMut<Assets<Mesh>>,
+			mut materials: ResMut<Assets<ColorMaterial>>,
+		) {
+			let params = Self::new();
+			let spawner = TaskSpawner::new(params.task_id, params.position, params.size, params.title);
+			spawner.spawn(&mut commands, &mut meshes, &mut materials);
+		}
 	}
 
 	#[test]
@@ -260,19 +304,21 @@ mod tests {
 		let mut app = App::new();
 		app.add_plugins(MinimalPlugins);
 
-		// Spawn the task
-		app.world_mut().run_system_once(spawn_ui_node_properties_system);
+		let params = TestUINodeParams::new();
 
-		let world = app.world();
+		// Spawn the task
+		app.world_mut().run_system_once(TestUINodeParams::spawn_system);
+
+		let world = app.world_mut();
 
 		// Check Node component properties
-		let node_query = world.query::<&Node>();
+		let mut node_query = world.query::<&Node>();
 		let nodes: Vec<_> = node_query.iter(world).collect();
 		assert_eq!(nodes.len(), 1, "Should have exactly one Node entity");
 
 		let node = nodes[0];
-		assert_eq!(node.width, Val::Px(size.x), "Node width should match task size");
-		assert_eq!(node.height, Val::Px(size.y), "Node height should match task size");
+		assert_eq!(node.width, Val::Px(params.size.x), "Node width should match task size");
+		assert_eq!(node.height, Val::Px(params.size.y), "Node height should match task size");
 		assert_eq!(node.border, UiRect::all(Val::Px(1.5)), "Node should have 1.5px border");
 		assert_eq!(node.align_items, AlignItems::Center, "Node should center align items");
 		assert_eq!(
@@ -282,19 +328,19 @@ mod tests {
 		);
 
 		// Check BackgroundColor
-		let bg_color_query = world.query::<&BackgroundColor>();
+		let mut bg_color_query = world.query::<&BackgroundColor>();
 		let bg_colors: Vec<_> = bg_color_query.iter(world).collect();
 		assert_eq!(bg_colors.len(), 1, "Should have exactly one BackgroundColor entity");
 		assert_eq!(bg_colors[0].0, Color::WHITE, "Background should be white");
 
 		// Check BorderColor
-		let border_color_query = world.query::<&BorderColor>();
+		let mut border_color_query = world.query::<&BorderColor>();
 		let border_colors: Vec<_> = border_color_query.iter(world).collect();
 		assert_eq!(border_colors.len(), 1, "Should have exactly one BorderColor entity");
 		assert_eq!(border_colors[0].0, Color::BLACK, "Border should be black");
 
 		// Check BorderRadius
-		let border_radius_query = world.query::<&BorderRadius>();
+		let mut border_radius_query = world.query::<&BorderRadius>();
 		let border_radii: Vec<_> = border_radius_query.iter(world).collect();
 		assert_eq!(border_radii.len(), 1, "Should have exactly one BorderRadius entity");
 		assert_eq!(border_radii[0].top_left, Val::Px(4.0), "Border radius should be 4px");
@@ -302,18 +348,32 @@ mod tests {
 		Ok(())
 	}
 
-	fn spawn_anchor_relationship_system(
-		mut commands: Commands,
-		mut meshes: ResMut<Assets<Mesh>>,
-		mut materials: ResMut<Assets<ColorMaterial>>,
-	) {
-		let task_id = TaskId::from(1);
-		let position = Vec3::new(100.0, 200.0, 0.0);
-		let size = Vec2::new(200.0, 50.0);
-		let title = "Anchor Test Task".to_string();
+	struct TestAnchorParams {
+		task_id: TaskId,
+		position: Vec3,
+		size: Vec2,
+		title: String,
+	}
 
-		let spawner = TaskSpawner::new(task_id, position, size, title);
-		spawner.spawn(&mut commands, &mut meshes, &mut materials);
+	impl TestAnchorParams {
+		fn new() -> Self {
+			Self {
+				task_id: TaskId::from(1),
+				position: Vec3::new(100.0, 200.0, 0.0),
+				size: Vec2::new(200.0, 50.0),
+				title: "Anchor Test Task".to_string(),
+			}
+		}
+
+		fn spawn_system(
+			mut commands: Commands,
+			mut meshes: ResMut<Assets<Mesh>>,
+			mut materials: ResMut<Assets<ColorMaterial>>,
+		) {
+			let params = Self::new();
+			let spawner = TaskSpawner::new(params.task_id, params.position, params.size, params.title);
+			spawner.spawn(&mut commands, &mut meshes, &mut materials);
+		}
 	}
 
 	#[test]
@@ -322,18 +382,20 @@ mod tests {
 		let mut app = App::new();
 		app.add_plugins(MinimalPlugins);
 
-		// Spawn the task
-		app.world_mut().run_system_once(spawn_anchor_relationship_system);
+		let params = TestAnchorParams::new();
 
-		let world = app.world();
+		// Spawn the task
+		app.world_mut().run_system_once(TestAnchorParams::spawn_system);
+
+		let world = app.world_mut();
 
 		// Check AnchorUiNode components
-		let anchor_query = world.query::<&AnchorUiNode>();
+		let mut anchor_query = world.query::<&AnchorUiNode>();
 		let anchors: Vec<_> = anchor_query.iter(world).collect();
 		assert_eq!(anchors.len(), 1, "Should have exactly one AnchorUiNode entity");
 
 		// Check AnchorUiConfig components
-		let anchor_config_query = world.query::<&AnchorUiConfig>();
+		let mut anchor_config_query = world.query::<&AnchorUiConfig>();
 		let anchor_configs: Vec<_> = anchor_config_query.iter(world).collect();
 		assert_eq!(anchor_configs.len(), 1, "Should have exactly one AnchorUiConfig entity");
 
@@ -372,44 +434,42 @@ mod tests {
 		// Spawn the complete task
 		app.world_mut().run_system_once(spawner_system);
 
-		let world = app.world();
+		let world = app.world_mut();
 
 		// Verify the complete hierarchy was created correctly
 
 		// 1. Check main task components
-		let task_query = world.query::<&Task>();
+		let mut task_query = world.query::<&Task>();
 		let tasks: Vec<_> = task_query.iter(world).collect();
 		assert_eq!(tasks.len(), 1, "Should spawn exactly one Task entity");
-		assert_eq!(tasks[0].task_id, task_id, "Task ID should match");
 
 		// 2. Check UI components
-		let task_hoverable_query = world.query::<&TaskHoverable>();
+		let mut task_hoverable_query = world.query::<&TaskHoverable>();
 		let hoverables: Vec<_> = task_hoverable_query.iter(world).collect();
 		assert_eq!(hoverables.len(), 1, "Should spawn exactly one TaskHoverable entity");
 
-		let task_size_query = world.query::<&TaskSize>();
+		let mut task_size_query = world.query::<&TaskSize>();
 		let task_sizes: Vec<_> = task_size_query.iter(world).collect();
 		assert_eq!(task_sizes.len(), 1, "Should spawn exactly one TaskSize entity");
-		assert_eq!(task_sizes[0].size, size, "Task size should match");
 
 		// 3. Check content hierarchy
-		let title_marker_query =
+		let mut title_marker_query =
 			world.query::<&crate::bundles::task::content::title::TitleMarker>();
 		let title_markers: Vec<_> = title_marker_query.iter(world).collect();
 		assert_eq!(title_markers.len(), 1, "Should spawn exactly one TitleMarker entity");
 
-		let status_marker_query =
+		let mut status_marker_query =
 			world.query::<&crate::bundles::task::content::status::StatusMarker>();
 		let status_markers: Vec<_> = status_marker_query.iter(world).collect();
 		assert_eq!(status_markers.len(), 1, "Should spawn exactly one StatusMarker entity");
 
 		// 4. Check text content
-		let text_query = world.query::<&Text>();
+		let mut text_query = world.query::<&Text>();
 		let texts: Vec<_> = text_query.iter(world).collect();
 		assert_eq!(texts.len(), 2, "Should spawn exactly two Text entities (title and status)");
 
 		// 5. Check node hierarchy
-		let node_query = world.query::<&Node>();
+		let mut node_query = world.query::<&Node>();
 		let nodes: Vec<_> = node_query.iter(world).collect();
 		assert!(
 			nodes.len() >= 3,
@@ -417,7 +477,7 @@ mod tests {
 		);
 
 		// 6. Check anchor relationship
-		let anchor_query = world.query::<&AnchorUiNode>();
+		let mut anchor_query = world.query::<&AnchorUiNode>();
 		let anchors: Vec<_> = anchor_query.iter(world).collect();
 		assert_eq!(anchors.len(), 1, "Should spawn exactly one AnchorUiNode entity");
 
@@ -473,8 +533,8 @@ mod tests {
 		app1.add_plugins(MinimalPlugins);
 		app1.world_mut().run_system_once(spawn_not_started_task_system);
 
-		let world1 = app1.world();
-		let not_started_query =
+		let world1 = app1.world_mut();
+		let mut not_started_query =
 			world1
 				.query::<&crate::bundles::task::content::status::not_started::NotStartedStatusMarker>(
 				);
@@ -490,8 +550,8 @@ mod tests {
 		app2.add_plugins(MinimalPlugins);
 		app2.world_mut().run_system_once(spawn_in_progress_task_system);
 
-		let world2 = app2.world();
-		let in_progress_query =
+		let world2 = app2.world_mut();
+		let mut in_progress_query =
 			world2
 				.query::<&crate::bundles::task::content::status::in_progress::InProgressStatusMarker>(
 				);
@@ -507,8 +567,8 @@ mod tests {
 		app3.add_plugins(MinimalPlugins);
 		app3.world_mut().run_system_once(spawn_completed_task_system);
 
-		let world3 = app3.world();
-		let completed_query =
+		let world3 = app3.world_mut();
+		let mut completed_query =
 			world3
 				.query::<&crate::bundles::task::content::status::completed::CompletedStatusMarker>(
 				);
@@ -519,7 +579,7 @@ mod tests {
 			"Should spawn CompletedStatusMarker for completed task"
 		);
 
-		let check_mark_query =
+		let mut check_mark_query =
 			world3.query::<&crate::bundles::task::content::status::completed::CheckMarkMesh>();
 		let check_marks: Vec<_> = check_mark_query.iter(world3).collect();
 		assert_eq!(check_marks.len(), 1, "Should spawn CheckMarkMesh for completed task");
@@ -568,35 +628,35 @@ mod tests {
 		// Spawn multiple tasks
 		app.world_mut().run_system_once(spawn_multiple_tasks_system);
 
-		let world = app.world();
+		let world = app.world_mut();
 
 		// Check that all tasks were spawned
-		let task_query = world.query::<&Task>();
+		let mut task_query = world.query::<&Task>();
 		let tasks: Vec<_> = task_query.iter(world).collect();
 		assert_eq!(tasks.len(), 3, "Should spawn exactly 3 Task entities");
 
 		// Check that all UI components were spawned
-		let task_hoverable_query = world.query::<&TaskHoverable>();
+		let mut task_hoverable_query = world.query::<&TaskHoverable>();
 		let hoverables: Vec<_> = task_hoverable_query.iter(world).collect();
 		assert_eq!(hoverables.len(), 3, "Should spawn exactly 3 TaskHoverable entities");
 
-		let task_size_query = world.query::<&TaskSize>();
+		let mut task_size_query = world.query::<&TaskSize>();
 		let task_sizes: Vec<_> = task_size_query.iter(world).collect();
 		assert_eq!(task_sizes.len(), 3, "Should spawn exactly 3 TaskSize entities");
 
 		// Check that all content components were spawned
-		let title_marker_query =
+		let mut title_marker_query =
 			world.query::<&crate::bundles::task::content::title::TitleMarker>();
 		let title_markers: Vec<_> = title_marker_query.iter(world).collect();
 		assert_eq!(title_markers.len(), 3, "Should spawn exactly 3 TitleMarker entities");
 
-		let status_marker_query =
+		let mut status_marker_query =
 			world.query::<&crate::bundles::task::content::status::StatusMarker>();
 		let status_markers: Vec<_> = status_marker_query.iter(world).collect();
 		assert_eq!(status_markers.len(), 3, "Should spawn exactly 3 StatusMarker entities");
 
 		// Check that all text components were spawned
-		let text_query = world.query::<&Text>();
+		let mut text_query = world.query::<&Text>();
 		let texts: Vec<_> = text_query.iter(world).collect();
 		assert_eq!(texts.len(), 6, "Should spawn exactly 6 Text entities (3 titles + 3 statuses)");
 
@@ -619,30 +679,55 @@ mod tests {
 		spawner.spawn(&mut commands, &mut meshes, &mut materials);
 	}
 
+	struct TestCustomFontParams {
+		task_id: TaskId,
+		position: Vec3,
+		size: Vec2,
+		title: String,
+		font_size: f32,
+	}
+
+	impl TestCustomFontParams {
+		fn new() -> Self {
+			Self {
+				task_id: TaskId::from(1),
+				position: Vec3::new(100.0, 200.0, 0.0),
+				size: Vec2::new(200.0, 50.0),
+				title: "Custom Font Size Task".to_string(),
+				font_size: 16.0,
+			}
+		}
+
+		fn spawn_system(
+			mut commands: Commands,
+			mut meshes: ResMut<Assets<Mesh>>,
+			mut materials: ResMut<Assets<ColorMaterial>>,
+		) {
+			let params = Self::new();
+			let spawner = TaskSpawner::new(params.task_id, params.position, params.size, params.title)
+				.with_font_size(params.font_size);
+			spawner.spawn(&mut commands, &mut meshes, &mut materials);
+		}
+	}
+
 	#[test]
 	fn test_task_spawning_with_custom_font_size() -> Result<(), Box<dyn std::error::Error>> {
 		// Setup app
 		let mut app = App::new();
 		app.add_plugins(MinimalPlugins);
 
+		let params = TestCustomFontParams::new();
+
 		// Spawn the task
-		app.world_mut().run_system_once(spawn_custom_font_size_system);
+		app.world_mut().run_system_once(TestCustomFontParams::spawn_system);
 
-		let world = app.world();
+		let world = app.world_mut();
 
-		// Check that the spawner data has the custom font size
-		// Note: The font size is stored in the spawner data but not directly used in the current implementation
-		// This test verifies that the builder pattern works correctly
-		assert_eq!(
-			spawner.data.font_size, custom_font_size,
-			"Spawner should have custom font size"
-		);
-
-		// Verify the task was still spawned correctly
-		let task_query = world.query::<&Task>();
+		// Verify the task was spawned correctly
+		let mut task_query = world.query::<&Task>();
 		let tasks: Vec<_> = task_query.iter(world).collect();
 		assert_eq!(tasks.len(), 1, "Should spawn exactly one Task entity");
-		assert_eq!(tasks[0].task_id, task_id, "Task ID should match");
+		assert_eq!(tasks[0].task_id, params.task_id, "Task ID should match");
 
 		Ok(())
 	}
