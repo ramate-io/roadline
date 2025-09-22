@@ -211,10 +211,10 @@ mod tests {
 		// Spawn the status using the builder
 		app.world_mut().run_system_once(params.build());
 
-		let world = app.world();
+		let world = app.world_mut();
 
 		// Check that NotStartedStatusMarker was spawned
-		let not_started_query = world.query::<&NotStartedStatusMarker>();
+		let mut not_started_query = world.query::<&NotStartedStatusMarker>();
 		let not_started_markers: Vec<_> = not_started_query.iter(world).collect();
 		assert_eq!(
 			not_started_markers.len(),
@@ -223,7 +223,7 @@ mod tests {
 		);
 
 		// Check that StatusMarker was spawned
-		let status_marker_query = world.query::<&StatusMarker>();
+		let mut status_marker_query = world.query::<&StatusMarker>();
 		let status_markers: Vec<_> = status_marker_query.iter(world).collect();
 		assert_eq!(status_markers.len(), 1, "Should spawn exactly one StatusMarker entity");
 
@@ -246,10 +246,10 @@ mod tests {
 		// Spawn the status using the builder
 		app.world_mut().run_system_once(params.build());
 
-		let world = app.world();
+		let world = app.world_mut();
 
 		// Check that InProgressStatusMarker was spawned
-		let in_progress_query = world.query::<&InProgressStatusMarker>();
+		let mut in_progress_query = world.query::<&InProgressStatusMarker>();
 		let in_progress_markers: Vec<_> = in_progress_query.iter(world).collect();
 		assert_eq!(
 			in_progress_markers.len(),
@@ -258,7 +258,7 @@ mod tests {
 		);
 
 		// Check that StatusMarker was spawned
-		let status_marker_query = world.query::<&StatusMarker>();
+		let mut status_marker_query = world.query::<&StatusMarker>();
 		let status_markers: Vec<_> = status_marker_query.iter(world).collect();
 		assert_eq!(status_markers.len(), 1, "Should spawn exactly one StatusMarker entity");
 
@@ -281,10 +281,10 @@ mod tests {
 		// Spawn the status using the builder
 		app.world_mut().run_system_once(params.build());
 
-		let world = app.world();
+		let world = app.world_mut();
 
 		// Check that CompletedStatusMarker was spawned
-		let completed_query = world.query::<&CompletedStatusMarker>();
+		let mut completed_query = world.query::<&CompletedStatusMarker>();
 		let completed_markers: Vec<_> = completed_query.iter(world).collect();
 		assert_eq!(
 			completed_markers.len(),
@@ -293,12 +293,12 @@ mod tests {
 		);
 
 		// Check that StatusMarker was spawned
-		let status_marker_query = world.query::<&StatusMarker>();
+		let mut status_marker_query = world.query::<&StatusMarker>();
 		let status_markers: Vec<_> = status_marker_query.iter(world).collect();
 		assert_eq!(status_markers.len(), 1, "Should spawn exactly one StatusMarker entity");
 
 		// Check that CheckMarkMesh was spawned (for completed status)
-		let check_mark_query =
+		let mut check_mark_query =
 			world.query::<&crate::bundles::task::content::status::completed::CheckMarkMesh>();
 		let check_marks: Vec<_> = check_mark_query.iter(world).collect();
 		assert_eq!(check_marks.len(), 1, "Should spawn exactly one CheckMarkMesh entity");
@@ -346,7 +346,7 @@ mod tests {
 
 		// Find the parent's children component
 		let parent_children = children_components.iter().find(|children| {
-			children.iter().any(|&child| {
+			children.iter().any(|child| {
 				// Check if this child has a status marker
 				world.get::<StatusMarker>(child).is_some()
 			})

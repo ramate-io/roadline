@@ -140,7 +140,7 @@ mod tests {
 		let world = app.world_mut();
 
 		// Check that content node was spawned with correct properties
-		let node_query = world.query::<&Node>();
+		let mut node_query = world.query::<&Node>();
 		let nodes: Vec<_> = node_query.iter(world).collect();
 
 		// Should have at least one node (the content node)
@@ -239,12 +239,12 @@ mod tests {
 		let world = app.world_mut();
 
 		// Check that the parent entity has children
-		let children_query = world.query::<&Children>();
+		let mut children_query = world.query::<&Children>();
 		let children_components: Vec<_> = children_query.iter(world).collect();
 
 		// Find the parent's children component
 		let parent_children = children_components.iter().find(|children| {
-			children.iter().any(|&child| {
+			children.iter().any(|child| {
 				// Check if this child has a grid node (our content node)
 				if let Some(node) = world.get::<Node>(child) {
 					node.display == Display::Grid
@@ -282,7 +282,7 @@ mod tests {
 		let world = app.world_mut();
 
 		// Check grid template columns
-		let node_query = world.query::<&Node>();
+		let mut node_query = world.query::<&Node>();
 		let nodes: Vec<_> = node_query.iter(world).collect();
 
 		let content_node = nodes.iter().find(|node| node.display == Display::Grid);
