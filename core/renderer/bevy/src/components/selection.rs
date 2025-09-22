@@ -9,6 +9,8 @@ pub enum SelectionState {
 	Selected,
 	/// Selected as a descendant of a directly selected item
 	Descendant,
+	/// Selected as a parent of a directly selected item
+	Parent,
 }
 
 impl Default for SelectionState {

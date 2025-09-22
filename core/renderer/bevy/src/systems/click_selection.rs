@@ -141,6 +141,7 @@ fn handle_task_click(
 		SelectionState::Unselected => SelectionState::Selected,
 		SelectionState::Selected => SelectionState::Unselected,
 		SelectionState::Descendant => SelectionState::Selected, // Now the descendant is selected it will have to be manually unselected.
+		SelectionState::Parent => SelectionState::Unselected,   // Can't directly select parents
 	};
 
 	selection_resource.set_task_state(*task_id, new_state);
@@ -174,6 +175,7 @@ fn handle_dependency_click(
 		SelectionState::Unselected => SelectionState::Selected,
 		SelectionState::Selected => SelectionState::Unselected,
 		SelectionState::Descendant => SelectionState::Unselected, // Can't directly select descendants
+		SelectionState::Parent => SelectionState::Unselected,     // Can't directly select parents
 	};
 
 	selection_resource.set_dependency_state(*dependency_id, new_state);
@@ -190,8 +192,9 @@ fn handle_dependency_click(
 		selection_resource.set_task_state(*to_task_id, SelectionState::Selected);
 		update_task_visual_feedback(*to_task_id, SelectionState::Selected, ui_query, task_query);
 
-		// Then mark all descendants
+		// Then mark all descendants and parents
 		mark_descendants(to_task_id, selection_resource, ui_query, materials, roadline, task_query);
+		mark_parents(to_task_id, selection_resource, ui_query, materials, roadline, task_query);
 	} else {
 		// If deselecting, clear all descendants
 		clear_all_selections(selection_resource, ui_query, materials, task_query);
@@ -236,6 +239,52 @@ fn mark_descendants(
 
 	if let Err(e) = result {
 		eprintln!("Error during DFS traversal: {:?}", e);
+	}
+}
+
+/// Mark all parents of a task using reverse DFS
+fn mark_parents(
+	start_task_id: &TaskId,
+	selection_resource: &mut ResMut<SelectionResource>,
+	ui_query: &mut Query<&mut BorderColor>,
+	materials: &mut ResMut<Assets<ColorMaterial>>,
+	roadline: &Roadline,
+	task_query: &Query<(Entity, &Transform, &Task)>,
+) {
+	// Use reverse DFS to traverse the graph backwards
+	let result = roadline.graph().rev_dfs(start_task_id, |task_id, _depth| {
+		// Skip the start task (it's already selected)
+		if task_id == start_task_id {
+			return Ok(());
+		}
+
+		// Only mark as parent if not already selected or descendant
+		let current_state = selection_resource.get_task_state(task_id);
+		if current_state == SelectionState::Unselected {
+			selection_resource.set_task_state(*task_id, SelectionState::Parent);
+			update_task_visual_feedback(*task_id, SelectionState::Parent, ui_query, task_query);
+		}
+
+		// Find and mark dependencies that lead to this task
+		for (dependency_id, _) in roadline.connections() {
+			if &dependency_id.to() == task_id {
+				let dep_state = selection_resource.get_dependency_state(&dependency_id);
+				if dep_state == SelectionState::Unselected {
+					selection_resource.set_dependency_state(*dependency_id, SelectionState::Parent);
+					update_dependency_visual_feedback(
+						*dependency_id,
+						SelectionState::Parent,
+						materials,
+					);
+				}
+			}
+		}
+
+		Ok(())
+	});
+
+	if let Err(e) = result {
+		eprintln!("Error during reverse DFS traversal: {:?}", e);
 	}
 }
 
@@ -286,6 +335,10 @@ fn update_task_visual_feedback(
 						println!("Setting to DARK BLUE");
 						border_color.0 = Color::oklch(0.5, 0.137, 235.06); // Same as selected for now
 					}
+					SelectionState::Parent => {
+						println!("Setting to RED");
+						border_color.0 = Color::oklch(0.5, 0.137, 0.0); // Red
+					}
 				}
 			}
 		}
@@ -298,8 +351,10 @@ fn update_dependency_visual_feedback(
 	_state: SelectionState,
 	_materials: &mut ResMut<Assets<ColorMaterial>>,
 ) {
-	// This would need to be implemented based on how we access the material
-	// For now, we'll implement this when we have the material handle
+	// We need to find the dependency entity and update its material
+	// This is a simplified implementation - in practice, we'd need to query for the entity
+	// For now, we'll rely on the dependency hover system to handle the coloring
+	// The actual color update happens in the dependency_hover_system based on selection state
 }
 
 /// Calculate the distance from a point to a cubic bezier curve

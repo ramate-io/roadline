@@ -126,9 +126,10 @@ fn handle_task_hovers(
 	for (_entity, transform, task) in task_query.iter() {
 		let selection_state = selection_resource.get_task_state(&task.task_id);
 
-		// Skip hover effects for selected/descendant tasks - don't override selection colors
+		// Skip hover effects for selected/descendant/parent tasks - don't override selection colors
 		if selection_state == SelectionState::Selected
 			|| selection_state == SelectionState::Descendant
+			|| selection_state == SelectionState::Parent
 		{
 			continue;
 		}
@@ -178,9 +179,10 @@ fn clear_hover_effects(
 	for (_entity, _transform, task) in task_query.iter() {
 		let selection_state = selection_resource.get_task_state(&task.task_id);
 
-		// Skip clearing hover effects for selected/descendant tasks - don't override selection colors
+		// Skip clearing hover effects for selected/descendant/parent tasks - don't override selection colors
 		if selection_state == SelectionState::Selected
 			|| selection_state == SelectionState::Descendant
+			|| selection_state == SelectionState::Parent
 		{
 			continue;
 		}
@@ -210,6 +212,7 @@ fn handle_task_click(
 		SelectionState::Unselected => SelectionState::Selected,
 		SelectionState::Selected => SelectionState::Unselected,
 		SelectionState::Descendant => SelectionState::Selected, // Now the descendant is selected it will have to be manually unselected.
+		SelectionState::Parent => SelectionState::Unselected,
 	};
 
 	selection_resource.set_task_state(task_id, new_state);
@@ -217,9 +220,10 @@ fn handle_task_click(
 	// Update visual feedback
 	update_task_visual_feedback(task_id, new_state, ui_query, task_query);
 
-	// If selecting, mark all descendants
+	// If selecting, mark all descendants and parents
 	if new_state == SelectionState::Selected {
 		mark_descendants(&task_id, selection_resource, ui_query, roadline, task_query);
+		mark_parents(&task_id, selection_resource, ui_query, roadline, task_query);
 	} else {
 		// If deselecting, clear all descendants
 		clear_all_selections(selection_resource, ui_query, task_query);
@@ -257,6 +261,46 @@ fn mark_descendants(
 
 	if let Err(e) = result {
 		eprintln!("Error during DFS traversal: {:?}", e);
+	}
+}
+
+/// Mark all parents of a task using reverse DFS
+fn mark_parents(
+	start_task_id: &TaskId,
+	selection_resource: &mut ResMut<SelectionResource>,
+	ui_query: &mut Query<&mut BorderColor>,
+	roadline: &Roadline,
+	task_query: &Query<(Entity, &Transform, &Task)>,
+) {
+	// Use reverse DFS to traverse the graph backwards
+	let result = roadline.graph().rev_dfs(start_task_id, |task_id, _depth| {
+		// Skip the start task (it's already selected)
+		if task_id == start_task_id {
+			return Ok(());
+		}
+
+		// Only mark as parent if not already selected or descendant
+		let current_state = selection_resource.get_task_state(task_id);
+		if current_state == SelectionState::Unselected {
+			selection_resource.set_task_state(*task_id, SelectionState::Parent);
+			update_task_visual_feedback(*task_id, SelectionState::Parent, ui_query, task_query);
+		}
+
+		// Find and mark dependencies that lead to this task
+		for (dependency_id, _) in roadline.connections() {
+			if &dependency_id.to() == task_id {
+				let dep_state = selection_resource.get_dependency_state(&dependency_id);
+				if dep_state == SelectionState::Unselected {
+					selection_resource.set_dependency_state(*dependency_id, SelectionState::Parent);
+				}
+			}
+		}
+
+		Ok(())
+	});
+
+	if let Err(e) = result {
+		eprintln!("Error during reverse DFS traversal: {:?}", e);
 	}
 }
 
@@ -300,6 +344,9 @@ fn update_task_visual_feedback(
 					}
 					SelectionState::Descendant => {
 						border_color.0 = Color::oklch(0.5, 0.137, 235.06); // Same as selected for now
+					}
+					SelectionState::Parent => {
+						border_color.0 = Color::oklch(0.5, 0.137, 0.0); // Red
 					}
 				}
 			}
