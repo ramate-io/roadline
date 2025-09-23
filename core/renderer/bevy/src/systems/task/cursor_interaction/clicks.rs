@@ -14,6 +14,7 @@ pub struct TaskClickSystem {
 	pub descendant_dependency_color: Color,
 	pub unselected_dependency_color: Color,
 	pub selected_dependency_color: Color,
+	pub pixels_per_unit: f32,
 }
 
 impl Default for TaskClickSystem {
@@ -27,11 +28,69 @@ impl Default for TaskClickSystem {
 			descendant_dependency_color: Color::oklch(0.5, 0.137, 235.06),
 			unselected_dependency_color: Color::BLACK,
 			selected_dependency_color: Color::oklch(0.5, 0.137, 235.06),
+			pixels_per_unit: 50.0,
 		}
 	}
 }
 
 impl TaskClickSystem {
+	/// Build a system function for task click handling
+	pub fn build(
+		self,
+	) -> impl FnMut(
+		Query<(Entity, &Transform, &Task)>,
+		ResMut<SelectionResource>,
+		Query<&mut BorderColor>,
+		Res<Roadline>,
+		Res<ButtonInput<MouseButton>>,
+		Query<(&Camera, &GlobalTransform), (With<Camera2d>, Without<bevy::ui::IsDefaultUiCamera>)>,
+		Query<&Window>,
+	) {
+		move |task_query: Query<(Entity, &Transform, &Task)>,
+		      mut selection_resource: ResMut<SelectionResource>,
+		      mut ui_query: Query<&mut BorderColor>,
+		      roadline: Res<Roadline>,
+		      mouse_input: Res<ButtonInput<MouseButton>>,
+		      camera_query: Query<
+			(&Camera, &GlobalTransform),
+			(With<Camera2d>, Without<bevy::ui::IsDefaultUiCamera>),
+		>,
+		      windows: Query<&Window>| {
+			// Only handle clicks if left mouse button was just pressed
+			if !mouse_input.just_pressed(MouseButton::Left) {
+				return;
+			}
+
+			// Get camera and window info
+			let Ok((camera, camera_transform)) = camera_query.single() else {
+				return;
+			};
+			let Ok(window) = windows.single() else {
+				return;
+			};
+
+			// Get mouse position
+			let Some(cursor_position) = window.cursor_position() else {
+				return;
+			};
+
+			// Convert screen coordinates to world coordinates
+			let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_position)
+			else {
+				return;
+			};
+
+			self.handle_task_clicks(
+				world_pos,
+				&task_query,
+				&mut selection_resource,
+				&mut ui_query,
+				&roadline,
+				self.pixels_per_unit,
+			);
+		}
+	}
+
 	/// Handle click detection and selection
 	pub fn handle_task_clicks(
 		&self,
@@ -291,5 +350,50 @@ impl TaskClickSystem {
 		if let Err(e) = result {
 			eprintln!("Error during reverse DFS traversal: {:?}", e);
 		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::bundles::task::tests::utils::{setup_task_test_app, TestTasksParams};
+	use bevy::ecs::entity::unique_slice::Windows;
+	use bevy::ecs::system::RunSystemOnce;
+	use bevy::prelude::Color;
+	use bevy::window::PrimaryWindow;
+
+	#[test]
+	fn test_compatible_with_spawned_tasks() -> Result<(), Box<dyn std::error::Error>> {
+		let click_system = TaskClickSystem::default();
+
+		// Setup app
+		let mut app = setup_task_test_app();
+
+		app.add_systems(Update, click_system.build());
+
+		// Spawn tasks
+		let params = TestTasksParams::new().with_basic_task(
+			TaskId::from(1),
+			Vec3::new(100.0, 200.0, 0.0),
+			Vec2::new(200.0, 50.0),
+			"UI Test Task".to_string(),
+		);
+		app.world_mut().run_system_once(params.build())?;
+
+		// Set the cursor position
+		fn simulate_click(
+			mut windows: Query<&mut Window, With<PrimaryWindow>>,
+			mut mouse: ResMut<ButtonInput<MouseButton>>,
+		) {
+			let mut window = windows.single_mut().unwrap();
+			window.set_cursor_position(Some(Vec2::new(110.0, 210.0)));
+			mouse.press(MouseButton::Left);
+		}
+
+		app.world_mut().run_system_once(simulate_click)?;
+
+		app.update();
+
+		Ok(())
 	}
 }
