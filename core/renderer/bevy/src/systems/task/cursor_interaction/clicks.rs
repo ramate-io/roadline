@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use bevy::ui::BorderColor;
 use roadline_util::task::Id as TaskId;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Resource)]
 pub struct TaskClickSystem {
 	pub parent_task_border_color: Color,
 	pub descendant_task_border_color: Color,
@@ -401,12 +401,6 @@ mod tests {
 		let core_roadline = create_test_roadline().expect("Failed to create test roadline");
 		app.insert_resource(Roadline::from(core_roadline));
 
-		// Add camera
-		app.world_mut().spawn((
-			Camera2d,
-			Camera { order: 1, clear_color: ClearColorConfig::None, ..default() },
-		));
-
 		app
 	}
 
@@ -444,10 +438,7 @@ mod tests {
 
 		app.add_systems(Update, (simulate_click, click_system.build()));
 
-		// First update to process the input event
-		app.update();
-
-		// Second update to run the click system
+		// Run the test system
 		app.update();
 
 		// Check that the task is now selected
