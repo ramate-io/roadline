@@ -423,7 +423,7 @@ pub mod tests {
 		assert_eq!(nodes.len(), 4, "Should have exactly four Node entities: one for the task, one for the content, one for the title, and one for the status");
 
 		// Now query specifically for the TaskNodeMarker and Node
-		/*let mut task_node_query = world.query::<(&TaskNodeMarker, &Node)>();
+		let mut task_node_query = world.query::<(&TaskNodeMarker, &Node)>();
 		let task_nodes: Vec<_> = task_node_query.iter(world).collect();
 		assert_eq!(task_nodes.len(), 1, "Should have exactly one TaskNodeMarker entity");
 
@@ -439,22 +439,22 @@ pub mod tests {
 		);
 
 		// Check BackgroundColor
-		let mut bg_color_query = world.query::<&BackgroundColor>();
+		let mut bg_color_query = world.query::<(&TaskNodeMarker, &BackgroundColor)>();
 		let bg_colors: Vec<_> = bg_color_query.iter(world).collect();
 		assert_eq!(bg_colors.len(), 1, "Should have exactly one BackgroundColor entity");
-		assert_eq!(bg_colors[0].0, Color::WHITE, "Background should be white");
+		assert_eq!(bg_colors[0].1 .0, Color::WHITE, "Background should be white");
 
 		// Check BorderColor
-		let mut border_color_query = world.query::<&BorderColor>();
+		let mut border_color_query = world.query::<(&TaskNodeMarker, &BorderColor)>();
 		let border_colors: Vec<_> = border_color_query.iter(world).collect();
 		assert_eq!(border_colors.len(), 1, "Should have exactly one BorderColor entity");
-		assert_eq!(border_colors[0].0, Color::BLACK, "Border should be black");
+		assert_eq!(border_colors[0].1 .0, Color::BLACK, "Border should be black");
 
 		// Check BorderRadius
-		let mut border_radius_query = world.query::<&BorderRadius>();
+		let mut border_radius_query = world.query::<(&TaskNodeMarker, &BorderRadius)>();
 		let border_radii: Vec<_> = border_radius_query.iter(world).collect();
 		assert_eq!(border_radii.len(), 1, "Should have exactly one BorderRadius entity");
-		assert_eq!(border_radii[0].top_left, Val::Px(4.0), "Border radius should be 4px");*/
+		assert_eq!(border_radii[0].1.top_left, Val::Px(4.0), "Border radius should be 4px");
 
 		Ok(())
 	}
