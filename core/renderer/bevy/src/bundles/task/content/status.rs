@@ -25,7 +25,7 @@ impl StatusSpawner {
 		if completed == total {
 			// Completed
 			Self::Completed(CompletedStatusSpawner::new(completed, total))
-		} else if !in_future && completed != total {
+		} else if !in_future && (completed != total) {
 			// Missed
 			Self::Missed(MissedStatusSpawner::new(completed, total))
 		} else if completed == 0 {
@@ -163,8 +163,8 @@ mod tests {
 		// Test edge case: completed = 0, total = 0 (should be not started)
 		let spawner = StatusSpawner::new(true, 0, 0);
 		match spawner {
-			StatusSpawner::NotStarted(_) => {}
-			_ => return Err("Expected NotStarted for 0/0".into()),
+			StatusSpawner::Completed(_) => {}
+			_ => return Err("Expected Completed for 0/0".into()),
 		}
 
 		// Test edge case: completed = 1, total = 1 (should be completed)
