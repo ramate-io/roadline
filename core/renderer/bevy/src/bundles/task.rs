@@ -1,4 +1,5 @@
 pub mod content;
+pub mod tests;
 pub use content::ContentSpawner;
 
 use crate::components::{RenderState, Task};
@@ -8,30 +9,45 @@ use bevy::ui::{BackgroundColor, BorderColor, BorderRadius, Node};
 use bevy_ui_anchor::{AnchorPoint, AnchorUiConfig, AnchorUiNode};
 use roadline_util::task::Id as TaskId;
 
-#[derive(Component)]
+#[derive(Debug, Component)]
+pub struct TaskNodeMarker;
+
+#[derive(Debug, Component)]
 pub struct TaskHoverable;
 
-#[derive(Component)]
+#[derive(Debug, Component)]
 pub struct TaskSize {
 	pub size: Vec2,
 }
+
+#[derive(Debug, Clone)]
 pub struct TaskSpawnerData {
 	pub task_id: TaskId,
 	pub position: Vec3,
 	pub size: Vec2,
 	pub title: String,
 	pub font_size: f32,
+	pub in_future: bool,
 	pub completed: u32,
 	pub total: u32,
 }
 
 /// Helper struct for spawning all task entities
+#[derive(Debug, Clone)]
 pub struct TaskSpawner {
 	pub data: TaskSpawnerData,
 }
 
 impl TaskSpawner {
-	pub fn new(task_id: TaskId, position: Vec3, size: Vec2, title: String) -> Self {
+	pub fn new(
+		task_id: TaskId,
+		position: Vec3,
+		size: Vec2,
+		title: String,
+		in_future: bool,
+		completed: u32,
+		total: u32,
+	) -> Self {
 		Self {
 			data: TaskSpawnerData {
 				task_id,
@@ -39,8 +55,9 @@ impl TaskSpawner {
 				size,
 				title,
 				font_size: 6.0,
-				completed: 3,
-				total: 3,
+				in_future,
+				completed,
+				total,
 			},
 		}
 	}
@@ -58,6 +75,7 @@ impl TaskSpawner {
 	) {
 		let parent_entity = commands
 			.spawn((
+				TaskNodeMarker,
 				TaskHoverable,
 				TaskSize { size: self.data.size },
 				Node {
@@ -91,7 +109,13 @@ impl TaskSpawner {
 		));
 
 		// Spawn content using the new imperative spawner
-		ContentSpawner::new(self.data.title, self.data.completed, self.data.total).spawn(
+		ContentSpawner::new(
+			self.data.title,
+			self.data.in_future,
+			self.data.completed,
+			self.data.total,
+		)
+		.spawn(
 			commands,
 			meshes,
 			materials,

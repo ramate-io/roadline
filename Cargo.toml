@@ -5,6 +5,7 @@ resolver = "2"
 members = [
 
   "util/roadline/*",
+  "util/bevy/*",
   "core/representation",
   "core/renderer/*"
   

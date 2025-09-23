@@ -1,5 +1,5 @@
 [package]
-name = "bevy-ui-anchor"
+name = "bevy-type-safe"
 version = { workspace = true }
 authors = ["Kristoffer Ödmark <kristoffer.odmark90@gmail.com>"]
 edition = "2021"
@@ -8,6 +8,9 @@ license = "MIT"
 repository = "https://github.com/TotalKrill/bevy_ui_anchor"
 keywords = ["bevy", "ui"]
 readme = "README.md"
+
+[dependencies]
+thiserror = { workspace = true }
 
 [dependencies.bevy]
 workspace = true

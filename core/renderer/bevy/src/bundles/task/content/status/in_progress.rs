@@ -1,3 +1,4 @@
+use super::StatusMarker;
 use bevy::prelude::*;
 use bevy::ui::{Node, Val};
 
@@ -17,6 +18,7 @@ impl InProgressStatusSpawner {
 	pub fn spawn(self, commands: &mut Commands, parent: Entity) {
 		let status_entity = commands
 			.spawn((
+				StatusMarker,
 				InProgressStatusMarker,
 				Node {
 					display: Display::Flex,

@@ -315,6 +315,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy-type-safe"
+version = "0.0.1"
+dependencies = [
+ "bevy",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "bevy-ui-anchor"
+version = "0.0.1"
+dependencies = [
+ "bevy",
+]
+
+[[package]]
 name = "bevy_a11y"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
