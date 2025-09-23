@@ -1,6 +1,5 @@
 pub mod clicks;
 pub mod hovers;
-pub use hovers::{clear_hover_effects, handle_task_hovers};
 
 use crate::components::Task;
 use crate::resources::{Roadline, SelectionResource};
@@ -10,6 +9,7 @@ use bevy::ui::BorderColor;
 
 #[derive(Debug, Clone)]
 pub struct TaskCursorInteractionSystem {
+	// TODO: we will move these out into components eventually.
 	pub parent_task_border_color: Color,
 	pub descendant_task_border_color: Color,
 	pub unselected_task_border_color: Color,
@@ -101,13 +101,13 @@ impl TaskCursorInteractionSystem {
 		// Get mouse position
 		let Some(cursor_position) = window.cursor_position() else {
 			// If no cursor position, clear all hover effects
-			clear_hover_effects(&task_query, &mut ui_query, &selection_resource);
+			self.clear_hover_effects(&task_query, &mut ui_query, &selection_resource);
 			return;
 		};
 
 		// Convert screen coordinates to world coordinates
 		let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_position) else {
-			clear_hover_effects(&task_query, &mut ui_query, &selection_resource);
+			self.clear_hover_effects(&task_query, &mut ui_query, &selection_resource);
 			return;
 		};
 
@@ -133,7 +133,7 @@ impl TaskCursorInteractionSystem {
 		}
 
 		// Handle hover effects (lower priority)
-		handle_task_hovers(
+		self.handle_task_hovers(
 			world_pos,
 			&task_query,
 			&mut ui_query,
