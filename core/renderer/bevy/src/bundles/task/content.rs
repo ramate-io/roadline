@@ -66,7 +66,6 @@ mod tests {
 	use super::*;
 	use crate::bundles::task::content::{status::StatusMarker, title::TitleMarker};
 	use bevy::ecs::system::RunSystemOnce;
-	use bevy::prelude::*;
 	use bevy::render::mesh::MeshPlugin;
 	use bevy::render::view::VisibilityPlugin;
 	use bevy::scene::ScenePlugin;

@@ -130,7 +130,6 @@ mod tests {
 	use super::*;
 	use crate::UiCameraMarker;
 	use bevy::ecs::system::RunSystemOnce;
-	use bevy::prelude::*;
 	use bevy::render::mesh::MeshPlugin;
 	use bevy::render::view::VisibilityPlugin;
 	use bevy::scene::ScenePlugin;
@@ -228,24 +227,24 @@ mod tests {
 	}
 
 	#[derive(Clone)]
-	struct TestTasksParams {
+	pub struct TestTasksParams {
 		spawners: Vec<TaskSpawner>,
 	}
 
 	impl TestTasksParams {
 		/// Constructs a new TestTasksParams with no spawners.
-		fn new() -> Self {
+		pub fn new() -> Self {
 			Self { spawners: vec![] }
 		}
 
 		/// Adds a spawner to the TestTasksParams.
-		fn with_spawner(mut self, spawner: TaskSpawner) -> Self {
+		pub fn with_spawner(mut self, spawner: TaskSpawner) -> Self {
 			self.spawners.push(spawner);
 			self
 		}
 
 		/// Builds a closure that will spawn the tasks.
-		fn build(
+		pub fn build(
 			self,
 		) -> impl FnMut(Commands, ResMut<Assets<Mesh>>, ResMut<Assets<ColorMaterial>>) {
 			move |mut commands: Commands,
@@ -259,7 +258,8 @@ mod tests {
 		}
 
 		/// Builds a closure that will spawn the tasks from a reference.
-		fn as_build(
+		#[allow(dead_code)]
+		pub fn as_build(
 			&self,
 		) -> impl FnMut(Commands, ResMut<Assets<Mesh>>, ResMut<Assets<ColorMaterial>>) {
 			self.clone().build()

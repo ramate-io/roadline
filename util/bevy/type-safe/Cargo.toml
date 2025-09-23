@@ -14,7 +14,6 @@ thiserror = { workspace = true }
 
 [dependencies.bevy]
 workspace = true
-default-features = false
 features = ["bevy_ui", "bevy_window", "bevy_log"]
 
 [dev-dependencies.bevy]
