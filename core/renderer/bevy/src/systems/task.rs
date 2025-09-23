@@ -1,3 +1,6 @@
+pub mod cursor_interaction;
+pub mod spawning;
+
 use crate::bundles::TaskSpawner;
 use crate::components::Task;
 use crate::resources::{RenderUpdateEvent, Roadline};

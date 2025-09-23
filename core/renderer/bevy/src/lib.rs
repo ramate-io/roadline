@@ -52,6 +52,7 @@ impl Plugin for RoadlinePlugin {
 					systems::DependencySystemConfig::build(),
 					systems::dependency::dependency_hover_system,
 					systems::task_cursor_interaction_system,
+					systems::TaskCursorInteractionSystem::default().build(),
 					// systems::click_selection_system,
 				),
 			);
