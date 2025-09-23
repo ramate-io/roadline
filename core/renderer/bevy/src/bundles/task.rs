@@ -1,4 +1,5 @@
 pub mod content;
+#[cfg(test)]
 pub mod tests;
 pub use content::ContentSpawner;
 
