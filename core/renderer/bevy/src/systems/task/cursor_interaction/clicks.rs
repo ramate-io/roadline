@@ -417,7 +417,7 @@ mod tests {
 		// Setup app with all required resources
 		let mut app = setup_cursor_interaction_test_app();
 
-		app.add_systems(Update, click_system.build());
+		// app.add_systems(Update, click_system.build());
 
 		// Spawn tasks
 		let params = TestTasksParams::new().with_basic_task(
@@ -442,7 +442,7 @@ mod tests {
 			println!("Set cursor position to (200.0, 225.0) and pressed left mouse button");
 		}
 
-		app.world_mut().run_system_once(simulate_click)?;
+		app.add_systems(Update, (simulate_click, click_system.build()));
 
 		// First update to process the input event
 		app.update();
