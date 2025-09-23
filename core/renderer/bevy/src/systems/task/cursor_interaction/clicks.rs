@@ -1,11 +1,37 @@
-use super::TaskCursorInteractionSystem;
 use crate::components::{SelectionState, Task};
 use crate::resources::{Roadline, SelectionResource};
 use bevy::prelude::*;
 use bevy::ui::BorderColor;
 use roadline_util::task::Id as TaskId;
 
-impl TaskCursorInteractionSystem {
+#[derive(Debug, Clone)]
+pub struct TaskClickSystem {
+	pub parent_task_border_color: Color,
+	pub descendant_task_border_color: Color,
+	pub unselected_task_border_color: Color,
+	pub selected_task_border_color: Color,
+	pub parent_dependency_color: Color,
+	pub descendant_dependency_color: Color,
+	pub unselected_dependency_color: Color,
+	pub selected_dependency_color: Color,
+}
+
+impl Default for TaskClickSystem {
+	fn default() -> Self {
+		Self {
+			parent_task_border_color: Color::oklch(0.5, 0.137, 0.0),
+			descendant_task_border_color: Color::oklch(0.5, 0.137, 235.06),
+			unselected_task_border_color: Color::BLACK,
+			selected_task_border_color: Color::oklch(0.5, 0.137, 235.06),
+			parent_dependency_color: Color::oklch(0.5, 0.137, 0.0),
+			descendant_dependency_color: Color::oklch(0.5, 0.137, 235.06),
+			unselected_dependency_color: Color::BLACK,
+			selected_dependency_color: Color::oklch(0.5, 0.137, 235.06),
+		}
+	}
+}
+
+impl TaskClickSystem {
 	/// Handle click detection and selection
 	pub fn handle_task_clicks(
 		&self,

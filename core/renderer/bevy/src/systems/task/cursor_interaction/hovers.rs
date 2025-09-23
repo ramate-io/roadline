@@ -1,10 +1,24 @@
-use super::TaskCursorInteractionSystem;
 use crate::components::{SelectionState, Task};
 use crate::resources::{Roadline, SelectionResource};
 use bevy::prelude::*;
 use bevy::ui::BorderColor;
 
-impl TaskCursorInteractionSystem {
+#[derive(Debug, Clone)]
+pub struct TaskHoverSystem {
+	pub task_hover_border_color: Color,
+	pub unselected_task_border_color: Color,
+}
+
+impl Default for TaskHoverSystem {
+	fn default() -> Self {
+		Self {
+			task_hover_border_color: Color::oklch(0.5, 0.137, 235.06),
+			unselected_task_border_color: Color::BLACK,
+		}
+	}
+}
+
+impl TaskHoverSystem {
 	/// Handle hover effects
 	pub fn handle_task_hovers(
 		&self,
@@ -53,9 +67,9 @@ impl TaskCursorInteractionSystem {
 			if let Some(ui_entity) = task.ui_entity {
 				if let Ok(mut border_color) = ui_query.get_mut(ui_entity) {
 					if in_bounds {
-						border_color.0 = Color::oklch(0.5, 0.137, 235.06); // Dark blue on hover
+						border_color.0 = self.task_hover_border_color;
 					} else {
-						border_color.0 = Color::BLACK; // Default black
+						border_color.0 = self.unselected_task_border_color;
 					}
 				}
 			}
@@ -83,7 +97,7 @@ impl TaskCursorInteractionSystem {
 			if let Some(ui_entity) = task.ui_entity {
 				if let Ok(mut border_color) = ui_query.get_mut(ui_entity) {
 					// Only clear hover for unselected tasks
-					border_color.0 = Color::BLACK; // Reset to default
+					border_color.0 = self.unselected_task_border_color;
 				}
 			}
 		}

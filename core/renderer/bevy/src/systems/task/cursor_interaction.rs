@@ -1,6 +1,9 @@
 pub mod clicks;
 pub mod hovers;
 
+pub use clicks::TaskClickSystem;
+pub use hovers::TaskHoverSystem;
+
 use crate::components::Task;
 use crate::resources::{Roadline, SelectionResource};
 use bevy::input::ButtonInput;
@@ -9,33 +12,13 @@ use bevy::ui::BorderColor;
 
 #[derive(Debug, Clone)]
 pub struct TaskCursorInteractionSystem {
-	// TODO: we will move these out into components eventually.
-	pub parent_task_border_color: Color,
-	pub descendant_task_border_color: Color,
-	pub unselected_task_border_color: Color,
-	pub selected_task_border_color: Color,
-	pub task_hover_border_color: Color,
-	pub parent_dependency_color: Color,
-	pub descendant_dependency_color: Color,
-	pub unselected_dependency_color: Color,
-	pub selected_dependency_color: Color,
-	pub dependency_hover_color: Color,
+	pub hover_system: TaskHoverSystem,
+	pub click_system: TaskClickSystem,
 }
 
 impl Default for TaskCursorInteractionSystem {
 	fn default() -> Self {
-		Self {
-			parent_task_border_color: Color::oklch(0.5, 0.137, 0.0),
-			descendant_task_border_color: Color::oklch(0.5, 0.137, 235.06),
-			unselected_task_border_color: Color::BLACK,
-			selected_task_border_color: Color::oklch(0.5, 0.137, 235.06),
-			task_hover_border_color: Color::oklch(0.5, 0.137, 235.06),
-			parent_dependency_color: Color::oklch(0.5, 0.137, 0.0),
-			descendant_dependency_color: Color::oklch(0.5, 0.137, 235.06),
-			unselected_dependency_color: Color::BLACK,
-			selected_dependency_color: Color::oklch(0.5, 0.137, 235.06),
-			dependency_hover_color: Color::oklch(0.5, 0.137, 235.06),
-		}
+		Self { hover_system: TaskHoverSystem::default(), click_system: TaskClickSystem::default() }
 	}
 }
 
@@ -101,13 +84,15 @@ impl TaskCursorInteractionSystem {
 		// Get mouse position
 		let Some(cursor_position) = window.cursor_position() else {
 			// If no cursor position, clear all hover effects
-			self.clear_hover_effects(&task_query, &mut ui_query, &selection_resource);
+			self.hover_system
+				.clear_hover_effects(&task_query, &mut ui_query, &selection_resource);
 			return;
 		};
 
 		// Convert screen coordinates to world coordinates
 		let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_position) else {
-			self.clear_hover_effects(&task_query, &mut ui_query, &selection_resource);
+			self.hover_system
+				.clear_hover_effects(&task_query, &mut ui_query, &selection_resource);
 			return;
 		};
 
@@ -121,7 +106,7 @@ impl TaskCursorInteractionSystem {
 
 		// Check for clicks first (higher priority)
 		if mouse_input.just_pressed(MouseButton::Left) {
-			self.handle_task_clicks(
+			self.click_system.handle_task_clicks(
 				world_pos,
 				&task_query,
 				&mut selection_resource,
@@ -133,7 +118,7 @@ impl TaskCursorInteractionSystem {
 		}
 
 		// Handle hover effects (lower priority)
-		self.handle_task_hovers(
+		self.hover_system.handle_task_hovers(
 			world_pos,
 			&task_query,
 			&mut ui_query,
