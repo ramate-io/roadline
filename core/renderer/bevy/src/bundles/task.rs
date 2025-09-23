@@ -126,7 +126,7 @@ impl TaskSpawner {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
 	use super::*;
 	use crate::UiCameraMarker;
 	use bevy::ecs::system::RunSystemOnce;
@@ -258,7 +258,6 @@ mod tests {
 		}
 
 		/// Builds a closure that will spawn the tasks from a reference.
-		#[allow(dead_code)]
 		pub fn as_build(
 			&self,
 		) -> impl FnMut(Commands, ResMut<Assets<Mesh>>, ResMut<Assets<ColorMaterial>>) {
