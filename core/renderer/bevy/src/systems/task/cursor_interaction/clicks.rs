@@ -61,24 +61,34 @@ impl TaskClickSystem {
 				return;
 			}
 
+			println!("Click system triggered!");
+
 			// Get camera and window info
 			let Ok((camera, camera_transform)) = camera_query.single() else {
+				println!("No camera found");
 				return;
 			};
 			let Ok(window) = windows.single() else {
+				println!("No window found");
 				return;
 			};
 
 			// Get mouse position
 			let Some(cursor_position) = window.cursor_position() else {
+				println!("No cursor position");
 				return;
 			};
+
+			println!("Cursor position: {:?}", cursor_position);
 
 			// Convert screen coordinates to world coordinates
 			let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_position)
 			else {
+				println!("Failed to convert to world coordinates");
 				return;
 			};
+
+			println!("World position: {:?}", world_pos);
 
 			self.handle_task_clicks(
 				world_pos,
@@ -357,17 +367,55 @@ impl TaskClickSystem {
 mod tests {
 	use super::*;
 	use crate::bundles::task::tests::utils::{setup_task_test_app, TestTasksParams};
-	use bevy::ecs::entity::unique_slice::Windows;
+	use crate::components::SelectionState;
+	use crate::resources::{Roadline, SelectionResource};
+	use crate::test_utils::create_test_roadline;
 	use bevy::ecs::system::RunSystemOnce;
-	use bevy::prelude::Color;
-	use bevy::window::PrimaryWindow;
+	use bevy::input::ButtonInput;
+	use bevy::prelude::*;
+	use bevy::window::{PrimaryWindow, WindowPlugin};
+	use roadline_util::task::Id as TaskId;
+
+	/// Helper function to set up an app with all plugins and resources needed for cursor interaction testing
+	fn setup_cursor_interaction_test_app() -> App {
+		let mut app = setup_task_test_app();
+
+		// Add input plugins for mouse input
+		app.add_plugins(bevy::input::InputPlugin);
+
+		// Add window plugin to create primary window
+		app.add_plugins(WindowPlugin {
+			primary_window: Some(Window {
+				title: "Test Window".to_string(),
+				resolution: (800.0, 600.0).into(),
+				..default()
+			}),
+			..default()
+		});
+
+		// Add required resources
+		app.insert_resource(SelectionResource::default());
+		app.insert_resource(ButtonInput::<MouseButton>::default());
+
+		// Add test roadline
+		let core_roadline = create_test_roadline().expect("Failed to create test roadline");
+		app.insert_resource(Roadline::from(core_roadline));
+
+		// Add camera
+		app.world_mut().spawn((
+			Camera2d,
+			Camera { order: 1, clear_color: ClearColorConfig::None, ..default() },
+		));
+
+		app
+	}
 
 	#[test]
 	fn test_compatible_with_spawned_tasks() -> Result<(), Box<dyn std::error::Error>> {
 		let click_system = TaskClickSystem::default();
 
-		// Setup app
-		let mut app = setup_task_test_app();
+		// Setup app with all required resources
+		let mut app = setup_cursor_interaction_test_app();
 
 		app.add_systems(Update, click_system.build());
 
@@ -380,19 +428,33 @@ mod tests {
 		);
 		app.world_mut().run_system_once(params.build())?;
 
-		// Set the cursor position
+		// Set the cursor position and simulate click
 		fn simulate_click(
 			mut windows: Query<&mut Window, With<PrimaryWindow>>,
 			mut mouse: ResMut<ButtonInput<MouseButton>>,
 		) {
 			let mut window = windows.single_mut().unwrap();
-			window.set_cursor_position(Some(Vec2::new(110.0, 210.0)));
+			// Set cursor position to be clearly inside the task bounds
+			// Task is at Vec3(100.0, 200.0, 0.0) with size Vec2(200.0, 50.0)
+			// So center would be at (200.0, 225.0)
+			window.set_cursor_position(Some(Vec2::new(200.0, 225.0)));
 			mouse.press(MouseButton::Left);
+			println!("Set cursor position to (200.0, 225.0) and pressed left mouse button");
 		}
 
 		app.world_mut().run_system_once(simulate_click)?;
 
+		// First update to process the input event
 		app.update();
+
+		// Second update to run the click system
+		app.update();
+
+		// Check that the task is now selected
+		let selection_resource = app.world().resource::<SelectionResource>();
+		let task_state = selection_resource.get_task_state(&TaskId::from(1));
+		println!("Task state after click: {:?}", task_state);
+		assert_eq!(task_state, SelectionState::Selected);
 
 		Ok(())
 	}
