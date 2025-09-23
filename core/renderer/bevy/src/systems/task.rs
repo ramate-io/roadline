@@ -93,6 +93,9 @@ impl TaskSystemConfig {
 					Vec3::new(left_justified_x, pixel_y, 0.0),
 					Vec2::new(sprite_width, sprite_height),
 					title.text.clone(),
+					false,
+					3,
+					3,
 				);
 
 				task_spawner.spawn(&mut commands, &mut meshes, &mut materials);

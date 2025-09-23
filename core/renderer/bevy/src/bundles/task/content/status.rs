@@ -21,14 +21,16 @@ pub enum StatusSpawner {
 }
 
 impl StatusSpawner {
-	pub fn new(completed: u32, total: u32) -> Self {
-		// Determine status type based on completion
-		if completed == 0 {
-			// Not started
-			Self::NotStarted(NotStartedStatusSpawner::new(total))
-		} else if completed == total {
+	pub fn new(in_future: bool, completed: u32, total: u32) -> Self {
+		if completed == total {
 			// Completed
 			Self::Completed(CompletedStatusSpawner::new(completed, total))
+		} else if !in_future && completed != total {
+			// Missed
+			Self::Missed(MissedStatusSpawner::new(completed, total))
+		} else if completed == 0 {
+			// Not started
+			Self::NotStarted(NotStartedStatusSpawner::new(total))
 		} else {
 			// In progress
 			Self::InProgress(InProgressStatusSpawner::new(completed, total))
@@ -94,7 +96,7 @@ mod tests {
 		let completed = 0;
 		let total = 5;
 
-		let spawner = StatusSpawner::new(completed, total);
+		let spawner = StatusSpawner::new(true, completed, total);
 
 		match spawner {
 			StatusSpawner::NotStarted(not_started_spawner) => {
@@ -114,7 +116,7 @@ mod tests {
 		let completed = 2;
 		let total = 5;
 
-		let spawner = StatusSpawner::new(completed, total);
+		let spawner = StatusSpawner::new(true, completed, total);
 
 		match spawner {
 			StatusSpawner::InProgress(in_progress_spawner) => {
@@ -138,7 +140,7 @@ mod tests {
 		let completed = 5;
 		let total = 5;
 
-		let spawner = StatusSpawner::new(completed, total);
+		let spawner = StatusSpawner::new(true, completed, total);
 
 		match spawner {
 			StatusSpawner::Completed(completed_spawner) => {
@@ -160,21 +162,21 @@ mod tests {
 	#[test]
 	fn test_status_spawner_edge_cases() -> Result<(), Box<dyn std::error::Error>> {
 		// Test edge case: completed = 0, total = 0 (should be not started)
-		let spawner = StatusSpawner::new(0, 0);
+		let spawner = StatusSpawner::new(true, 0, 0);
 		match spawner {
 			StatusSpawner::NotStarted(_) => {}
 			_ => return Err("Expected NotStarted for 0/0".into()),
 		}
 
 		// Test edge case: completed = 1, total = 1 (should be completed)
-		let spawner = StatusSpawner::new(1, 1);
+		let spawner = StatusSpawner::new(true, 1, 1);
 		match spawner {
 			StatusSpawner::Completed(_) => {}
 			_ => return Err("Expected Completed for 1/1".into()),
 		}
 
 		// Test edge case: completed = 1, total = 2 (should be in progress)
-		let spawner = StatusSpawner::new(1, 2);
+		let spawner = StatusSpawner::new(true, 1, 2);
 		match spawner {
 			StatusSpawner::InProgress(_) => {}
 			_ => return Err("Expected InProgress for 1/2".into()),
@@ -211,7 +213,7 @@ mod tests {
 			move |mut commands: Commands,
 			      mut meshes: ResMut<Assets<Mesh>>,
 			      mut materials: ResMut<Assets<ColorMaterial>>| {
-				let spawner = StatusSpawner::new(completed, total);
+				let spawner = StatusSpawner::new(true, completed, total);
 				let parent_entity = commands.spawn_empty().id();
 				spawner.spawn(
 					&mut commands,

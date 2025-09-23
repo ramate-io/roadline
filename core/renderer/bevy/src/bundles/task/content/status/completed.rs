@@ -1,3 +1,4 @@
+use super::StatusMarker;
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;
 use bevy::render::mesh::{Indices, Mesh, PrimitiveTopology};
@@ -38,6 +39,7 @@ impl CompletedStatusSpawner {
 
 		let status_entity = commands
 			.spawn((
+				StatusMarker,
 				CompletedStatusMarker,
 				Node {
 					display: Display::Flex,

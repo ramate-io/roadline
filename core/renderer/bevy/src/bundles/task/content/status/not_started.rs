@@ -1,3 +1,4 @@
+use super::StatusMarker;
 use bevy::prelude::*;
 use bevy::ui::{Node, Val};
 
@@ -16,6 +17,7 @@ impl NotStartedStatusSpawner {
 	pub fn spawn(self, commands: &mut Commands, parent: Entity) {
 		let status_entity = commands
 			.spawn((
+				StatusMarker,
 				NotStartedStatusMarker,
 				Node {
 					display: Display::Flex,

@@ -8,13 +8,14 @@ pub use title::TitleSpawner;
 
 pub struct ContentSpawner {
 	pub title: String,
+	pub in_future: bool,
 	pub completed: u32,
 	pub total: u32,
 }
 
 impl ContentSpawner {
-	pub fn new(title: String, completed: u32, total: u32) -> Self {
-		Self { title, completed, total }
+	pub fn new(title: String, in_future: bool, completed: u32, total: u32) -> Self {
+		Self { title, in_future, completed, total }
 	}
 
 	pub fn spawn(
@@ -46,7 +47,7 @@ impl ContentSpawner {
 		TitleSpawner::new(self.title).spawn(commands, content_entity);
 
 		// Spawn status
-		StatusSpawner::new(self.completed, self.total).spawn(
+		StatusSpawner::new(self.in_future, self.completed, self.total).spawn(
 			commands,
 			meshes,
 			materials,
@@ -97,7 +98,7 @@ mod tests {
 		let completed = 2;
 		let total = 5;
 
-		let spawner = ContentSpawner::new(title.clone(), completed, total);
+		let spawner = ContentSpawner::new(title.clone(), true, completed, total);
 
 		assert_eq!(spawner.title, title);
 		assert_eq!(spawner.completed, completed);
@@ -137,7 +138,7 @@ mod tests {
 			move |mut commands: Commands,
 			      mut meshes: ResMut<Assets<Mesh>>,
 			      mut materials: ResMut<Assets<ColorMaterial>>| {
-				let spawner = ContentSpawner::new(title.clone(), completed, total);
+				let spawner = ContentSpawner::new(title.clone(), true, completed, total);
 				let parent_entity = commands.spawn_empty().id();
 				spawner.spawn(
 					&mut commands,

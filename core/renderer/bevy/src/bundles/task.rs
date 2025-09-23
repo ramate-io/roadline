@@ -8,30 +8,45 @@ use bevy::ui::{BackgroundColor, BorderColor, BorderRadius, Node};
 use bevy_ui_anchor::{AnchorPoint, AnchorUiConfig, AnchorUiNode};
 use roadline_util::task::Id as TaskId;
 
-#[derive(Component)]
+#[derive(Debug, Component)]
+pub struct TaskNodeMarker;
+
+#[derive(Debug, Component)]
 pub struct TaskHoverable;
 
-#[derive(Component)]
+#[derive(Debug, Component)]
 pub struct TaskSize {
 	pub size: Vec2,
 }
+
+#[derive(Debug, Clone)]
 pub struct TaskSpawnerData {
 	pub task_id: TaskId,
 	pub position: Vec3,
 	pub size: Vec2,
 	pub title: String,
 	pub font_size: f32,
+	pub in_future: bool,
 	pub completed: u32,
 	pub total: u32,
 }
 
 /// Helper struct for spawning all task entities
+#[derive(Debug, Clone)]
 pub struct TaskSpawner {
 	pub data: TaskSpawnerData,
 }
 
 impl TaskSpawner {
-	pub fn new(task_id: TaskId, position: Vec3, size: Vec2, title: String) -> Self {
+	pub fn new(
+		task_id: TaskId,
+		position: Vec3,
+		size: Vec2,
+		title: String,
+		in_future: bool,
+		completed: u32,
+		total: u32,
+	) -> Self {
 		Self {
 			data: TaskSpawnerData {
 				task_id,
@@ -39,8 +54,9 @@ impl TaskSpawner {
 				size,
 				title,
 				font_size: 6.0,
-				completed: 3,
-				total: 3,
+				in_future,
+				completed,
+				total,
 			},
 		}
 	}
@@ -58,6 +74,7 @@ impl TaskSpawner {
 	) {
 		let parent_entity = commands
 			.spawn((
+				TaskNodeMarker,
 				TaskHoverable,
 				TaskSize { size: self.data.size },
 				Node {
@@ -91,7 +108,13 @@ impl TaskSpawner {
 		));
 
 		// Spawn content using the new imperative spawner
-		ContentSpawner::new(self.data.title, self.data.completed, self.data.total).spawn(
+		ContentSpawner::new(
+			self.data.title,
+			self.data.in_future,
+			self.data.completed,
+			self.data.total,
+		)
+		.spawn(
 			commands,
 			meshes,
 			materials,
@@ -135,55 +158,6 @@ mod tests {
 		app
 	}
 
-	/// Helper function to set up an app with minimal plugins for content/status spawning
-	fn setup_content_test_app() -> App {
-		let mut app = App::new();
-		app.add_plugins((
-			MinimalPlugins,
-			AssetPlugin::default(),
-			ScenePlugin,
-			MeshPlugin,
-			TransformPlugin,
-			VisibilityPlugin,
-		))
-		.init_asset::<ColorMaterial>()
-		.init_asset::<Mesh>()
-		.register_type::<Visibility>()
-		.register_type::<InheritedVisibility>()
-		.register_type::<ViewVisibility>()
-		.register_type::<MeshMaterial2d<ColorMaterial>>();
-		app
-	}
-
-	/// Advanced helper that demonstrates "if not exists" pattern for Bevy plugins
-	/// This could be extended to check if plugins are already added before adding them
-	fn setup_app_with_conditional_plugins() -> App {
-		let mut app = App::new();
-
-		// Always add minimal plugins first
-		app.add_plugins(MinimalPlugins);
-
-		// Add plugins conditionally (this is a simplified example)
-		// In a real implementation, you might check app.plugins() to see what's already there
-		app.add_plugins(AssetPlugin::default())
-			.add_plugins(ScenePlugin)
-			.add_plugins(MeshPlugin)
-			.add_plugins(TransformPlugin)
-			.add_plugins(VisibilityPlugin)
-			.add_plugins(AnchorUiPlugin::<UiCameraMarker>::new());
-
-		// Initialize assets (these are idempotent - safe to call multiple times)
-		app.init_asset::<ColorMaterial>().init_asset::<Mesh>();
-
-		// Register types (also idempotent)
-		app.register_type::<Visibility>()
-			.register_type::<InheritedVisibility>()
-			.register_type::<ViewVisibility>()
-			.register_type::<MeshMaterial2d<ColorMaterial>>();
-
-		app
-	}
-
 	#[test]
 	fn test_task_spawner_creation() -> Result<(), Box<dyn std::error::Error>> {
 		let task_id = TaskId::from(1);
@@ -191,7 +165,7 @@ mod tests {
 		let size = Vec2::new(200.0, 50.0);
 		let title = "Test Task".to_string();
 
-		let spawner = TaskSpawner::new(task_id, position, size, title.clone());
+		let spawner = TaskSpawner::new(task_id, position, size, title.clone(), false, 3, 3);
 
 		assert_eq!(spawner.data.task_id, task_id);
 		assert_eq!(spawner.data.position, position);
@@ -211,7 +185,8 @@ mod tests {
 		let size = Vec2::new(200.0, 50.0);
 		let title = "Test Task".to_string();
 
-		let spawner = TaskSpawner::new(task_id, position, size, title).with_font_size(12.0);
+		let spawner =
+			TaskSpawner::new(task_id, position, size, title, false, 3, 3).with_font_size(12.0);
 
 		assert_eq!(spawner.data.font_size, 12.0);
 
@@ -246,9 +221,48 @@ mod tests {
 			move |mut commands: Commands,
 			      mut meshes: ResMut<Assets<Mesh>>,
 			      mut materials: ResMut<Assets<ColorMaterial>>| {
-				let spawner = TaskSpawner::new(task_id, position, size, title.clone());
+				let spawner = TaskSpawner::new(task_id, position, size, title.clone(), false, 3, 3);
 				spawner.spawn(&mut commands, &mut meshes, &mut materials);
 			}
+		}
+	}
+
+	#[derive(Clone)]
+	struct TestTasksParams {
+		spawners: Vec<TaskSpawner>,
+	}
+
+	impl TestTasksParams {
+		/// Constructs a new TestTasksParams with no spawners.
+		fn new() -> Self {
+			Self { spawners: vec![] }
+		}
+
+		/// Adds a spawner to the TestTasksParams.
+		fn with_spawner(mut self, spawner: TaskSpawner) -> Self {
+			self.spawners.push(spawner);
+			self
+		}
+
+		/// Builds a closure that will spawn the tasks.
+		fn build(
+			self,
+		) -> impl FnMut(Commands, ResMut<Assets<Mesh>>, ResMut<Assets<ColorMaterial>>) {
+			move |mut commands: Commands,
+			      mut meshes: ResMut<Assets<Mesh>>,
+			      mut materials: ResMut<Assets<ColorMaterial>>| {
+				// Because this is not fn once, each time this is called we need to clone the spawners.
+				for spawner in self.spawners.to_owned() {
+					spawner.spawn(&mut commands, &mut meshes, &mut materials);
+				}
+			}
+		}
+
+		/// Builds a closure that will spawn the tasks from a reference.
+		fn as_build(
+			&self,
+		) -> impl FnMut(Commands, ResMut<Assets<Mesh>>, ResMut<Assets<ColorMaterial>>) {
+			self.clone().build()
 		}
 	}
 
@@ -312,7 +326,7 @@ mod tests {
 			move |mut commands: Commands,
 			      mut meshes: ResMut<Assets<Mesh>>,
 			      mut materials: ResMut<Assets<ColorMaterial>>| {
-				let spawner = TaskSpawner::new(task_id, position, size, title.clone());
+				let spawner = TaskSpawner::new(task_id, position, size, title.clone(), false, 3, 3);
 				spawner.spawn(&mut commands, &mut meshes, &mut materials);
 			}
 		}
@@ -348,11 +362,11 @@ mod tests {
 		assert_eq!(task_size.size, params.size, "Task size should match");
 
 		// Check Transform component values
-		let mut transform_query = world.query::<&Transform>();
+		let mut transform_query = world.query::<(&Task, &Transform)>();
 		let transforms: Vec<_> = transform_query.iter(world).collect();
-		assert_eq!(transforms.len(), 1, "Should have exactly one Transform entity");
+		assert_eq!(transforms.len(), 1, "Should have exactly six Transform entities");
 
-		let transform = transforms[0];
+		let transform = transforms[0].1;
 		assert_eq!(transform.translation, params.position, "Transform position should match");
 
 		Ok(())
@@ -386,7 +400,7 @@ mod tests {
 			move |mut commands: Commands,
 			      mut meshes: ResMut<Assets<Mesh>>,
 			      mut materials: ResMut<Assets<ColorMaterial>>| {
-				let spawner = TaskSpawner::new(task_id, position, size, title.clone());
+				let spawner = TaskSpawner::new(task_id, position, size, title.clone(), false, 3, 3);
 				spawner.spawn(&mut commands, &mut meshes, &mut materials);
 			}
 		}
@@ -407,9 +421,14 @@ mod tests {
 		// Check Node component properties
 		let mut node_query = world.query::<&Node>();
 		let nodes: Vec<_> = node_query.iter(world).collect();
-		assert_eq!(nodes.len(), 1, "Should have exactly one Node entity");
+		assert_eq!(nodes.len(), 4, "Should have exactly four Node entities: one for the task, one for the content, one for the title, and one for the status");
 
-		let node = nodes[0];
+		// Now query specifically for the TaskNodeMarker and Node
+		/*let mut task_node_query = world.query::<(&TaskNodeMarker, &Node)>();
+		let task_nodes: Vec<_> = task_node_query.iter(world).collect();
+		assert_eq!(task_nodes.len(), 1, "Should have exactly one TaskNodeMarker entity");
+
+		let node = task_nodes[0].1;
 		assert_eq!(node.width, Val::Px(params.size.x), "Node width should match task size");
 		assert_eq!(node.height, Val::Px(params.size.y), "Node height should match task size");
 		assert_eq!(node.border, UiRect::all(Val::Px(1.5)), "Node should have 1.5px border");
@@ -436,7 +455,7 @@ mod tests {
 		let mut border_radius_query = world.query::<&BorderRadius>();
 		let border_radii: Vec<_> = border_radius_query.iter(world).collect();
 		assert_eq!(border_radii.len(), 1, "Should have exactly one BorderRadius entity");
-		assert_eq!(border_radii[0].top_left, Val::Px(4.0), "Border radius should be 4px");
+		assert_eq!(border_radii[0].top_left, Val::Px(4.0), "Border radius should be 4px");*/
 
 		Ok(())
 	}
@@ -469,7 +488,7 @@ mod tests {
 			move |mut commands: Commands,
 			      mut meshes: ResMut<Assets<Mesh>>,
 			      mut materials: ResMut<Assets<ColorMaterial>>| {
-				let spawner = TaskSpawner::new(task_id, position, size, title.clone());
+				let spawner = TaskSpawner::new(task_id, position, size, title.clone(), false, 3, 3);
 				spawner.spawn(&mut commands, &mut meshes, &mut materials);
 			}
 		}
@@ -521,7 +540,7 @@ mod tests {
 			let size = Vec2::new(300.0, 75.0);
 			let title = "Complete Pipeline Test".to_string();
 
-			let spawner = TaskSpawner::new(task_id, position, size, title);
+			let spawner = TaskSpawner::new(task_id, position, size, title, false, 3, 3);
 
 			spawner.spawn(&mut commands, &mut meshes, &mut materials);
 		}
@@ -579,51 +598,24 @@ mod tests {
 		Ok(())
 	}
 
-	fn spawn_not_started_task_system(
-		mut commands: Commands,
-		mut meshes: ResMut<Assets<Mesh>>,
-		mut materials: ResMut<Assets<ColorMaterial>>,
-	) {
-		let spawner = TaskSpawner::new(
-			TaskId::from(1),
-			Vec3::new(100.0, 100.0, 0.0),
-			Vec2::new(200.0, 50.0),
-			"Not Started Task".to_string(),
-		);
-		spawner.spawn(&mut commands, &mut meshes, &mut materials);
-	}
-
-	fn spawn_in_progress_task_system(
-		mut commands: Commands,
-		mut meshes: ResMut<Assets<Mesh>>,
-		mut materials: ResMut<Assets<ColorMaterial>>,
-	) {
-		let spawner = TaskSpawner::new(
-			TaskId::from(2),
-			Vec3::new(200.0, 200.0, 0.0),
-			Vec2::new(200.0, 50.0),
-			"In Progress Task".to_string(),
-		);
-		spawner.spawn(&mut commands, &mut meshes, &mut materials);
-	}
-
-	fn spawn_completed_task_system(
-		mut commands: Commands,
-		mut meshes: ResMut<Assets<Mesh>>,
-		mut materials: ResMut<Assets<ColorMaterial>>,
-	) {
-		let spawner = TaskSpawner::new(
-			TaskId::from(3),
-			Vec3::new(300.0, 300.0, 0.0),
-			Vec2::new(200.0, 50.0),
-			"Completed Task".to_string(),
-		);
-		spawner.spawn(&mut commands, &mut meshes, &mut materials);
-	}
-
 	#[test]
 	fn test_task_spawning_with_different_statuses() -> Result<(), Box<dyn std::error::Error>> {
 		let mut app1 = setup_task_test_app();
+
+		// Spawn NotStarted task
+		app1.world_mut().run_system_once(
+			TestTasksParams::new()
+				.with_spawner(TaskSpawner::new(
+					TaskId::from(1),
+					Vec3::new(100.0, 100.0, 0.0),
+					Vec2::new(200.0, 50.0),
+					"Not Started Task".to_string(),
+					true,
+					0,
+					3,
+				))
+				.build(),
+		)?;
 
 		let world1 = app1.world_mut();
 		let mut not_started_query =
@@ -639,6 +631,21 @@ mod tests {
 
 		let mut app2 = setup_task_test_app();
 
+		// Spawn InProgress task
+		app2.world_mut().run_system_once(
+			TestTasksParams::new()
+				.with_spawner(TaskSpawner::new(
+					TaskId::from(2),
+					Vec3::new(200.0, 200.0, 0.0),
+					Vec2::new(250.0, 60.0),
+					"InProgress Task".to_string(),
+					true,
+					1,
+					3,
+				))
+				.build(),
+		)?;
+
 		let world2 = app2.world_mut();
 		let mut in_progress_query =
 			world2
@@ -653,6 +660,21 @@ mod tests {
 
 		// Test completed status
 		let mut app3 = setup_task_test_app();
+
+		// Spawn Completed task
+		app3.world_mut().run_system_once(
+			TestTasksParams::new()
+				.with_spawner(TaskSpawner::new(
+					TaskId::from(3),
+					Vec3::new(300.0, 300.0, 0.0),
+					Vec2::new(300.0, 70.0),
+					"Completed Task".to_string(),
+					false,
+					3,
+					3,
+				))
+				.build(),
+		)?;
 
 		let world3 = app3.world_mut();
 		let mut completed_query =
@@ -670,6 +692,30 @@ mod tests {
 			world3.query::<&crate::bundles::task::content::status::completed::CheckMarkMesh>();
 		let check_marks: Vec<_> = check_mark_query.iter(world3).collect();
 		assert_eq!(check_marks.len(), 1, "Should spawn CheckMarkMesh for completed task");
+
+		// Test missed status
+		let mut app4 = setup_task_test_app();
+
+		// Spawn Missed task
+		app4.world_mut().run_system_once(
+			TestTasksParams::new()
+				.with_spawner(TaskSpawner::new(
+					TaskId::from(4),
+					Vec3::new(400.0, 400.0, 0.0),
+					Vec2::new(400.0, 80.0),
+					"Missed Task".to_string(),
+					false,
+					0,
+					3,
+				))
+				.build(),
+		)?;
+
+		let world4 = app4.world_mut();
+		let mut missed_query =
+			world4.query::<&crate::bundles::task::content::status::missed::MissedStatusMarker>();
+		let missed_markers: Vec<_> = missed_query.iter(world4).collect();
+		assert_eq!(missed_markers.len(), 1, "Should spawn MissedStatusMarker for missed task");
 
 		Ok(())
 	}
@@ -701,7 +747,7 @@ mod tests {
 		];
 
 		for (task_id, position, size, title) in tasks_data {
-			let spawner = TaskSpawner::new(task_id, position, size, title);
+			let spawner = TaskSpawner::new(task_id, position, size, title, false, 3, 3);
 			spawner.spawn(&mut commands, &mut meshes, &mut materials);
 		}
 	}
@@ -779,7 +825,7 @@ mod tests {
 			move |mut commands: Commands,
 			      mut meshes: ResMut<Assets<Mesh>>,
 			      mut materials: ResMut<Assets<ColorMaterial>>| {
-				let spawner = TaskSpawner::new(task_id, position, size, title.clone())
+				let spawner = TaskSpawner::new(task_id, position, size, title.clone(), false, 3, 3)
 					.with_font_size(font_size);
 				spawner.spawn(&mut commands, &mut meshes, &mut materials);
 			}
