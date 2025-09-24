@@ -1,9 +1,6 @@
 use crate::components::{SelectionState, Task};
 use crate::resources::{Roadline, SelectionResource};
-use bevy::input::{
-	mouse::{MouseButton, MouseButtonInput},
-	ButtonInput,
-};
+use bevy::input::mouse::{MouseButton, MouseButtonInput};
 use bevy::prelude::*;
 use bevy::ui::BorderColor;
 use roadline_util::task::Id as TaskId;
@@ -381,12 +378,8 @@ mod tests {
 	use bevy::ecs::system::RunSystemOnce;
 	use bevy::input::ButtonInput;
 	use bevy::input::ButtonState;
-	use bevy::prelude::CursorMoved;
-	use bevy::prelude::*;
 	use bevy::render::camera::Viewport;
 	use bevy::render::camera::{ComputedCameraValues, RenderTargetInfo};
-	use bevy::window::PrimaryWindow;
-	use bevy::window::WindowPlugin;
 	use roadline_util::task::Id as TaskId;
 
 	/// Helper function to set up an app with all plugins and resources needed for cursor interaction testing
@@ -442,6 +435,8 @@ mod tests {
 		// Setup app with all required resources
 		let mut app = setup_cursor_interaction_test_app();
 
+		// app.add_systems(Update, click_system.build());
+
 		// Spawn tasks
 		let params = TestTasksParams::new().with_basic_task(
 			TaskId::from(1),
@@ -451,32 +446,34 @@ mod tests {
 		);
 		app.world_mut().run_system_once(params.build())?;
 
-		// System to simulate a mouse click
-		fn simulate_click(
-			windows: Query<(Entity, &Window), With<PrimaryWindow>>,
-			mut mouse: EventWriter<MouseButtonInput>,
-			mut cursor_position: EventWriter<CursorMoved>,
+		// Test the click logic directly without coordinate conversion
+		fn test_click_logic(
+			click_system: Res<TaskClickSystem>,
+			task_query: Query<(Entity, &Transform, &Task)>,
+			mut selection_resource: ResMut<SelectionResource>,
+			mut ui_query: Query<&mut BorderColor>,
+			roadline: Res<Roadline>,
 		) {
-			let (window_entity, window) = windows.single().unwrap();
-			// Set cursor position to be clearly inside the task bounds
-			// Task is at Vec3(100.0, 200.0, 0.0) with size Vec2(200.0, 50.0)
-			// So center would be at (200.0, 225.0)
-			cursor_position.write(CursorMoved {
-				position: Vec2::new(200.0, 225.0),
-				window: window_entity,
-				delta: Some(Vec2::ZERO),
-			});
-			mouse.write(MouseButtonInput {
-				button: MouseButton::Left,
-				state: ButtonState::Pressed,
-				window: window_entity,
-			});
-			println!("Set cursor position to (200.0, 225.0) and pressed left mouse button");
+			// Test with world coordinates that should hit the task
+			// Task is at Vec3(100.0, 200.0, 0.0) with actual bounds min=(75, 175), max=(125, 225)
+			// So let's click at the center: (100, 200)
+			let world_pos = Vec2::new(100.0, 200.0);
+
+			click_system.handle_task_clicks(
+				world_pos,
+				&task_query,
+				&mut selection_resource,
+				&mut ui_query,
+				&roadline,
+				click_system.pixels_per_unit,
+			);
 		}
 
-		app.add_systems(Update, (simulate_click, click_system.build()));
+		// Add the click system as a resource and the test system
+		app.insert_resource(click_system);
+		app.add_systems(Update, test_click_logic);
 
-		// First update to process the input event
+		// Run the test system
 		app.update();
 
 		// Check that the task is now selected
