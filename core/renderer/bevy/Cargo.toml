@@ -19,7 +19,7 @@ chrono = { workspace = true }
 
 # Bevy core dependencies
 bevy = { workspace = true }
-bevy_ui_anchor = "0.8"  # For Bevy 0.16
+bevy-ui-anchor = { workspace = true }
 
 # For web integration with Dioxus (optional for now)
 wasm-bindgen = { workspace = true, optional = true }
