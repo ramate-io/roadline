@@ -58,20 +58,14 @@ impl TaskClickSystem {
 		>,
 		      windows: Query<&Window>| {
 			use bevy::input::ButtonState;
-			println!("Click system running");
 
 			// Process mouse button events
 			for ev in mouse_events.read() {
-				println!("Mouse event: {:?}", ev);
 				if ev.button == MouseButton::Left && ev.state == ButtonState::Pressed {
 					// Get camera and window info
 					let Ok((camera, camera_transform)) = camera_query.single() else {
 						panic!("No camera found");
 					};
-
-					println!("Camera viewport: {:?}", camera.viewport);
-					println!("Logical viewport: {:?}", camera.logical_viewport_rect());
-					println!("Physical viewport: {:?}", camera.physical_viewport_size());
 
 					let Ok(window) = windows.single() else {
 						panic!("No window found");
@@ -92,7 +86,6 @@ impl TaskClickSystem {
 						}
 					};
 
-					println!("World position: {:?}", world_pos);
 					self.handle_task_clicks(
 						world_pos,
 						&task_query,
@@ -415,12 +408,6 @@ mod tests {
 			},
 		));
 
-		// for debugging query the camera and check the viewport
-		app.add_systems(Update, |camera_query: Query<&Camera>| {
-			let camera = camera_query.single().unwrap();
-			println!("Camera viewport: {:?}", camera.viewport);
-		});
-
 		// Add test roadline
 		let core_roadline = create_test_roadline().expect("Failed to create test roadline");
 		app.insert_resource(Roadline::from(core_roadline));
@@ -522,12 +509,10 @@ mod tests {
 				state: ButtonState::Pressed,
 				window: window_entity,
 			});
-			println!("Set cursor position to screen coords {:?} (world: {:?}) and pressed left mouse button", screen_pos, world_pos);
 		}
 
-		app.add_systems(Update, (simulate_click, click_system.build()));
-
-		// First update to process the input event
+		// Systems need to be chained to avoid first registration bug.
+		app.add_systems(Update, (simulate_click, click_system.build()).chain());
 		app.update();
 
 		// Check that the task is now selected
