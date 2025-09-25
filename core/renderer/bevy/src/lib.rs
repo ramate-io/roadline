@@ -48,8 +48,8 @@ impl Plugin for RoadlinePlugin {
 				Update,
 				(
 					systems::TaskSpawningSystem::default().build(),
-					systems::DependencySystemConfig::build(),
-					systems::dependency::dependency_hover_system,
+					systems::DependencySpawningSystem::default().build(),
+					systems::DependencyHoverSystem::default().build(),
 					systems::TaskCursorInteractionSystem::default().build(),
 					// systems::click_selection_system,
 				),
