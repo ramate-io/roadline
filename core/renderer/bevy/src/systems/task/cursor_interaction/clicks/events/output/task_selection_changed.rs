@@ -3,6 +3,13 @@ use crate::events::interactions::TaskSelectionChangedEvent;
 use bevy::prelude::*;
 use roadline_util::task::Id as TaskId;
 
+/// Wrapper components for testing
+#[derive(Component)]
+pub struct PreviousSelectionState(pub SelectionState);
+
+#[derive(Component)]
+pub struct NewSelectionState(pub SelectionState);
+
 #[derive(Debug, Clone)]
 pub enum EventEmission {
 	/// Don't emit any events
@@ -34,7 +41,13 @@ impl TaskSelectionChangedEventSystem {
 		Query<(Entity, &Transform, &Task, &PreviousSelectionState, &NewSelectionState)>,
 		EventWriter<TaskSelectionChangedEvent>,
 	) {
-		move |task_query: Query<(Entity, &Transform, &Task, &PreviousSelectionState, &NewSelectionState)>,
+		move |task_query: Query<(
+			Entity,
+			&Transform,
+			&Task,
+			&PreviousSelectionState,
+			&NewSelectionState,
+		)>,
 		      mut events: EventWriter<TaskSelectionChangedEvent>| {
 			// This system can be used for testing by querying task entities
 			for (_entity, _transform, task, previous_state, new_state) in task_query.iter() {
@@ -81,15 +94,8 @@ impl TaskSelectionChangedEventSystem {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::bundles::task::tests::utils::{TestTasksParams, setup_task_test_app};
+	use crate::bundles::task::tests::utils::{setup_task_test_app, TestTasksParams};
 	use bevy::ecs::system::RunSystemOnce;
-
-	/// Wrapper components for testing
-	#[derive(Component)]
-	struct PreviousSelectionState(pub SelectionState);
-	
-	#[derive(Component)]
-	struct NewSelectionState(pub SelectionState);
 
 	/// Setup a test app with basic resources for testing the event system
 	fn setup_event_test_app() -> bevy::prelude::App {
@@ -131,7 +137,7 @@ mod tests {
 		for entity in entities {
 			world.entity_mut(entity).insert((
 				PreviousSelectionState(SelectionState::Unselected), // previous_state
-				NewSelectionState(SelectionState::Selected),         // new_state
+				NewSelectionState(SelectionState::Selected),        // new_state
 			));
 		}
 
@@ -173,7 +179,7 @@ mod tests {
 		for entity in entities {
 			world.entity_mut(entity).insert((
 				PreviousSelectionState(SelectionState::Unselected), // previous_state
-				NewSelectionState(SelectionState::Selected),         // new_state
+				NewSelectionState(SelectionState::Selected),        // new_state
 			));
 		}
 
@@ -215,7 +221,7 @@ mod tests {
 		for entity in entities {
 			world.entity_mut(entity).insert((
 				PreviousSelectionState(SelectionState::Unselected), // previous_state
-				NewSelectionState(SelectionState::Selected),         // new_state (different!)
+				NewSelectionState(SelectionState::Selected),        // new_state (different!)
 			));
 		}
 
