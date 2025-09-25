@@ -168,66 +168,28 @@ impl TaskHoverSystem {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::bundles::task::tests::utils::{setup_task_test_app, TestTasksParams};
 	use crate::components::SelectionState;
 	use crate::resources::{Roadline, SelectionResource};
-	use crate::test_utils::create_test_roadline;
-	use bevy::ecs::system::RunSystemOnce;
-	use bevy::render::camera::Viewport;
-	use bevy::render::camera::{ComputedCameraValues, RenderTargetInfo};
+	use crate::systems::task::cursor_interaction::hovers::test_utils::{
+		setup_cursor_interaction_test_app, spawn_test_task,
+	};
 	use roadline_util::task::Id as TaskId;
-
-	/// Helper function to set up an app with all plugins and resources needed for hover testing
-	fn setup_hover_test_app() -> App {
-		let mut app = setup_task_test_app();
-
-		// Add window plugin to create primary window
-		app.world_mut().spawn(Window::default());
-
-		// Add required resources
-		app.insert_resource(SelectionResource::default());
-
-		app.world_mut().spawn((
-			Camera2d,
-			Camera {
-				order: 1,
-				// Don't draw anything in the background, to see the previous camera.
-				clear_color: ClearColorConfig::None,
-				viewport: Some(Viewport {
-					physical_position: UVec2::new(0, 0),
-					physical_size: UVec2::new(200, 200),
-					..default()
-				}),
-				computed: ComputedCameraValues {
-					target_info: Some(RenderTargetInfo { scale_factor: 1.0, ..default() }),
-					..default()
-				},
-				..default()
-			},
-		));
-
-		// Add test roadline
-		let core_roadline = create_test_roadline().expect("Failed to create test roadline");
-		app.insert_resource(Roadline::from(core_roadline));
-
-		app
-	}
 
 	#[test]
 	fn test_compatible_with_spawned_tasks() -> Result<(), Box<dyn std::error::Error>> {
 		let hover_system = TaskHoverSystem::default();
 
 		// Setup app with all required resources
-		let mut app = setup_hover_test_app();
+		let mut app = setup_cursor_interaction_test_app();
 
 		// Spawn tasks
-		let params = TestTasksParams::new().with_basic_task(
+		spawn_test_task(
+			&mut app,
 			TaskId::from(1),
 			Vec3::new(100.0, 200.0, 0.0),
 			Vec2::new(200.0, 50.0),
 			"UI Test Task".to_string(),
-		);
-		app.world_mut().run_system_once(params.build())?;
+		)?;
 
 		// Test the hover logic directly without coordinate conversion
 		fn test_hover_logic(
@@ -280,16 +242,16 @@ mod tests {
 		let hover_system = TaskHoverSystem::default();
 
 		// Setup app with all required resources
-		let mut app = setup_hover_test_app();
+		let mut app = setup_cursor_interaction_test_app();
 
 		// Spawn tasks
-		let params = TestTasksParams::new().with_basic_task(
+		spawn_test_task(
+			&mut app,
 			TaskId::from(1),
 			Vec3::new(100.0, 200.0, 0.0),
 			Vec2::new(200.0, 50.0),
 			"UI Test Task".to_string(),
-		);
-		app.world_mut().run_system_once(params.build())?;
+		)?;
 
 		// Test the hover logic with coordinates outside the task bounds
 		fn test_hover_logic(
@@ -342,16 +304,16 @@ mod tests {
 		let hover_system = TaskHoverSystem::default();
 
 		// Setup app with all required resources
-		let mut app = setup_hover_test_app();
+		let mut app = setup_cursor_interaction_test_app();
 
 		// Spawn tasks
-		let params = TestTasksParams::new().with_basic_task(
+		spawn_test_task(
+			&mut app,
 			TaskId::from(1),
 			Vec3::new(100.0, 200.0, 0.0),
 			Vec2::new(200.0, 50.0),
 			"UI Test Task".to_string(),
-		);
-		app.world_mut().run_system_once(params.build())?;
+		)?;
 
 		// Set the task as selected
 		let mut selection_resource = app.world_mut().resource_mut::<SelectionResource>();
@@ -407,16 +369,16 @@ mod tests {
 		let hover_system = TaskHoverSystem::default();
 
 		// Setup app with all required resources
-		let mut app = setup_hover_test_app();
+		let mut app = setup_cursor_interaction_test_app();
 
 		// Spawn tasks
-		let params = TestTasksParams::new().with_basic_task(
+		spawn_test_task(
+			&mut app,
 			TaskId::from(1),
 			Vec3::new(100.0, 200.0, 0.0),
 			Vec2::new(200.0, 50.0),
 			"UI Test Task".to_string(),
-		);
-		app.world_mut().run_system_once(params.build())?;
+		)?;
 
 		// Test the clear hover effects logic
 		fn test_clear_logic(
@@ -456,16 +418,16 @@ mod tests {
 		let hover_system = TaskHoverSystem::default();
 
 		// Setup app with all required resources
-		let mut app = setup_hover_test_app();
+		let mut app = setup_cursor_interaction_test_app();
 
 		// Spawn tasks
-		let params = TestTasksParams::new().with_basic_task(
+		spawn_test_task(
+			&mut app,
 			TaskId::from(1),
 			Vec3::new(0.0, 0.0, 0.0), // Center of world
 			Vec2::new(20.0, 20.0),    // Reasonable size
 			"UI Test Task".to_string(),
-		);
-		app.world_mut().run_system_once(params.build())?;
+		)?;
 
 		fn simulate_cursor_movement(
 			mut windows: Query<(Entity, &mut Window)>,

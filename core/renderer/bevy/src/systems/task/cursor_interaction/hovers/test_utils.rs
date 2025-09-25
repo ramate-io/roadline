@@ -1,6 +1,7 @@
 use crate::bundles::task::tests::utils::{setup_task_test_app, TestTasksParams};
 use crate::resources::{Roadline, SelectionResource};
 use crate::test_utils::create_test_roadline;
+use bevy::ecs::system::RunSystemOnce;
 use bevy::prelude::*;
 use bevy::render::camera::Viewport;
 use bevy::render::camera::{ComputedCameraValues, RenderTargetInfo};
@@ -65,13 +66,13 @@ pub fn simulate_cursor_to_world_position(
 	cameras: &Query<(&Camera, &GlobalTransform)>,
 	world_pos: Vec3,
 ) -> Result<(), Box<dyn std::error::Error>> {
-	let (_window_entity, mut window) = windows.single_mut().ok_or("No window found")?;
-	let (camera, camera_transform) = cameras.single().ok_or("No camera found")?;
+	let (_window_entity, mut window) = windows.single_mut().map_err(|_| "No window found")?;
+	let (camera, camera_transform) = cameras.single().map_err(|_| "No camera found")?;
 
 	// Convert world coordinates to screen coordinates
 	let screen_pos = camera
 		.world_to_viewport(camera_transform, world_pos)
-		.ok_or("Failed to convert world to viewport")?;
+		.map_err(|_| "Failed to convert world to viewport")?;
 
 	window.set_cursor_position(Some(screen_pos));
 	Ok(())
@@ -84,13 +85,13 @@ pub fn simulate_mouse_click(
 	cameras: &Query<(&Camera, &GlobalTransform)>,
 	world_pos: Vec3,
 ) -> Result<(), Box<dyn std::error::Error>> {
-	let (window_entity, mut window) = windows.single_mut().ok_or("No window found")?;
-	let (camera, camera_transform) = cameras.single().ok_or("No camera found")?;
+	let (window_entity, mut window) = windows.single_mut().map_err(|_| "No window found")?;
+	let (camera, camera_transform) = cameras.single().map_err(|_| "No camera found")?;
 
 	// Convert world coordinates to screen coordinates
 	let screen_pos = camera
 		.world_to_viewport(camera_transform, world_pos)
-		.ok_or("Failed to convert world to viewport")?;
+		.map_err(|_| "Failed to convert world to viewport")?;
 
 	window.set_cursor_position(Some(screen_pos));
 	mouse_events.write(bevy::input::mouse::MouseButtonInput {

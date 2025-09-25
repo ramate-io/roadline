@@ -133,81 +133,12 @@ impl TaskCursorInteractionSystem {
 mod tests {
 	use super::*;
 	use crate::components::SelectionState;
-	use crate::resources::{Roadline, SelectionResource};
-	use bevy::ecs::system::RunSystemOnce;
+	use crate::resources::SelectionResource;
+	use crate::systems::task::cursor_interaction::clicks::test_utils::{
+		setup_cursor_interaction_test_app, simulate_cursor_to_world_position, spawn_test_task,
+	};
 	use bevy::input::mouse::MouseButton;
 	use roadline_util::task::Id as TaskId;
-
-	// Helper functions for testing (duplicated from utils since we can't access them)
-	fn setup_cursor_interaction_test_app() -> App {
-		let mut app = crate::bundles::task::tests::utils::setup_task_test_app();
-
-		// Add input plugins for mouse input
-		app.add_plugins(bevy::input::InputPlugin);
-
-		// Add window plugin to create primary window
-		app.world_mut().spawn(Window::default());
-
-		// Add required resources
-		app.insert_resource(SelectionResource::default());
-		app.insert_resource(bevy::input::ButtonInput::<MouseButton>::default());
-
-		app.world_mut().spawn((
-			Camera2d,
-			Camera {
-				order: 1,
-				clear_color: ClearColorConfig::None,
-				viewport: Some(bevy::render::camera::Viewport {
-					physical_position: UVec2::new(0, 0),
-					physical_size: UVec2::new(200, 200),
-					..default()
-				}),
-				computed: bevy::render::camera::ComputedCameraValues {
-					target_info: Some(bevy::render::camera::RenderTargetInfo {
-						scale_factor: 1.0,
-						..default()
-					}),
-					..default()
-				},
-				..default()
-			},
-		));
-
-		// Add test roadline
-		let core_roadline =
-			crate::test_utils::create_test_roadline().expect("Failed to create test roadline");
-		app.insert_resource(Roadline::from(core_roadline));
-
-		app
-	}
-
-	fn spawn_test_task(
-		app: &mut App,
-		task_id: TaskId,
-		position: Vec3,
-		size: Vec2,
-		title: String,
-	) -> Result<(), Box<dyn std::error::Error>> {
-		let params = crate::bundles::task::tests::utils::TestTasksParams::new()
-			.with_basic_task(task_id, position, size, title);
-		app.world_mut().run_system_once(params.build())?;
-		Ok(())
-	}
-
-	fn simulate_cursor_to_world_position(
-		windows: &mut Query<(Entity, &mut Window)>,
-		cameras: &Query<(&Camera, &GlobalTransform)>,
-		world_pos: Vec3,
-	) -> Result<(), Box<dyn std::error::Error>> {
-		let (_window_entity, mut window) = windows.single_mut().map_err(|_| "No window found")?;
-		let (camera, camera_transform) = cameras.single().map_err(|_| "No camera found")?;
-
-		let screen_pos = camera
-			.world_to_viewport(camera_transform, world_pos)
-			.map_err(|_| "Failed to convert world to viewport")?;
-		window.set_cursor_position(Some(screen_pos));
-		Ok(())
-	}
 
 	#[test]
 	fn test_synthesized_system_hover_only() -> Result<(), Box<dyn std::error::Error>> {
