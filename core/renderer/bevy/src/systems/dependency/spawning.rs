@@ -87,9 +87,7 @@ impl DependencySpawningSystem {
 		let offset_y = -content_height_pixels / 2.0;
 
 		// Create dependency curves for each bezier curve
-		for (dependency_id, start_point, end_point, control1, control2) in
-			reified.bezier_curves()
-		{
+		for (dependency_id, start_point, end_point, control1, control2) in reified.bezier_curves() {
 			println!(
 				"dependency_id: {:?}, start: {:?}, end: {:?}, control1: {:?}, control2: {:?}",
 				dependency_id, start_point, end_point, control1, control2
@@ -281,7 +279,8 @@ mod tests {
 	}
 
 	#[test]
-	fn test_dependency_spawning_system_builds_correctly() -> Result<(), Box<dyn std::error::Error>> {
+	fn test_dependency_spawning_system_builds_correctly() -> Result<(), Box<dyn std::error::Error>>
+	{
 		let dependency_system = DependencySpawningSystem::default();
 
 		// Setup app with all required resources
@@ -301,23 +300,29 @@ mod tests {
 		let dependency_count = dependency_query.iter(app.world()).count();
 
 		// Should have spawned dependencies from the test roadline
-		assert!(dependency_count > 0, "Expected dependencies to be spawned, but found {}", dependency_count);
+		assert!(
+			dependency_count > 0,
+			"Expected dependencies to be spawned, but found {}",
+			dependency_count
+		);
 
 		Ok(())
 	}
 
 	#[test]
-	fn test_dependency_spawning_system_clears_existing_dependencies() -> Result<(), Box<dyn std::error::Error>> {
+	fn test_dependency_spawning_system_clears_existing_dependencies(
+	) -> Result<(), Box<dyn std::error::Error>> {
 		let dependency_system = DependencySpawningSystem::default();
 
 		// Setup app with all required resources
 		let mut app = setup_dependency_test_app();
 
 		// Spawn some initial dependency manually using a system
-		fn spawn_manual_dependency(
-			mut commands: Commands,
-		) {
-			let dependency_id = DependencyId::new(roadline_util::task::Id::from(1), roadline_util::task::Id::from(2));
+		fn spawn_manual_dependency(mut commands: Commands) {
+			let dependency_id = DependencyId::new(
+				roadline_util::task::Id::from(1),
+				roadline_util::task::Id::from(2),
+			);
 			commands.spawn((
 				Dependency::new(dependency_id),
 				DependencyHoverable,
@@ -360,7 +365,8 @@ mod tests {
 	}
 
 	#[test]
-	fn test_dependency_spawning_system_without_render_event() -> Result<(), Box<dyn std::error::Error>> {
+	fn test_dependency_spawning_system_without_render_event(
+	) -> Result<(), Box<dyn std::error::Error>> {
 		let dependency_system = DependencySpawningSystem::default();
 
 		// Setup app with all required resources
@@ -376,13 +382,17 @@ mod tests {
 		let mut dependency_query = app.world_mut().query::<(Entity, &Transform, &Dependency)>();
 		let dependency_count = dependency_query.iter(app.world()).count();
 
-		assert_eq!(dependency_count, 0, "Expected no dependencies to be spawned without render event");
+		assert_eq!(
+			dependency_count, 0,
+			"Expected no dependencies to be spawned without render event"
+		);
 
 		Ok(())
 	}
 
 	#[test]
-	fn test_dependency_spawning_system_without_roadline() -> Result<(), Box<dyn std::error::Error>> {
+	fn test_dependency_spawning_system_without_roadline() -> Result<(), Box<dyn std::error::Error>>
+	{
 		let dependency_system = DependencySpawningSystem::default();
 
 		// Setup app WITHOUT roadline resource
@@ -409,9 +419,11 @@ mod tests {
 	}
 
 	#[test]
-	fn test_dependency_spawning_system_custom_pixels_per_unit() -> Result<(), Box<dyn std::error::Error>> {
+	fn test_dependency_spawning_system_custom_pixels_per_unit(
+	) -> Result<(), Box<dyn std::error::Error>> {
 		let custom_pixels_per_unit = 100.0;
-		let dependency_system = DependencySpawningSystem { pixels_per_unit: custom_pixels_per_unit };
+		let dependency_system =
+			DependencySpawningSystem { pixels_per_unit: custom_pixels_per_unit };
 
 		// Setup app with all required resources
 		let mut app = setup_dependency_test_app();
@@ -444,7 +456,8 @@ mod tests {
 	}
 
 	#[test]
-	fn test_dependency_spawning_system_multiple_render_events() -> Result<(), Box<dyn std::error::Error>> {
+	fn test_dependency_spawning_system_multiple_render_events(
+	) -> Result<(), Box<dyn std::error::Error>> {
 		let dependency_system = DependencySpawningSystem::default();
 
 		// Setup app with all required resources
@@ -465,15 +478,20 @@ mod tests {
 		let mut dependency_query = app.world_mut().query::<(Entity, &Transform, &Dependency)>();
 		let dependency_count = dependency_query.iter(app.world()).count();
 
-		assert!(dependency_count > 0, "Expected dependencies to be spawned with multiple render events");
+		assert!(
+			dependency_count > 0,
+			"Expected dependencies to be spawned with multiple render events"
+		);
 
 		Ok(())
 	}
 
 	#[test]
-	fn test_dependency_spawning_system_entity_positions_and_scaling() -> Result<(), Box<dyn std::error::Error>> {
+	fn test_dependency_spawning_system_entity_positions_and_scaling(
+	) -> Result<(), Box<dyn std::error::Error>> {
 		let custom_pixels_per_unit = 75.0;
-		let dependency_system = DependencySpawningSystem { pixels_per_unit: custom_pixels_per_unit };
+		let dependency_system =
+			DependencySpawningSystem { pixels_per_unit: custom_pixels_per_unit };
 
 		// Setup app with all required resources
 		let mut app = setup_dependency_test_app();
@@ -488,7 +506,9 @@ mod tests {
 		app.update();
 
 		// Verify that dependencies were spawned
-		let mut dependency_query = app.world_mut().query::<(Entity, &Transform, &Dependency, &DependencyCurveData)>();
+		let mut dependency_query =
+			app.world_mut()
+				.query::<(Entity, &Transform, &Dependency, &DependencyCurveData)>();
 		let dependency_count = dependency_query.iter(app.world()).count();
 		assert!(dependency_count > 0, "Expected dependencies to be spawned for position testing");
 
@@ -509,7 +529,8 @@ mod tests {
 		for (_entity, transform, dependency, curve_data) in dependency_query.iter(app.world()) {
 			// Find the corresponding bezier curve in the roadline
 			let mut bezier_curves = roadline.bezier_curves();
-			let bezier_curve = bezier_curves.find(|(dep_id, _, _, _, _)| **dep_id == dependency.dependency_id);
+			let bezier_curve =
+				bezier_curves.find(|(dep_id, _, _, _, _)| **dep_id == dependency.dependency_id);
 
 			if let Some((_, start_point, end_point, _control1, _control2)) = bezier_curve {
 				// Calculate expected positions based on the spawning logic
