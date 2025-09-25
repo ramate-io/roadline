@@ -2,6 +2,7 @@ pub mod clicks;
 pub mod hovers;
 
 pub use clicks::TaskClickSystem;
+pub use clicks::events::output::TaskSelectedForExternEventSystem;
 pub use hovers::TaskHoverSystem;
 
 use crate::components::Task;
@@ -19,7 +20,10 @@ pub struct TaskCursorInteractionSystem {
 
 impl Default for TaskCursorInteractionSystem {
 	fn default() -> Self {
-		Self { hover_system: TaskHoverSystem::default(), click_system: TaskClickSystem::default() }
+		Self { 
+			hover_system: TaskHoverSystem::default(), 
+			click_system: TaskClickSystem::default(),
+		}
 	}
 }
 
@@ -36,6 +40,7 @@ impl TaskCursorInteractionSystem {
 		Option<Res<Roadline>>,
 		EventWriter<TaskSelectionChangedEvent>,
 		Res<crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem>,
+		EventWriter<crate::events::interactions::output::task::TaskSelectedForExternEvent>,
 	){
 		move |camera_query: Query<
 			(&Camera, &GlobalTransform),
@@ -48,7 +53,8 @@ impl TaskCursorInteractionSystem {
 		      selection_resource: ResMut<SelectionResource>,
 		      roadline: Option<Res<Roadline>>,
 		      mut task_selection_changed_events: EventWriter<TaskSelectionChangedEvent>,
-		      event_system: Res<crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem>| {
+		      event_system: Res<crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem>,
+		      mut task_extern_events: EventWriter<crate::events::interactions::output::task::TaskSelectedForExternEvent>| {
 			self.task_cursor_interaction(
 				camera_query,
 				windows,
@@ -59,6 +65,7 @@ impl TaskCursorInteractionSystem {
 				roadline,
 				&mut task_selection_changed_events,
 				&event_system,
+				&mut task_extern_events,
 			)
 		}
 	}
@@ -78,6 +85,7 @@ impl TaskCursorInteractionSystem {
 		roadline: Option<Res<Roadline>>,
 		task_selection_changed_events: &mut EventWriter<TaskSelectionChangedEvent>,
 		event_system: &crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem,
+		task_extern_events: &mut EventWriter<crate::events::interactions::output::task::TaskSelectedForExternEvent>,
 	) {
 		// Get camera and window info
 		let Ok((camera, camera_transform)) = camera_query.single() else {
@@ -124,6 +132,7 @@ impl TaskCursorInteractionSystem {
 				pixels_per_unit,
 				task_selection_changed_events,
 				event_system,
+				task_extern_events,
 			);
 			return; // Exit early if we handled a click
 		}
@@ -169,6 +178,7 @@ mod tests {
 		)?;
 
 		// Add the synthesized system
+		app.add_event::<crate::events::interactions::output::task::TaskSelectedForExternEvent>();
 		app.add_systems(Update, cursor_system.build());
 
 		// Simulate cursor movement to the task (without clicking)
@@ -221,6 +231,7 @@ mod tests {
 		)?;
 
 		// Add the synthesized system
+		app.add_event::<crate::events::interactions::output::task::TaskSelectedForExternEvent>();
 		app.add_systems(Update, cursor_system.build());
 
 		// Simulate cursor movement and click
@@ -276,6 +287,7 @@ mod tests {
 		)?;
 
 		// Add the synthesized system
+		app.add_event::<crate::events::interactions::output::task::TaskSelectedForExternEvent>();
 		app.add_systems(Update, cursor_system.build());
 
 		// First, simulate cursor movement to create hover effect
@@ -356,6 +368,7 @@ mod tests {
 		}
 
 		// Add the synthesized system and test sequence
+		app.add_event::<crate::events::interactions::output::task::TaskSelectedForExternEvent>();
 		app.add_systems(Update, (test_sequence, cursor_system.build()).chain());
 		app.update();
 
@@ -411,6 +424,7 @@ mod tests {
 		}
 
 		// Add the synthesized system and test sequence
+		app.add_event::<crate::events::interactions::output::task::TaskSelectedForExternEvent>();
 		app.add_systems(Update, (test_sequence, cursor_system.build()).chain());
 		app.update();
 
