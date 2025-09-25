@@ -1,5 +1,6 @@
 use crate::components::{SelectionState, Task};
 use crate::resources::{Roadline, SelectionResource};
+use bevy::input::mouse::{MouseButton, MouseButtonInput};
 use bevy::prelude::*;
 use bevy::ui::BorderColor;
 use roadline_util::task::Id as TaskId;
@@ -42,7 +43,7 @@ impl TaskClickSystem {
 		ResMut<SelectionResource>,
 		Query<&mut BorderColor>,
 		Res<Roadline>,
-		Res<ButtonInput<MouseButton>>,
+		EventReader<MouseButtonInput>,
 		Query<(&Camera, &GlobalTransform), (With<Camera2d>, Without<bevy::ui::IsDefaultUiCamera>)>,
 		Query<&Window>,
 	) {
@@ -50,54 +51,51 @@ impl TaskClickSystem {
 		      mut selection_resource: ResMut<SelectionResource>,
 		      mut ui_query: Query<&mut BorderColor>,
 		      roadline: Res<Roadline>,
-		      mouse_input: Res<ButtonInput<MouseButton>>,
+		      mut mouse_events: EventReader<MouseButtonInput>,
 		      camera_query: Query<
 			(&Camera, &GlobalTransform),
 			(With<Camera2d>, Without<bevy::ui::IsDefaultUiCamera>),
 		>,
 		      windows: Query<&Window>| {
-			// Only handle clicks if left mouse button was just pressed
-			if !mouse_input.just_pressed(MouseButton::Left) {
-				return;
+			use bevy::input::ButtonState;
+
+			// Process mouse button events
+			for ev in mouse_events.read() {
+				if ev.button == MouseButton::Left && ev.state == ButtonState::Pressed {
+					// Get camera and window info
+					let Ok((camera, camera_transform)) = camera_query.single() else {
+						panic!("No camera found");
+					};
+
+					let Ok(window) = windows.single() else {
+						panic!("No window found");
+					};
+
+					// Get mouse position
+					let Some(cursor_position) = window.cursor_position() else {
+						panic!("No cursor position found");
+					};
+
+					// Convert screen coordinates to world coordinates
+					let world_pos = match camera
+						.viewport_to_world_2d(camera_transform, cursor_position)
+					{
+						Ok(world_pos) => world_pos,
+						Err(e) => {
+							panic!("Failed to convert cursor position to world position: {:?}", e);
+						}
+					};
+
+					self.handle_task_clicks(
+						world_pos,
+						&task_query,
+						&mut selection_resource,
+						&mut ui_query,
+						&roadline,
+						self.pixels_per_unit,
+					);
+				}
 			}
-
-			println!("Click system triggered!");
-
-			// Get camera and window info
-			let Ok((camera, camera_transform)) = camera_query.single() else {
-				println!("No camera found");
-				return;
-			};
-			let Ok(window) = windows.single() else {
-				println!("No window found");
-				return;
-			};
-
-			// Get mouse position
-			let Some(cursor_position) = window.cursor_position() else {
-				println!("No cursor position");
-				return;
-			};
-
-			println!("Cursor position: {:?}", cursor_position);
-
-			// Convert screen coordinates to world coordinates
-			let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_position)
-			else {
-				println!("Failed to convert to world coordinates: cursor_position={:?}, camera_transform={:?}", cursor_position, camera_transform);
-				return;
-			};
-
-			println!("World position: {:?}", world_pos);
-
-			self.handle_task_clicks(
-				world_pos,
-				&task_query,
-				&mut selection_resource,
-				&mut ui_query,
-				&roadline,
-				self.pixels_per_unit,
-			);
 		}
 	}
 
@@ -372,8 +370,9 @@ mod tests {
 	use crate::test_utils::create_test_roadline;
 	use bevy::ecs::system::RunSystemOnce;
 	use bevy::input::ButtonInput;
-	use bevy::prelude::*;
-	use bevy::window::WindowPlugin;
+	use bevy::input::ButtonState;
+	use bevy::render::camera::Viewport;
+	use bevy::render::camera::{ComputedCameraValues, RenderTargetInfo};
 	use roadline_util::task::Id as TaskId;
 
 	/// Helper function to set up an app with all plugins and resources needed for cursor interaction testing
@@ -384,18 +383,30 @@ mod tests {
 		app.add_plugins(bevy::input::InputPlugin);
 
 		// Add window plugin to create primary window
-		app.add_plugins(WindowPlugin {
-			primary_window: Some(Window {
-				title: "Test Window".to_string(),
-				resolution: (800.0, 600.0).into(),
-				..default()
-			}),
-			..default()
-		});
+		app.world_mut().spawn(Window::default());
 
 		// Add required resources
 		app.insert_resource(SelectionResource::default());
 		app.insert_resource(ButtonInput::<MouseButton>::default());
+
+		app.world_mut().spawn((
+			Camera2d,
+			Camera {
+				order: 1,
+				// Don't draw anything in the background, to see the previous camera.
+				clear_color: ClearColorConfig::None,
+				viewport: Some(Viewport {
+					physical_position: UVec2::new(0, 0),
+					physical_size: UVec2::new(200, 200),
+					..default()
+				}),
+				computed: ComputedCameraValues {
+					target_info: Some(RenderTargetInfo { scale_factor: 1.0, ..default() }),
+					..default()
+				},
+				..default()
+			},
+		));
 
 		// Add test roadline
 		let core_roadline = create_test_roadline().expect("Failed to create test roadline");
@@ -450,6 +461,58 @@ mod tests {
 		app.add_systems(Update, test_click_logic);
 
 		// Run the test system
+		app.update();
+
+		// Check that the task is now selected
+		let selection_resource = app.world().resource::<SelectionResource>();
+		let task_state = selection_resource.get_task_state(&TaskId::from(1));
+		assert_eq!(task_state, SelectionState::Selected);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_with_camera_and_window() -> Result<(), Box<dyn std::error::Error>> {
+		let click_system = TaskClickSystem::default();
+
+		// Setup app with all required resources
+		let mut app = setup_cursor_interaction_test_app();
+
+		// Spawn tasks
+		let params = TestTasksParams::new().with_basic_task(
+			TaskId::from(1),
+			Vec3::new(0.0, 0.0, 0.0), // Center of world
+			Vec2::new(20.0, 20.0),    // Reasonable size
+			"UI Test Task".to_string(),
+		);
+		app.world_mut().run_system_once(params.build())?;
+
+		fn simulate_click(
+			mut windows: Query<(Entity, &mut Window)>,
+			mut mouse_events: EventWriter<MouseButtonInput>,
+			cameras: Query<(&Camera, &GlobalTransform)>,
+		) {
+			let (window_entity, mut window) = windows.single_mut().unwrap();
+			let (camera, camera_transform) = cameras.single().unwrap();
+
+			// Task is at Vec3(0.0, 0.0, 0.0) with size Vec2(20.0, 20.0)
+			// Camera is at z=1000 looking down, so we need to click at z=0 (in front of camera)
+			// But let's try clicking at a position that's definitely in front of the camera
+			let world_pos = Vec3::new(0.0, 0.0, 0.0); // Halfway between camera and origin
+
+			// Convert world coordinates to screen coordinates
+			let screen_pos = camera.world_to_viewport(camera_transform, world_pos).unwrap();
+
+			window.set_cursor_position(Some(screen_pos));
+			mouse_events.write(MouseButtonInput {
+				button: MouseButton::Left,
+				state: ButtonState::Pressed,
+				window: window_entity,
+			});
+		}
+
+		// Systems need to be chained to avoid first registration bug.
+		app.add_systems(Update, (simulate_click, click_system.build()).chain());
 		app.update();
 
 		// Check that the task is now selected

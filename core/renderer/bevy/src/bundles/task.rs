@@ -105,7 +105,7 @@ impl TaskSpawner {
 		// Add the anchor relationship
 		commands.entity(parent_entity).insert((
 			AnchorUiNode::to_entity(task_entity),
-			AnchorUiConfig { anchorpoint: AnchorPoint::middle(), offset: None },
+			AnchorUiConfig { anchorpoint: AnchorPoint::middle(), offset: None, ..default() },
 		));
 
 		// Spawn content using the new imperative spawner
