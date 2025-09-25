@@ -101,11 +101,7 @@ impl InputMatcher {
 				InputTrigger::RightClick => {
 					button == MouseButton::Right && input.state.is_pressed()
 				}
-				InputTrigger::PressAndHold => {
-					// For mouse, press and hold is just a left click
-					// Real press and hold detection would require timing
-					button == MouseButton::Left && input.state.is_pressed()
-				}
+				InputTrigger::PressAndHold => false, // touch input only
 				InputTrigger::LeftClick => button == MouseButton::Left && input.state.is_pressed(),
 				InputTrigger::CtrlLeftClick => {
 					button == MouseButton::Left

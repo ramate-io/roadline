@@ -10,7 +10,6 @@ use crate::events::interactions::TaskSelectionChangedEvent;
 use crate::resources::{Roadline, SelectionResource};
 use bevy::input::mouse::{MouseButton, MouseButtonInput};
 use bevy::input::ButtonInput;
-use bevy::input::ButtonState;
 use bevy::prelude::*;
 use bevy::ui::BorderColor;
 
