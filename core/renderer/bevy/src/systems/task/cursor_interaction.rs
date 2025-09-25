@@ -1,8 +1,8 @@
 pub mod clicks;
 pub mod hovers;
 
-pub use clicks::TaskClickSystem;
 pub use clicks::events::output::TaskSelectedForExternEventSystem;
+pub use clicks::TaskClickSystem;
 pub use hovers::TaskHoverSystem;
 
 use crate::components::Task;
@@ -20,10 +20,7 @@ pub struct TaskCursorInteractionSystem {
 
 impl Default for TaskCursorInteractionSystem {
 	fn default() -> Self {
-		Self { 
-			hover_system: TaskHoverSystem::default(), 
-			click_system: TaskClickSystem::default(),
-		}
+		Self { hover_system: TaskHoverSystem::default(), click_system: TaskClickSystem::default() }
 	}
 }
 
@@ -85,7 +82,9 @@ impl TaskCursorInteractionSystem {
 		roadline: Option<Res<Roadline>>,
 		task_selection_changed_events: &mut EventWriter<TaskSelectionChangedEvent>,
 		event_system: &crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem,
-		task_extern_events: &mut EventWriter<crate::events::interactions::output::task::TaskSelectedForExternEvent>,
+		task_extern_events: &mut EventWriter<
+			crate::events::interactions::output::task::TaskSelectedForExternEvent,
+		>,
 	) {
 		// Get camera and window info
 		let Ok((camera, camera_transform)) = camera_query.single() else {

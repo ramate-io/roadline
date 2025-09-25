@@ -43,6 +43,11 @@ impl Plugin for RoadlinePlugin {
 			.insert_resource(ClearColor(Color::WHITE))
 			// Add selection resource
 			.insert_resource(SelectionResource::new())
+			// Add required events for cursor interaction systems
+			.add_event::<crate::events::interactions::TaskSelectionChangedEvent>()
+			.add_event::<crate::events::interactions::output::task::TaskSelectedForExternEvent>()
+			// Add required resources for cursor interaction systems
+			.insert_resource(systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem::default())
 			// Add our custom systems
 			.add_systems(Startup, setup_camera)
 			.add_systems(

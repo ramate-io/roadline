@@ -3,11 +3,11 @@ pub mod test_utils;
 pub mod utils;
 
 use crate::components::{SelectionState, Task};
-use crate::events::interactions::TaskSelectionChangedEvent;
 use crate::events::interactions::output::task::TaskSelectedForExternEvent;
+use crate::events::interactions::TaskSelectionChangedEvent;
 use crate::resources::{Roadline, SelectionResource};
-use crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem;
 use crate::systems::task::cursor_interaction::clicks::events::output::TaskSelectedForExternEventSystem;
+use crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem;
 use crate::systems::task::cursor_interaction::clicks::utils::TaskBoundsChecker;
 use bevy::input::mouse::{MouseButton, MouseButtonInput};
 use bevy::prelude::*;
@@ -60,7 +60,7 @@ impl TaskClickSystem {
 		EventWriter<TaskSelectionChangedEvent>,
 		Res<TaskSelectionChangedEventSystem>,
 		EventWriter<TaskSelectedForExternEvent>,
-	){
+	) {
 		move |task_query: Query<(Entity, &Transform, &Task)>,
 		      mut selection_resource: ResMut<SelectionResource>,
 		      mut ui_query: Query<&mut BorderColor>,
