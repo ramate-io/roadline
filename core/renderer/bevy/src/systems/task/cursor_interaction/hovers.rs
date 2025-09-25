@@ -3,10 +3,11 @@ use crate::resources::{Roadline, SelectionResource};
 use bevy::prelude::*;
 use bevy::ui::BorderColor;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Resource)]
 pub struct TaskHoverSystem {
 	pub task_hover_border_color: Color,
 	pub unselected_task_border_color: Color,
+	pub pixels_per_unit: f32,
 }
 
 impl Default for TaskHoverSystem {
@@ -14,11 +15,69 @@ impl Default for TaskHoverSystem {
 		Self {
 			task_hover_border_color: Color::oklch(0.5, 0.137, 235.06),
 			unselected_task_border_color: Color::BLACK,
+			pixels_per_unit: 50.0,
 		}
 	}
 }
 
 impl TaskHoverSystem {
+	/// Build a system function for task hover handling
+	pub fn build(
+		self,
+	) -> impl FnMut(
+		Query<(Entity, &Transform, &Task)>,
+		ResMut<SelectionResource>,
+		Query<&mut BorderColor>,
+		Res<Roadline>,
+		Query<(&Camera, &GlobalTransform), (With<Camera2d>, Without<bevy::ui::IsDefaultUiCamera>)>,
+		Query<&Window>,
+	) {
+		move |task_query: Query<(Entity, &Transform, &Task)>,
+		      selection_resource: ResMut<SelectionResource>,
+		      mut ui_query: Query<&mut BorderColor>,
+		      roadline: Res<Roadline>,
+		      camera_query: Query<
+			(&Camera, &GlobalTransform),
+			(With<Camera2d>, Without<bevy::ui::IsDefaultUiCamera>),
+		>,
+		      windows: Query<&Window>| {
+			// Get camera and window info
+			let Ok((camera, camera_transform)) = camera_query.single() else {
+				return; // No camera found, skip hover processing
+			};
+
+			let Ok(window) = windows.single() else {
+				return; // No window found, skip hover processing
+			};
+
+			// Get mouse position
+			let Some(cursor_position) = window.cursor_position() else {
+				// No cursor position, clear hover effects
+				self.clear_hover_effects(&task_query, &mut ui_query, &selection_resource);
+				return;
+			};
+
+			// Convert screen coordinates to world coordinates
+			let world_pos = match camera.viewport_to_world_2d(camera_transform, cursor_position) {
+				Ok(world_pos) => world_pos,
+				Err(_) => {
+					// Failed to convert, clear hover effects
+					self.clear_hover_effects(&task_query, &mut ui_query, &selection_resource);
+					return;
+				}
+			};
+
+			self.handle_task_hovers(
+				world_pos,
+				&task_query,
+				&mut ui_query,
+				&selection_resource,
+				&roadline,
+				self.pixels_per_unit,
+			);
+		}
+	}
+
 	/// Handle hover effects
 	pub fn handle_task_hovers(
 		&self,
@@ -101,5 +160,344 @@ impl TaskHoverSystem {
 				}
 			}
 		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::bundles::task::tests::utils::{setup_task_test_app, TestTasksParams};
+	use crate::components::SelectionState;
+	use crate::resources::{Roadline, SelectionResource};
+	use crate::test_utils::create_test_roadline;
+	use bevy::ecs::system::RunSystemOnce;
+	use bevy::render::camera::Viewport;
+	use bevy::render::camera::{ComputedCameraValues, RenderTargetInfo};
+	use roadline_util::task::Id as TaskId;
+
+	/// Helper function to set up an app with all plugins and resources needed for hover testing
+	fn setup_hover_test_app() -> App {
+		let mut app = setup_task_test_app();
+
+		// Add window plugin to create primary window
+		app.world_mut().spawn(Window::default());
+
+		// Add required resources
+		app.insert_resource(SelectionResource::default());
+
+		app.world_mut().spawn((
+			Camera2d,
+			Camera {
+				order: 1,
+				// Don't draw anything in the background, to see the previous camera.
+				clear_color: ClearColorConfig::None,
+				viewport: Some(Viewport {
+					physical_position: UVec2::new(0, 0),
+					physical_size: UVec2::new(200, 200),
+					..default()
+				}),
+				computed: ComputedCameraValues {
+					target_info: Some(RenderTargetInfo { scale_factor: 1.0, ..default() }),
+					..default()
+				},
+				..default()
+			},
+		));
+
+		// Add test roadline
+		let core_roadline = create_test_roadline().expect("Failed to create test roadline");
+		app.insert_resource(Roadline::from(core_roadline));
+
+		app
+	}
+
+	#[test]
+	fn test_compatible_with_spawned_tasks() -> Result<(), Box<dyn std::error::Error>> {
+		let hover_system = TaskHoverSystem::default();
+
+		// Setup app with all required resources
+		let mut app = setup_hover_test_app();
+
+		// Spawn tasks
+		let params = TestTasksParams::new().with_basic_task(
+			TaskId::from(1),
+			Vec3::new(100.0, 200.0, 0.0),
+			Vec2::new(200.0, 50.0),
+			"UI Test Task".to_string(),
+		);
+		app.world_mut().run_system_once(params.build())?;
+
+		// Test the hover logic directly without coordinate conversion
+		fn test_hover_logic(
+			hover_system: Res<TaskHoverSystem>,
+			task_query: Query<(Entity, &Transform, &Task)>,
+			selection_resource: ResMut<SelectionResource>,
+			mut ui_query: Query<&mut BorderColor>,
+			roadline: Res<Roadline>,
+		) {
+			// Test with world coordinates that should hit the task
+			// Task is at Vec3(100.0, 200.0, 0.0) with actual bounds min=(75, 175), max=(125, 225)
+			// So let's hover at the center: (100, 200)
+			let world_pos = Vec2::new(100.0, 200.0);
+
+			hover_system.handle_task_hovers(
+				world_pos,
+				&task_query,
+				&mut ui_query,
+				&selection_resource,
+				&roadline,
+				hover_system.pixels_per_unit,
+			);
+		}
+
+		// Add the hover system as a resource and the test system
+		app.insert_resource(hover_system);
+		app.add_systems(Update, test_hover_logic);
+
+		// Run the test system
+		app.update();
+
+		// Check that the task now has hover color
+		let mut task_query = app.world_mut().query::<(Entity, &Transform, &Task)>();
+		let mut ui_query = app.world_mut().query::<&BorderColor>();
+
+		for (_entity, _transform, task) in task_query.iter(app.world()) {
+			if let Some(ui_entity) = task.ui_entity {
+				if let Ok(border_color) = ui_query.get(app.world(), ui_entity) {
+					// Should have hover color since we're hovering over it
+					assert_eq!(border_color.0, Color::oklch(0.5, 0.137, 235.06));
+				}
+			}
+		}
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_hover_outside_bounds() -> Result<(), Box<dyn std::error::Error>> {
+		let hover_system = TaskHoverSystem::default();
+
+		// Setup app with all required resources
+		let mut app = setup_hover_test_app();
+
+		// Spawn tasks
+		let params = TestTasksParams::new().with_basic_task(
+			TaskId::from(1),
+			Vec3::new(100.0, 200.0, 0.0),
+			Vec2::new(200.0, 50.0),
+			"UI Test Task".to_string(),
+		);
+		app.world_mut().run_system_once(params.build())?;
+
+		// Test the hover logic with coordinates outside the task bounds
+		fn test_hover_logic(
+			hover_system: Res<TaskHoverSystem>,
+			task_query: Query<(Entity, &Transform, &Task)>,
+			selection_resource: ResMut<SelectionResource>,
+			mut ui_query: Query<&mut BorderColor>,
+			roadline: Res<Roadline>,
+		) {
+			// Test with world coordinates that should NOT hit the task
+			// Task is at Vec3(100.0, 200.0, 0.0) with actual bounds min=(75, 175), max=(125, 225)
+			// So let's hover far away: (0, 0)
+			let world_pos = Vec2::new(0.0, 0.0);
+
+			hover_system.handle_task_hovers(
+				world_pos,
+				&task_query,
+				&mut ui_query,
+				&selection_resource,
+				&roadline,
+				hover_system.pixels_per_unit,
+			);
+		}
+
+		// Add the hover system as a resource and the test system
+		app.insert_resource(hover_system);
+		app.add_systems(Update, test_hover_logic);
+
+		// Run the test system
+		app.update();
+
+		// Check that the task has unselected color (no hover)
+		let mut task_query = app.world_mut().query::<(Entity, &Transform, &Task)>();
+		let mut ui_query = app.world_mut().query::<&BorderColor>();
+
+		for (_entity, _transform, task) in task_query.iter(app.world()) {
+			if let Some(ui_entity) = task.ui_entity {
+				if let Ok(border_color) = ui_query.get(app.world(), ui_entity) {
+					// Should have unselected color since we're not hovering over it
+					assert_eq!(border_color.0, Color::BLACK);
+				}
+			}
+		}
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_hover_skips_selected_tasks() -> Result<(), Box<dyn std::error::Error>> {
+		let hover_system = TaskHoverSystem::default();
+
+		// Setup app with all required resources
+		let mut app = setup_hover_test_app();
+
+		// Spawn tasks
+		let params = TestTasksParams::new().with_basic_task(
+			TaskId::from(1),
+			Vec3::new(100.0, 200.0, 0.0),
+			Vec2::new(200.0, 50.0),
+			"UI Test Task".to_string(),
+		);
+		app.world_mut().run_system_once(params.build())?;
+
+		// Set the task as selected
+		let mut selection_resource = app.world_mut().resource_mut::<SelectionResource>();
+		selection_resource.set_task_state(TaskId::from(1), SelectionState::Selected);
+
+		// Test the hover logic with coordinates that should hit the task
+		fn test_hover_logic(
+			hover_system: Res<TaskHoverSystem>,
+			task_query: Query<(Entity, &Transform, &Task)>,
+			selection_resource: ResMut<SelectionResource>,
+			mut ui_query: Query<&mut BorderColor>,
+			roadline: Res<Roadline>,
+		) {
+			// Test with world coordinates that should hit the task
+			let world_pos = Vec2::new(100.0, 200.0);
+
+			hover_system.handle_task_hovers(
+				world_pos,
+				&task_query,
+				&mut ui_query,
+				&selection_resource,
+				&roadline,
+				hover_system.pixels_per_unit,
+			);
+		}
+
+		// Add the hover system as a resource and the test system
+		app.insert_resource(hover_system);
+		app.add_systems(Update, test_hover_logic);
+
+		// Run the test system
+		app.update();
+
+		// Check that the task still has its original color (hover should be skipped for selected tasks)
+		let mut task_query = app.world_mut().query::<(Entity, &Transform, &Task)>();
+		let mut ui_query = app.world_mut().query::<&BorderColor>();
+
+		for (_entity, _transform, task) in task_query.iter(app.world()) {
+			if let Some(ui_entity) = task.ui_entity {
+				if let Ok(border_color) = ui_query.get(app.world(), ui_entity) {
+					// Should NOT have hover color since the task is selected
+					// The color should remain whatever it was set to by the selection system
+					assert_ne!(border_color.0, Color::oklch(0.5, 0.137, 235.06));
+				}
+			}
+		}
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_clear_hover_effects() -> Result<(), Box<dyn std::error::Error>> {
+		let hover_system = TaskHoverSystem::default();
+
+		// Setup app with all required resources
+		let mut app = setup_hover_test_app();
+
+		// Spawn tasks
+		let params = TestTasksParams::new().with_basic_task(
+			TaskId::from(1),
+			Vec3::new(100.0, 200.0, 0.0),
+			Vec2::new(200.0, 50.0),
+			"UI Test Task".to_string(),
+		);
+		app.world_mut().run_system_once(params.build())?;
+
+		// Test the clear hover effects logic
+		fn test_clear_logic(
+			hover_system: Res<TaskHoverSystem>,
+			task_query: Query<(Entity, &Transform, &Task)>,
+			selection_resource: ResMut<SelectionResource>,
+			mut ui_query: Query<&mut BorderColor>,
+		) {
+			hover_system.clear_hover_effects(&task_query, &mut ui_query, &selection_resource);
+		}
+
+		// Add the hover system as a resource and the test system
+		app.insert_resource(hover_system);
+		app.add_systems(Update, test_clear_logic);
+
+		// Run the test system
+		app.update();
+
+		// Check that the task has unselected color
+		let mut task_query = app.world_mut().query::<(Entity, &Transform, &Task)>();
+		let mut ui_query = app.world_mut().query::<&BorderColor>();
+
+		for (_entity, _transform, task) in task_query.iter(app.world()) {
+			if let Some(ui_entity) = task.ui_entity {
+				if let Ok(border_color) = ui_query.get(app.world(), ui_entity) {
+					// Should have unselected color after clearing hover effects
+					assert_eq!(border_color.0, Color::BLACK);
+				}
+			}
+		}
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_with_camera_and_window() -> Result<(), Box<dyn std::error::Error>> {
+		let hover_system = TaskHoverSystem::default();
+
+		// Setup app with all required resources
+		let mut app = setup_hover_test_app();
+
+		// Spawn tasks
+		let params = TestTasksParams::new().with_basic_task(
+			TaskId::from(1),
+			Vec3::new(0.0, 0.0, 0.0), // Center of world
+			Vec2::new(20.0, 20.0),    // Reasonable size
+			"UI Test Task".to_string(),
+		);
+		app.world_mut().run_system_once(params.build())?;
+
+		fn simulate_cursor_movement(
+			mut windows: Query<(Entity, &mut Window)>,
+			cameras: Query<(&Camera, &GlobalTransform)>,
+		) {
+			let (_window_entity, mut window) = windows.single_mut().unwrap();
+			let (camera, camera_transform) = cameras.single().unwrap();
+
+			// Task is at Vec3(0.0, 0.0, 0.0) with size Vec2(20.0, 20.0)
+			let world_pos = Vec3::new(0.0, 0.0, 0.0);
+
+			// Convert world coordinates to screen coordinates
+			let screen_pos = camera.world_to_viewport(camera_transform, world_pos).unwrap();
+
+			window.set_cursor_position(Some(screen_pos));
+		}
+
+		// Systems need to be chained to avoid first registration bug.
+		app.add_systems(Update, (simulate_cursor_movement, hover_system.build()).chain());
+		app.update();
+
+		// Check that the task now has hover color
+		let mut task_query = app.world_mut().query::<(Entity, &Transform, &Task)>();
+		let mut ui_query = app.world_mut().query::<&BorderColor>();
+
+		for (_entity, _transform, task) in task_query.iter(app.world()) {
+			if let Some(ui_entity) = task.ui_entity {
+				if let Ok(border_color) = ui_query.get(app.world(), ui_entity) {
+					// Should have hover color since cursor is over the task
+					assert_eq!(border_color.0, Color::oklch(0.5, 0.137, 235.06));
+				}
+			}
+		}
+
+		Ok(())
 	}
 }
