@@ -4,7 +4,6 @@ pub mod resources;
 pub mod roadline_renderer;
 pub mod systems;
 
-#[cfg(any(test, feature = "test-utils"))]
 pub mod test_utils;
 
 use bevy::prelude::*;
@@ -48,10 +47,10 @@ impl Plugin for RoadlinePlugin {
 			.add_systems(
 				Update,
 				(
-					systems::TaskSystemConfig::build(),
-					systems::DependencySystemConfig::build(),
-					systems::dependency::dependency_hover_system,
-					systems::task_cursor_interaction_system,
+					systems::TaskSpawningSystem::default().build(),
+					systems::DependencySpawningSystem::default().build(),
+					systems::DependencyHoverSystem::default().build(),
+					systems::TaskCursorInteractionSystem::default().build(),
 					// systems::click_selection_system,
 				),
 			);
