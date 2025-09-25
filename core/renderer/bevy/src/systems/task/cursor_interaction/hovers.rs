@@ -446,7 +446,7 @@ mod tests {
 		}
 
 		// Systems need to be chained to avoid first registration bug.
-		app.add_systems(Update, (simulate_cursor_movement, hover_system.build()).chain());
+		app.add_systems(Update, (simulate_cursor_movement, hover_system.clone().build()).chain());
 		app.update();
 
 		// Check that the task now has hover color
@@ -457,7 +457,7 @@ mod tests {
 			if let Some(ui_entity) = task.ui_entity {
 				if let Ok(border_color) = ui_query.get(app.world(), ui_entity) {
 					// Should have hover color since cursor is over the task
-					assert_eq!(border_color.0, Color::oklch(0.5, 0.137, 235.06));
+					assert_eq!(border_color.0, hover_system.task_hover_border_color);
 				}
 			}
 		}

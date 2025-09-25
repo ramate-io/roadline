@@ -138,6 +138,7 @@ mod tests {
 		setup_cursor_interaction_test_app, simulate_cursor_to_world_position, spawn_test_task,
 	};
 	use bevy::input::mouse::MouseButton;
+	use bevy::input::ButtonInput;
 	use roadline_util::task::Id as TaskId;
 
 	#[test]
@@ -319,68 +320,106 @@ mod tests {
 	fn test_synthesized_system_subsystems_work_together() -> Result<(), Box<dyn std::error::Error>>
 	{
 		let cursor_system = TaskCursorInteractionSystem::default();
+		let hover_color = cursor_system.hover_system.task_hover_border_color;
 
 		// Setup app with all required resources
 		let mut app = setup_cursor_interaction_test_app();
 
-		// Spawn two test tasks
+		// Spawn one test task at origin (like other tests)
 		spawn_test_task(
 			&mut app,
 			TaskId::from(1),
-			Vec3::new(-50.0, 0.0, 0.0),
+			Vec3::new(0.0, 0.0, 0.0),
 			Vec2::new(20.0, 20.0),
-			"Task 1".to_string(),
-		)?;
-		spawn_test_task(
-			&mut app,
-			TaskId::from(2),
-			Vec3::new(50.0, 0.0, 0.0),
-			Vec2::new(20.0, 20.0),
-			"Task 2".to_string(),
+			"Test Task".to_string(),
 		)?;
 
-		// Test sequence: hover over task 1
+		// Test sequence: hover over the task at origin
 		fn test_sequence(
 			mut windows: Query<(Entity, &mut Window)>,
 			cameras: Query<(&Camera, &GlobalTransform)>,
 		) {
-			// This is a simplified test - in a real scenario you'd want more sophisticated state management
-			// For now, just verify the system can handle multiple interactions
-			let _ = simulate_cursor_to_world_position(
-				&mut windows,
-				&cameras,
-				Vec3::new(-50.0, 0.0, 0.0),
-			);
+			// Hover over the task at origin
+			let _ =
+				simulate_cursor_to_world_position(&mut windows, &cameras, Vec3::new(0.0, 0.0, 0.0));
 		}
 
 		// Add the synthesized system and test sequence
 		app.add_systems(Update, (test_sequence, cursor_system.build()).chain());
 		app.update();
 
-		// Verify both subsystems are working together by checking that:
-		// 1. The system doesn't crash with multiple tasks
-		// 2. The system can handle the combined functionality
-		// 3. Both tasks exist and have UI entities
-
+		// Verify hover effect is applied
 		let mut task_query = app.world_mut().query::<(Entity, &Transform, &Task)>();
 		let mut ui_query = app.world_mut().query::<&BorderColor>();
-		let mut task_count = 0;
-		let mut tasks_with_ui = 0;
 
 		for (_entity, _transform, task) in task_query.iter(app.world()) {
-			task_count += 1;
 			if let Some(ui_entity) = task.ui_entity {
-				tasks_with_ui += 1;
-				// Verify the UI entity exists and has a border color
-				if let Ok(_border_color) = ui_query.get(app.world(), ui_entity) {
-					// UI entity exists and is accessible - this is sufficient for this test
+				if let Ok(border_color) = ui_query.get(app.world(), ui_entity) {
+					// Should have hover color since we're hovering over it
+					assert_eq!(border_color.0, hover_color);
 				}
 			}
 		}
 
-		// Verify we have both tasks and they both have UI entities
-		assert_eq!(task_count, 2);
-		assert_eq!(tasks_with_ui, 2);
+		// Verify task is not selected (hover only, no click)
+		let selection_resource = app.world().resource::<SelectionResource>();
+		let task_state = selection_resource.get_task_state(&TaskId::from(1));
+		assert_eq!(task_state, SelectionState::Unselected);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_synthesized_system_hover_and_click() -> Result<(), Box<dyn std::error::Error>> {
+		let cursor_system = TaskCursorInteractionSystem::default();
+		let selected_color = cursor_system.click_system.selected_task_border_color;
+
+		// Setup app with all required resources
+		let mut app = setup_cursor_interaction_test_app();
+
+		// Spawn one test task at origin
+		spawn_test_task(
+			&mut app,
+			TaskId::from(1),
+			Vec3::new(0.0, 0.0, 0.0),
+			Vec2::new(20.0, 20.0),
+			"Test Task".to_string(),
+		)?;
+
+		// Test sequence: hover and click over the task at origin
+		fn test_sequence(
+			mut windows: Query<(Entity, &mut Window)>,
+			mut mouse_input: ResMut<ButtonInput<MouseButton>>,
+			cameras: Query<(&Camera, &GlobalTransform)>,
+		) {
+			// Hover over the task at origin
+			let _ =
+				simulate_cursor_to_world_position(&mut windows, &cameras, Vec3::new(0.0, 0.0, 0.0));
+			// Simulate mouse button press using ButtonInput
+			mouse_input.press(MouseButton::Left);
+		}
+
+		// Add the synthesized system and test sequence
+		app.add_systems(Update, (test_sequence, cursor_system.build()).chain());
+		app.update();
+
+		// Verify task is selected (click takes priority over hover)
+		let selection_resource = app.world().resource::<SelectionResource>();
+		let task_state = selection_resource.get_task_state(&TaskId::from(1));
+		assert_eq!(task_state, SelectionState::Selected);
+
+		// Verify task has selected color (not hover color)
+		let mut task_query = app.world_mut().query::<(Entity, &Transform, &Task)>();
+		let mut ui_query = app.world_mut().query::<&BorderColor>();
+
+		for (_entity, _transform, task) in task_query.iter(app.world()) {
+			if let Some(ui_entity) = task.ui_entity {
+				if let Ok(border_color) = ui_query.get(app.world(), ui_entity) {
+					// Should have selected color, not hover color
+					assert_eq!(border_color.0, selected_color);
+				}
+			}
+		}
 
 		Ok(())
 	}
