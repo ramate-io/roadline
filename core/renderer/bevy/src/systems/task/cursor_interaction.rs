@@ -5,6 +5,7 @@ pub use clicks::TaskClickSystem;
 pub use hovers::TaskHoverSystem;
 
 use crate::components::Task;
+use crate::events::interactions::TaskSelectionChangedEvent;
 use crate::resources::{Roadline, SelectionResource};
 use bevy::input::ButtonInput;
 use bevy::prelude::*;
@@ -33,7 +34,9 @@ impl TaskCursorInteractionSystem {
 		Query<&mut BorderColor>,
 		ResMut<SelectionResource>,
 		Option<Res<Roadline>>,
-	) {
+		EventWriter<TaskSelectionChangedEvent>,
+		Res<crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem>,
+	){
 		move |camera_query: Query<
 			(&Camera, &GlobalTransform),
 			(With<Camera2d>, Without<bevy::ui::IsDefaultUiCamera>),
@@ -43,7 +46,9 @@ impl TaskCursorInteractionSystem {
 		      task_query: Query<(Entity, &Transform, &Task)>,
 		      ui_query: Query<&mut BorderColor>,
 		      selection_resource: ResMut<SelectionResource>,
-		      roadline: Option<Res<Roadline>>| {
+		      roadline: Option<Res<Roadline>>,
+		      mut task_selection_changed_events: EventWriter<TaskSelectionChangedEvent>,
+		      event_system: Res<crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem>| {
 			self.task_cursor_interaction(
 				camera_query,
 				windows,
@@ -52,6 +57,8 @@ impl TaskCursorInteractionSystem {
 				ui_query,
 				selection_resource,
 				roadline,
+				&mut task_selection_changed_events,
+				&event_system,
 			)
 		}
 	}
@@ -69,6 +76,8 @@ impl TaskCursorInteractionSystem {
 		mut ui_query: Query<&mut BorderColor>,
 		mut selection_resource: ResMut<SelectionResource>,
 		roadline: Option<Res<Roadline>>,
+		task_selection_changed_events: &mut EventWriter<TaskSelectionChangedEvent>,
+		event_system: &crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem,
 	) {
 		// Get camera and window info
 		let Ok((camera, camera_transform)) = camera_query.single() else {
@@ -113,6 +122,8 @@ impl TaskCursorInteractionSystem {
 				&mut ui_query,
 				&roadline,
 				pixels_per_unit,
+				task_selection_changed_events,
+				event_system,
 			);
 			return; // Exit early if we handled a click
 		}

@@ -2,6 +2,7 @@ pub mod events;
 pub mod test_utils;
 
 use crate::components::{SelectionState, Task};
+use crate::events::interactions::TaskSelectionChangedEvent;
 use crate::resources::{Roadline, SelectionResource};
 use bevy::input::mouse::{MouseButton, MouseButtonInput};
 use bevy::prelude::*;
@@ -49,7 +50,9 @@ impl TaskClickSystem {
 		EventReader<MouseButtonInput>,
 		Query<(&Camera, &GlobalTransform), (With<Camera2d>, Without<bevy::ui::IsDefaultUiCamera>)>,
 		Query<&Window>,
-	) {
+		EventWriter<TaskSelectionChangedEvent>,
+		Res<crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem>,
+	){
 		move |task_query: Query<(Entity, &Transform, &Task)>,
 		      mut selection_resource: ResMut<SelectionResource>,
 		      mut ui_query: Query<&mut BorderColor>,
@@ -59,7 +62,9 @@ impl TaskClickSystem {
 			(&Camera, &GlobalTransform),
 			(With<Camera2d>, Without<bevy::ui::IsDefaultUiCamera>),
 		>,
-		      windows: Query<&Window>| {
+		      windows: Query<&Window>,
+		      mut task_selection_changed_events: EventWriter<TaskSelectionChangedEvent>,
+		      event_system: Res<crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem>| {
 			use bevy::input::ButtonState;
 
 			// Process mouse button events
@@ -96,6 +101,8 @@ impl TaskClickSystem {
 						&mut ui_query,
 						&roadline,
 						self.pixels_per_unit,
+						&mut task_selection_changed_events,
+						&event_system,
 					);
 				}
 			}
@@ -111,6 +118,8 @@ impl TaskClickSystem {
 		ui_query: &mut Query<&mut BorderColor>,
 		roadline: &Roadline,
 		pixels_per_unit: f32,
+		task_selection_changed_events: &mut EventWriter<TaskSelectionChangedEvent>,
+		event_system: &crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem,
 	) {
 		for (_entity, transform, task) in task_query.iter() {
 			// Get task position from transform
@@ -143,6 +152,8 @@ impl TaskClickSystem {
 					ui_query,
 					roadline,
 					task_query,
+					task_selection_changed_events,
+					event_system,
 				);
 				return; // Exit early if we clicked on a task
 			}
@@ -157,6 +168,8 @@ impl TaskClickSystem {
 		ui_query: &mut Query<&mut BorderColor>,
 		roadline: &Roadline,
 		task_query: &Query<(Entity, &Transform, &Task)>,
+		task_selection_changed_events: &mut EventWriter<TaskSelectionChangedEvent>,
+		event_system: &crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem,
 	) {
 		// Get current selection state
 		let current_state = selection_resource.get_task_state(&task_id);
@@ -170,6 +183,14 @@ impl TaskClickSystem {
 		};
 
 		selection_resource.set_task_state(task_id, new_state);
+
+		// Emit selection changed event
+		event_system.emit_task_selection_changed(
+			task_selection_changed_events,
+			task_id,
+			current_state,
+			new_state,
+		);
 
 		// Update visual feedback
 		self.update_task_visual_feedback(task_id, new_state, ui_query, task_query);
@@ -400,6 +421,8 @@ mod tests {
 			mut selection_resource: ResMut<SelectionResource>,
 			mut ui_query: Query<&mut BorderColor>,
 			roadline: Res<Roadline>,
+			mut task_selection_changed_events: EventWriter<TaskSelectionChangedEvent>,
+			event_system: Res<crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem>,
 		) {
 			// Test with world coordinates that should hit the task
 			// Task is at Vec3(100.0, 200.0, 0.0) with actual bounds min=(75, 175), max=(125, 225)
@@ -413,11 +436,14 @@ mod tests {
 				&mut ui_query,
 				&roadline,
 				click_system.pixels_per_unit,
+				&mut task_selection_changed_events,
+				&event_system,
 			);
 		}
 
 		// Add the click system as a resource and the test system
 		app.insert_resource(click_system);
+		app.insert_resource(crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem::default());
 		app.add_systems(Update, test_click_logic);
 
 		// Run the test system
