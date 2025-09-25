@@ -251,10 +251,10 @@ impl TaskSelectedForExternEventSystem {
 	) {
 		move |task_query: Query<(Entity, &Transform, &Task)>,
 		      mut mouse_events: EventReader<MouseButtonInput>,
-		      mut touch_events: EventReader<TouchInput>,
+		      mut _touch_events: EventReader<TouchInput>,
 		      keyboard_input: Res<ButtonInput<KeyCode>>,
 		      roadline: Res<Roadline>,
-		      mut touch_tracker: ResMut<TouchDurationTracker>,
+		      mut _touch_tracker: ResMut<TouchDurationTracker>,
 		      mut events: EventWriter<TaskSelectedForExternEvent>,
 		      camera_query: Query<
 			(&Camera, &GlobalTransform),
@@ -287,17 +287,47 @@ impl TaskSelectedForExternEventSystem {
 						}
 					};
 
-					self.process_input_events(
+					self.process_single_mouse_event(
 						world_pos,
+						ev,
 						&task_query,
-						&mut mouse_events,
-						&mut touch_events,
 						&keyboard_input,
 						&roadline,
-						&mut touch_tracker,
 						&mut events,
 					);
 				}
+			}
+		}
+	}
+
+	/// Process a single mouse event and emit task selected events if conditions are met
+	pub fn process_single_mouse_event(
+		&self,
+		world_pos: Vec2,
+		mouse_event: &MouseButtonInput,
+		task_query: &Query<(Entity, &Transform, &Task)>,
+		keyboard_input: &Res<ButtonInput<KeyCode>>,
+		roadline: &Roadline,
+		events: &mut EventWriter<TaskSelectedForExternEvent>,
+	) {
+		if !self.emit_events {
+			return;
+		}
+
+		let matcher = InputMatcher::new(self.pixels_per_unit);
+		let mut emit_fn = |task_id: TaskId, state: SelectionState| {
+			self.emit_task_selected_for_extern(events, task_id, state);
+		};
+
+		// Check if this mouse event matches any of our triggers
+		if matcher.matches_mouse_input(
+			&self.input_triggers,
+			mouse_event.button,
+			mouse_event,
+			keyboard_input,
+		) {
+			if let Some(task_id) = matcher.find_task_at_position(task_query, roadline, world_pos) {
+				emit_fn(task_id, SelectionState::Selected);
 			}
 		}
 	}

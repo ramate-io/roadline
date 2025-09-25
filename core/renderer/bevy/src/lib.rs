@@ -79,6 +79,7 @@ impl RoadlinePlugin {
 			.add_event::<crate::resources::RenderUpdateEvent>()
 			// Add required resources for cursor interaction systems
 			.insert_resource(systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem::default())
+			.insert_resource(systems::task::cursor_interaction::clicks::events::output::task_selected_for_extern::TouchDurationTracker::default())
 			// Add render config resource
 			.insert_resource(RoadlineRenderConfig::default())
 			// Add our custom systems

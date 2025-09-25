@@ -112,6 +112,7 @@ impl TaskClickSystem {
 
 					self.handle_task_clicks(
 						world_pos,
+						ev,
 						&task_query,
 						&mut selection_resource,
 						&mut ui_query,
@@ -120,7 +121,6 @@ impl TaskClickSystem {
 						&mut task_selection_changed_events,
 						&task_selection_event_system,
 						&mut task_extern_events,
-						&mut mouse_events,
 						&mut touch_events,
 						&keyboard_input,
 						&mut touch_tracker,
@@ -134,6 +134,7 @@ impl TaskClickSystem {
 	pub fn handle_task_clicks(
 		&self,
 		world_pos: Vec2,
+		mouse_event: &MouseButtonInput,
 		task_query: &Query<(Entity, &Transform, &Task)>,
 		selection_resource: &mut ResMut<SelectionResource>,
 		ui_query: &mut Query<&mut BorderColor>,
@@ -142,21 +143,18 @@ impl TaskClickSystem {
 		task_selection_changed_events: &mut EventWriter<TaskSelectionChangedEvent>,
 		task_selection_event_system: &TaskSelectionChangedEventSystem,
 		task_extern_events: &mut EventWriter<TaskSelectedForExternEvent>,
-		mouse_events: &mut EventReader<MouseButtonInput>,
-		touch_events: &mut EventReader<TouchInput>,
+		_touch_events: &mut EventReader<TouchInput>,
 		keyboard_input: &Res<ButtonInput<KeyCode>>,
-		touch_tracker: &mut ResMut<TouchDurationTracker>,
+		_touch_tracker: &mut ResMut<TouchDurationTracker>,
 	) {
-		// Run the extern event system
-		self.extern_event_system.process_input_events(
+		// Run the extern event system for this specific mouse event
+		self.extern_event_system.process_single_mouse_event(
 			world_pos,
+			mouse_event,
 			task_query,
-			&mut mouse_events,
-			&mut touch_events,
 			&keyboard_input,
 			&roadline,
-			&mut touch_tracker,
-			&mut events,
+			task_extern_events,
 		);
 
 		// Use TaskBoundsChecker to find the clicked task
@@ -442,14 +440,25 @@ mod tests {
 			mut task_selection_changed_events: EventWriter<TaskSelectionChangedEvent>,
 			task_selection_event_system: Res<TaskSelectionChangedEventSystem>,
 			mut task_extern_events: EventWriter<TaskSelectedForExternEvent>,
+			mut touch_events: EventReader<TouchInput>,
+			keyboard_input: Res<ButtonInput<KeyCode>>,
+			mut touch_tracker: ResMut<TouchDurationTracker>,
 		) {
 			// Test with world coordinates that should hit the task
 			// Task is at Vec3(100.0, 200.0, 0.0) with actual bounds min=(75, 175), max=(125, 225)
 			// So let's click at the center: (100, 200)
 			let world_pos = Vec2::new(100.0, 200.0);
 
+			// Create a synthetic mouse event for testing
+			let mouse_event = MouseButtonInput {
+				button: MouseButton::Left,
+				state: bevy::input::ButtonState::Pressed,
+				window: Entity::from_raw(0), // Use a dummy entity for testing
+			};
+
 			click_system.handle_task_clicks(
 				world_pos,
+				&mouse_event,
 				&task_query,
 				&mut selection_resource,
 				&mut ui_query,
@@ -458,12 +467,16 @@ mod tests {
 				&mut task_selection_changed_events,
 				&task_selection_event_system,
 				&mut task_extern_events,
+				&mut touch_events,
+				&keyboard_input,
+				&mut touch_tracker,
 			);
 		}
 
 		// Add the click system as a resource and the test system
 		app.insert_resource(click_system);
 		app.insert_resource(crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem::default());
+		app.insert_resource(TouchDurationTracker::default());
 		app.add_event::<TaskSelectedForExternEvent>();
 		app.add_systems(Update, test_click_logic);
 

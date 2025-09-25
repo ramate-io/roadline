@@ -10,6 +10,7 @@ use crate::events::interactions::TaskSelectionChangedEvent;
 use crate::resources::{Roadline, SelectionResource};
 use bevy::input::mouse::{MouseButton, MouseButtonInput};
 use bevy::input::ButtonInput;
+use bevy::input::ButtonState;
 use bevy::prelude::*;
 use bevy::ui::BorderColor;
 
@@ -88,7 +89,7 @@ impl TaskCursorInteractionSystem {
 			(With<Camera2d>, Without<bevy::ui::IsDefaultUiCamera>),
 		>,
 		windows: Query<&Window>,
-		mouse_input: Res<ButtonInput<MouseButton>>,
+		_mouse_input: Res<ButtonInput<MouseButton>>,
 		task_query: Query<(Entity, &Transform, &Task)>,
 		mut ui_query: Query<&mut BorderColor>,
 		mut selection_resource: ResMut<SelectionResource>,
@@ -138,23 +139,25 @@ impl TaskCursorInteractionSystem {
 		let pixels_per_unit = 50.0;
 
 		// Check for clicks first (higher priority)
-		if mouse_input.just_pressed(MouseButton::Left) {
-			self.click_system.handle_task_clicks(
-				world_pos,
-				&task_query,
-				&mut selection_resource,
-				&mut ui_query,
-				&roadline,
-				pixels_per_unit,
-				task_selection_changed_events,
-				event_system,
-				task_extern_events,
-				mouse_events,
-				touch_events,
-				keyboard_input,
-				touch_tracker,
-			);
-			return; // Exit early if we handled a click
+		for ev in mouse_events.read() {
+			if ev.button == MouseButton::Left && ev.state == bevy::input::ButtonState::Pressed {
+				self.click_system.handle_task_clicks(
+					world_pos,
+					ev,
+					&task_query,
+					&mut selection_resource,
+					&mut ui_query,
+					&roadline,
+					pixels_per_unit,
+					task_selection_changed_events,
+					event_system,
+					task_extern_events,
+					touch_events,
+					keyboard_input,
+					touch_tracker,
+				);
+				return; // Exit early if we handled a click
+			}
 		}
 
 		// Handle hover effects (lower priority)
@@ -175,10 +178,9 @@ mod tests {
 	use crate::components::SelectionState;
 	use crate::resources::SelectionResource;
 	use crate::systems::task::cursor_interaction::clicks::test_utils::{
-		setup_cursor_interaction_test_app, simulate_cursor_to_world_position, spawn_test_task,
+		setup_cursor_interaction_test_app, simulate_cursor_to_world_position, simulate_mouse_click,
+		spawn_test_task,
 	};
-	use bevy::input::mouse::MouseButton;
-	use bevy::input::ButtonInput;
 	use roadline_util::task::Id as TaskId;
 
 	#[test]
@@ -257,13 +259,18 @@ mod tests {
 		// Simulate cursor movement and click
 		fn simulate_cursor_and_click(
 			mut windows: Query<(Entity, &mut Window)>,
-			mut mouse_input: ResMut<ButtonInput<MouseButton>>,
+			mut mouse_events: EventWriter<MouseButtonInput>,
 			cameras: Query<(&Camera, &GlobalTransform)>,
 		) {
 			let _ =
 				simulate_cursor_to_world_position(&mut windows, &cameras, Vec3::new(0.0, 0.0, 0.0));
-			// Simulate mouse button press using ButtonInput
-			mouse_input.press(MouseButton::Left);
+			// Simulate mouse button press using MouseButtonInput events
+			let _ = simulate_mouse_click(
+				&mut windows,
+				&mut mouse_events,
+				&cameras,
+				Vec3::new(0.0, 0.0, 0.0),
+			);
 		}
 
 		app.add_systems(Update, simulate_cursor_and_click);
@@ -433,14 +440,19 @@ mod tests {
 		// Test sequence: hover and click over the task at origin
 		fn test_sequence(
 			mut windows: Query<(Entity, &mut Window)>,
-			mut mouse_input: ResMut<ButtonInput<MouseButton>>,
+			mut mouse_events: EventWriter<MouseButtonInput>,
 			cameras: Query<(&Camera, &GlobalTransform)>,
 		) {
 			// Hover over the task at origin
 			let _ =
 				simulate_cursor_to_world_position(&mut windows, &cameras, Vec3::new(0.0, 0.0, 0.0));
-			// Simulate mouse button press using ButtonInput
-			mouse_input.press(MouseButton::Left);
+			// Simulate mouse button press using MouseButtonInput events
+			let _ = simulate_mouse_click(
+				&mut windows,
+				&mut mouse_events,
+				&cameras,
+				Vec3::new(0.0, 0.0, 0.0),
+			);
 		}
 
 		// Add the synthesized system and test sequence
