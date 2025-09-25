@@ -25,18 +25,45 @@ pub struct RoadlinePlugin;
 
 impl Plugin for RoadlinePlugin {
 	fn build(&self, app: &mut App) {
-		app
-			// Add core Bevy plugins for 2D rendering
-			.add_plugins(DefaultPlugins.set(WindowPlugin {
-				primary_window: Some(Window {
-					title: "Roadline Renderer".to_string(),
-					canvas: Some("#roadline-canvas".to_string()), // For web integration
-					fit_canvas_to_parent: true,
-					prevent_default_event_handling: false,
-					..default()
-				}),
+		// Add default plugins with windowing
+		app.add_plugins(DefaultPlugins.set(WindowPlugin {
+			primary_window: Some(Window {
+				title: "Roadline Renderer".to_string(),
+				canvas: Some("#roadline-canvas".to_string()), // For web integration
+				fit_canvas_to_parent: true,
+				prevent_default_event_handling: false,
 				..default()
-			}))
+			}),
+			..default()
+		}));
+
+		// Add common roadline setup
+		self.add_common_setup(app);
+	}
+}
+
+impl RoadlinePlugin {
+	/// Build the plugin with headless plugins (for testing)
+	pub fn build_headless(&self, app: &mut App) {
+		// Add headless plugins
+		app.add_plugins(MinimalPlugins)
+			.add_plugins(AssetPlugin::default())
+			.add_plugins(bevy::scene::ScenePlugin)
+			.add_plugins(bevy::render::mesh::MeshPlugin)
+			.add_plugins(bevy::transform::TransformPlugin)
+			.add_plugins(bevy::render::view::VisibilityPlugin)
+			.add_plugins(bevy::input::InputPlugin);
+
+		// Add common roadline setup
+		self.add_common_setup(app);
+
+		// Add headless-specific setup
+		self.add_headless_setup(app);
+	}
+
+	/// Common setup shared between normal and headless builds
+	fn add_common_setup(&self, app: &mut App) {
+		app
 			// Add bevy_ui_anchor plugin
 			.add_plugins(AnchorUiPlugin::<UiCameraMarker>::new())
 			// Set white background
@@ -46,8 +73,12 @@ impl Plugin for RoadlinePlugin {
 			// Add required events for cursor interaction systems
 			.add_event::<crate::events::interactions::TaskSelectionChangedEvent>()
 			.add_event::<crate::events::interactions::output::task::TaskSelectedForExternEvent>()
+			// Add render update event
+			.add_event::<crate::resources::RenderUpdateEvent>()
 			// Add required resources for cursor interaction systems
 			.insert_resource(systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem::default())
+			// Add render config resource
+			.insert_resource(RoadlineRenderConfig::default())
 			// Add our custom systems
 			.add_systems(Startup, setup_camera)
 			.add_systems(
@@ -60,6 +91,16 @@ impl Plugin for RoadlinePlugin {
 					// systems::click_selection_system,
 				),
 			);
+	}
+
+	/// Additional headless-specific setup
+	fn add_headless_setup(&self, app: &mut App) {
+		app.init_asset::<ColorMaterial>()
+			.init_asset::<Mesh>()
+			.register_type::<Visibility>()
+			.register_type::<InheritedVisibility>()
+			.register_type::<ViewVisibility>()
+			.register_type::<MeshMaterial2d<ColorMaterial>>();
 	}
 }
 
@@ -113,5 +154,49 @@ impl Default for RoadlineRenderConfig {
 			milestone_radius: 8.0,
 			edge_thickness: 20.423,
 		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::resources::Roadline;
+	use crate::test_utils::create_test_roadline;
+
+	#[test]
+	fn test_roadline_plugin_basic_setup() {
+		let mut app = App::new();
+
+		// Add the roadline plugin in headless mode for testing
+		RoadlinePlugin::default().build_headless(&mut app);
+
+		// Create test roadline data
+		let reified = create_test_roadline().expect("Failed to create test roadline");
+
+		// Insert the roadline data
+		app.insert_resource(Roadline::new(reified));
+
+		// Update the app to run startup systems
+		app.update();
+
+		// Verify that required resources exist
+		assert!(app.world().contains_resource::<SelectionResource>());
+		assert!(app.world().contains_resource::<systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem>());
+
+		// Verify that required events are registered
+		assert!(app
+			.world()
+			.contains_resource::<Events<crate::events::interactions::TaskSelectionChangedEvent>>());
+		assert!(app.world().contains_resource::<Events<crate::events::interactions::output::task::TaskSelectedForExternEvent>>());
+
+		// Verify that cameras were spawned
+		let mut camera_query = app.world_mut().query::<&Camera2d>();
+		let cameras: Vec<_> = camera_query.iter(app.world()).collect();
+		assert_eq!(cameras.len(), 2, "Should have spawned 2 cameras (sprite and UI)");
+
+		// Verify that the roadline data is accessible
+		let roadline =
+			app.world().get_resource::<Roadline>().expect("Roadline resource should exist");
+		assert!(roadline.task_count() > 0, "Roadline should contain tasks");
 	}
 }
