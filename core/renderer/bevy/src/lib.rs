@@ -47,7 +47,7 @@ impl Plugin for RoadlinePlugin {
 			.add_systems(
 				Update,
 				(
-					systems::TaskSystemConfig::build(),
+					systems::TaskSpawningSystem::default().build(),
 					systems::DependencySystemConfig::build(),
 					systems::dependency::dependency_hover_system,
 					systems::TaskCursorInteractionSystem::default().build(),
