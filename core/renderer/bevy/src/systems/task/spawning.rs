@@ -1,4 +1,4 @@
-use crate::bundles::TaskSpawner;
+use crate::bundles::task::{TaskSize, TaskSpawner};
 use crate::components::Task;
 use crate::resources::{RenderUpdateEvent, Roadline};
 use crate::RoadlineRenderConfig;
@@ -14,9 +14,7 @@ pub struct TaskSpawningSystem {
 
 impl Default for TaskSpawningSystem {
 	fn default() -> Self {
-		Self {
-			pixels_per_unit: 50.0,
-		}
+		Self { pixels_per_unit: 50.0 }
 	}
 }
 
@@ -138,7 +136,7 @@ impl TaskSpawningSystem {
 mod tests {
 	use super::*;
 	use crate::bundles::task::tests::utils::{setup_task_test_app, TestTasksParams};
-	use crate::resources::{Roadline, RenderUpdateEvent};
+	use crate::resources::{RenderUpdateEvent, Roadline};
 	use crate::test_utils::create_test_roadline;
 	use bevy::ecs::system::RunSystemOnce;
 	use roadline_util::task::Id as TaskId;
@@ -299,9 +297,7 @@ mod tests {
 	#[test]
 	fn test_spawning_system_custom_pixels_per_unit() -> Result<(), Box<dyn std::error::Error>> {
 		let custom_pixels_per_unit = 100.0;
-		let spawning_system = TaskSpawningSystem {
-			pixels_per_unit: custom_pixels_per_unit,
-		};
+		let spawning_system = TaskSpawningSystem { pixels_per_unit: custom_pixels_per_unit };
 
 		// Setup app with all required resources
 		let mut app = setup_spawning_test_app();
@@ -356,6 +352,145 @@ mod tests {
 		let task_count = task_query.iter(app.world()).count();
 
 		assert!(task_count > 0, "Expected tasks to be spawned with multiple render events");
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_spawning_system_entity_positions_and_scaling() -> Result<(), Box<dyn std::error::Error>>
+	{
+		let custom_pixels_per_unit = 75.0;
+		let spawning_system = TaskSpawningSystem { pixels_per_unit: custom_pixels_per_unit };
+
+		// Setup app with all required resources
+		let mut app = setup_spawning_test_app();
+
+		// Add the spawning system
+		app.add_systems(Update, spawning_system.build());
+
+		// Send a render update event
+		send_render_update_event(&mut app);
+
+		// Run the system
+		app.update();
+
+		// Verify that tasks were spawned
+		let mut task_query = app.world_mut().query::<(Entity, &Transform, &Task)>();
+		let task_count = task_query.iter(app.world()).count();
+		assert!(task_count > 0, "Expected tasks to be spawned for position testing");
+
+		// Also query TaskSize components separately
+		let mut task_size_query = app.world_mut().query::<&TaskSize>();
+		let task_size_count = task_size_query.iter(app.world()).count();
+		assert!(task_size_count > 0, "Expected TaskSize components to be spawned");
+
+		// Get the roadline to understand the expected bounds and task rectangles
+		let roadline = app.world().resource::<Roadline>();
+		let (max_width, max_height) = roadline.visual_bounds();
+		let max_width_f32 = max_width.value() as f32;
+		let max_height_f32 = max_height.value() as f32;
+
+		// Calculate expected offsets (content should be centered around 0,0)
+		let content_width_pixels = max_width_f32 * custom_pixels_per_unit;
+		let content_height_pixels = max_height_f32 * custom_pixels_per_unit;
+		let expected_offset_x = -content_width_pixels / 2.0;
+		let expected_offset_y = -content_height_pixels / 2.0;
+
+		// Collect task positions and verify they match expected calculations
+		let mut verified_tasks = 0;
+		for (_entity, transform, task) in task_query.iter(app.world()) {
+			// Find the corresponding task rectangle in the roadline
+			let mut task_rectangles = roadline.task_rectangles();
+			let task_rect = task_rectangles.find(|(task_id, _, _, _, _)| **task_id == task.task_id);
+
+			if let Some((_, start_x, start_y, end_x, end_y)) = task_rect {
+				let width = end_x - start_x;
+				let height = end_y - start_y;
+
+				// Calculate expected position based on the spawning logic
+				let expected_pixel_x = start_x as f32 * custom_pixels_per_unit + expected_offset_x;
+				let expected_pixel_y = start_y as f32 * custom_pixels_per_unit + expected_offset_y;
+				let expected_sprite_width = width as f32 * custom_pixels_per_unit;
+				let _expected_sprite_height = height as f32 * custom_pixels_per_unit;
+
+				// Adjust for left justification (Bevy positions by center, so move right by half width)
+				let expected_left_justified_x = expected_pixel_x + (expected_sprite_width / 2.0);
+
+				// Verify the transform position matches our calculations
+				let actual_x = transform.translation.x;
+				let actual_y = transform.translation.y;
+
+				// Allow for small floating point differences
+				let tolerance = 0.1;
+				assert!(
+					(actual_x - expected_left_justified_x).abs() < tolerance,
+					"Task {:?} X position mismatch: expected {:.2}, got {:.2}",
+					task.task_id,
+					expected_left_justified_x,
+					actual_x
+				);
+				assert!(
+					(actual_y - expected_pixel_y).abs() < tolerance,
+					"Task {:?} Y position mismatch: expected {:.2}, got {:.2}",
+					task.task_id,
+					expected_pixel_y,
+					actual_y
+				);
+
+				// Verify the transform scale is always 1.0 (default scaling)
+				assert_eq!(transform.scale.x, 1.0, "Transform scale X should be 1.0");
+				assert_eq!(transform.scale.y, 1.0, "Transform scale Y should be 1.0");
+				assert_eq!(transform.scale.z, 1.0, "Transform scale Z should be 1.0");
+
+				verified_tasks += 1;
+			}
+		}
+
+		// Verify TaskSize components match expected dimensions
+		let mut _verified_sizes = 0;
+		for task_size in task_size_query.iter(app.world()) {
+			// We can't easily match TaskSize to specific tasks without more complex queries,
+			// so we'll just verify that the sizes are reasonable
+			assert!(task_size.size.x > 0.0, "TaskSize width should be positive");
+			assert!(task_size.size.y > 0.0, "TaskSize height should be positive");
+			_verified_sizes += 1;
+		}
+
+		// Verify we checked at least some tasks
+		assert!(
+			verified_tasks > 0,
+			"Expected to verify positions for at least one task, but verified {}",
+			verified_tasks
+		);
+
+		// Verify that all tasks are positioned within reasonable bounds
+		// (should be centered around 0,0 with some spread)
+		let mut min_x = f32::INFINITY;
+		let mut max_x = f32::NEG_INFINITY;
+		let mut min_y = f32::INFINITY;
+		let mut max_y = f32::NEG_INFINITY;
+
+		for (_, transform, _) in task_query.iter(app.world()) {
+			min_x = min_x.min(transform.translation.x);
+			max_x = max_x.max(transform.translation.x);
+			min_y = min_y.min(transform.translation.y);
+			max_y = max_y.max(transform.translation.y);
+		}
+
+		// Tasks should be distributed around the center (0,0)
+		// The exact bounds depend on the test roadline data, but they should be reasonable
+		assert!(
+			min_x < 0.0 && max_x > 0.0,
+			"Tasks should be distributed around X=0, but found range [{:.2}, {:.2}]",
+			min_x,
+			max_x
+		);
+		assert!(
+			min_y < 0.0 && max_y > 0.0,
+			"Tasks should be distributed around Y=0, but found range [{:.2}, {:.2}]",
+			min_y,
+			max_y
+		);
 
 		Ok(())
 	}
