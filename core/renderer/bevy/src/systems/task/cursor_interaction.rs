@@ -163,7 +163,10 @@ mod tests {
 					..default()
 				}),
 				computed: bevy::render::camera::ComputedCameraValues {
-					target_info: Some(bevy::render::camera::RenderTargetInfo { scale_factor: 1.0, ..default() }),
+					target_info: Some(bevy::render::camera::RenderTargetInfo {
+						scale_factor: 1.0,
+						..default()
+					}),
 					..default()
 				},
 				..default()
@@ -171,14 +174,22 @@ mod tests {
 		));
 
 		// Add test roadline
-		let core_roadline = crate::test_utils::create_test_roadline().expect("Failed to create test roadline");
+		let core_roadline =
+			crate::test_utils::create_test_roadline().expect("Failed to create test roadline");
 		app.insert_resource(Roadline::from(core_roadline));
 
 		app
 	}
 
-	fn spawn_test_task(app: &mut App, task_id: TaskId, position: Vec3, size: Vec2, title: String) -> Result<(), Box<dyn std::error::Error>> {
-		let params = crate::bundles::task::tests::utils::TestTasksParams::new().with_basic_task(task_id, position, size, title);
+	fn spawn_test_task(
+		app: &mut App,
+		task_id: TaskId,
+		position: Vec3,
+		size: Vec2,
+		title: String,
+	) -> Result<(), Box<dyn std::error::Error>> {
+		let params = crate::bundles::task::tests::utils::TestTasksParams::new()
+			.with_basic_task(task_id, position, size, title);
 		app.world_mut().run_system_once(params.build())?;
 		Ok(())
 	}
@@ -191,11 +202,12 @@ mod tests {
 		let (_window_entity, mut window) = windows.single_mut().map_err(|_| "No window found")?;
 		let (camera, camera_transform) = cameras.single().map_err(|_| "No camera found")?;
 
-		let screen_pos = camera.world_to_viewport(camera_transform, world_pos).map_err(|_| "Failed to convert world to viewport")?;
+		let screen_pos = camera
+			.world_to_viewport(camera_transform, world_pos)
+			.map_err(|_| "Failed to convert world to viewport")?;
 		window.set_cursor_position(Some(screen_pos));
 		Ok(())
 	}
-
 
 	#[test]
 	fn test_synthesized_system_hover_only() -> Result<(), Box<dyn std::error::Error>> {
@@ -221,7 +233,8 @@ mod tests {
 			mut windows: Query<(Entity, &mut Window)>,
 			cameras: Query<(&Camera, &GlobalTransform)>,
 		) {
-			let _ = simulate_cursor_to_world_position(&mut windows, &cameras, Vec3::new(0.0, 0.0, 0.0));
+			let _ =
+				simulate_cursor_to_world_position(&mut windows, &cameras, Vec3::new(0.0, 0.0, 0.0));
 		}
 
 		app.add_systems(Update, simulate_cursor_movement);
@@ -273,7 +286,8 @@ mod tests {
 			mut mouse_input: ResMut<ButtonInput<MouseButton>>,
 			cameras: Query<(&Camera, &GlobalTransform)>,
 		) {
-			let _ = simulate_cursor_to_world_position(&mut windows, &cameras, Vec3::new(0.0, 0.0, 0.0));
+			let _ =
+				simulate_cursor_to_world_position(&mut windows, &cameras, Vec3::new(0.0, 0.0, 0.0));
 			// Simulate mouse button press using ButtonInput
 			mouse_input.press(MouseButton::Left);
 		}
@@ -326,7 +340,8 @@ mod tests {
 			mut windows: Query<(Entity, &mut Window)>,
 			cameras: Query<(&Camera, &GlobalTransform)>,
 		) {
-			let _ = simulate_cursor_to_world_position(&mut windows, &cameras, Vec3::new(0.0, 0.0, 0.0));
+			let _ =
+				simulate_cursor_to_world_position(&mut windows, &cameras, Vec3::new(0.0, 0.0, 0.0));
 		}
 
 		app.add_systems(Update, simulate_cursor_movement);
@@ -370,7 +385,8 @@ mod tests {
 	}
 
 	#[test]
-	fn test_synthesized_system_subsystems_work_together() -> Result<(), Box<dyn std::error::Error>> {
+	fn test_synthesized_system_subsystems_work_together() -> Result<(), Box<dyn std::error::Error>>
+	{
 		let cursor_system = TaskCursorInteractionSystem::default();
 
 		// Setup app with all required resources
@@ -399,7 +415,11 @@ mod tests {
 		) {
 			// This is a simplified test - in a real scenario you'd want more sophisticated state management
 			// For now, just verify the system can handle multiple interactions
-			let _ = simulate_cursor_to_world_position(&mut windows, &cameras, Vec3::new(-50.0, 0.0, 0.0));
+			let _ = simulate_cursor_to_world_position(
+				&mut windows,
+				&cameras,
+				Vec3::new(-50.0, 0.0, 0.0),
+			);
 		}
 
 		// Add the synthesized system and test sequence

@@ -4,7 +4,6 @@ pub mod resources;
 pub mod roadline_renderer;
 pub mod systems;
 
-#[cfg(any(test, feature = "test-utils"))]
 pub mod test_utils;
 
 use bevy::prelude::*;

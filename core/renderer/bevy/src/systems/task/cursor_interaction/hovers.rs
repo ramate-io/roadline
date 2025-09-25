@@ -1,3 +1,5 @@
+pub mod test_utils;
+
 use crate::components::{SelectionState, Task};
 use crate::resources::{Roadline, SelectionResource};
 use bevy::prelude::*;

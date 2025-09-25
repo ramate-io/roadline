@@ -1,6 +1,7 @@
 use crate::bundles::task::tests::utils::{setup_task_test_app, TestTasksParams};
 use crate::resources::{Roadline, SelectionResource};
 use crate::test_utils::create_test_roadline;
+use bevy::ecs::system::RunSystemOnce;
 use bevy::prelude::*;
 use bevy::render::camera::Viewport;
 use bevy::render::camera::{ComputedCameraValues, RenderTargetInfo};
