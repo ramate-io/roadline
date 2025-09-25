@@ -1,97 +1,92 @@
 //! Unified API for the Roadline representation system.
-//! 
+//!
 //! This module provides a high-level, builder-pattern API that orchestrates
 //! the entire pipeline from task graphs to visual representations.
 
-use crate::reified::{
-    Reified, PreReified, ReifiedConfig, ReifiedError,
-    Trim, DownLanePadding, ReifiedUnit, 
-    DownCell, Joint, ConnectionPoint
-};
-use crate::grid_algebra::{PreGridAlgebra, GridAlgebra, GridAlgebraError};
-use crate::range_algebra::{PreRangeAlgebra, RangeAlgebra, RangeAlgebraError, Date};
 use crate::graph::{Graph, GraphError};
-use roadline_util::task::{Task, Id as TaskId};
+use crate::grid_algebra::{GridAlgebra, GridAlgebraError, PreGridAlgebra};
+use crate::range_algebra::{Date, PreRangeAlgebra, RangeAlgebra, RangeAlgebraError};
+use crate::reified::{
+	ConnectionPoint, DownCell, DownLanePadding, Joint, PreReified, Reified, ReifiedConfig,
+	ReifiedError, ReifiedUnit, Trim,
+};
 use roadline_util::dependency::Id as DependencyId;
-use serde::{Serialize, Deserialize};
+use roadline_util::task::{Id as TaskId, Task};
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 /// Comprehensive error type for the Roadline builder
 #[derive(Debug, Error)]
 pub enum RoadlineBuilderError {
-    // === Graph Layer Errors ===
-    #[error("Graph error: {source}")]
-    Graph {
-        #[from]
-        source: GraphError,
-    },
-    
-    // === Range Algebra Layer Errors ===
-    #[error("Range algebra error: {source}")]
-    RangeAlgebra {
-        #[from]
-        source: RangeAlgebraError,
-    },
-    
-    // === Grid Algebra Layer Errors ===
-    #[error("Grid algebra error: {source}")]
-    GridAlgebra {
-        #[from]
-        source: GridAlgebraError,
-    },
-    
-    // === Reified Layer Errors ===
-    #[error("Reified layer error: {source}")]
-    Reified {
-        #[from]
-        source: ReifiedError,
-    },
-    
-    // === Builder-specific Errors ===
-    #[error("Date parsing error: {message}")]
-    DateParsing { message: String },
-    
-    #[error("No tasks provided - at least one task is required to build a roadline")]
-    NoTasks,
-    
-    #[error("Internal error during pipeline execution: {stage} - {message}")]
-    InternalError { stage: String, message: String },
+	// === Graph Layer Errors ===
+	#[error("Graph error: {source}")]
+	Graph {
+		#[from]
+		source: GraphError,
+	},
+
+	// === Range Algebra Layer Errors ===
+	#[error("Range algebra error: {source}")]
+	RangeAlgebra {
+		#[from]
+		source: RangeAlgebraError,
+	},
+
+	// === Grid Algebra Layer Errors ===
+	#[error("Grid algebra error: {source}")]
+	GridAlgebra {
+		#[from]
+		source: GridAlgebraError,
+	},
+
+	// === Reified Layer Errors ===
+	#[error("Reified layer error: {source}")]
+	Reified {
+		#[from]
+		source: ReifiedError,
+	},
+
+	// === Builder-specific Errors ===
+	#[error("Date parsing error: {message}")]
+	DateParsing { message: String },
+
+	#[error("No tasks provided - at least one task is required to build a roadline")]
+	NoTasks,
+
+	#[error("Internal error during pipeline execution: {stage} - {message}")]
+	InternalError { stage: String, message: String },
 }
 
 /// Summary information about a RoadlineBuilder's current state.
 #[derive(Debug, Clone, PartialEq)]
 pub struct BuilderSummary {
-    pub task_count: usize,
-    pub root_date: Date,
-    pub trim_units: u16,
-    pub padding_units: u16,
+	pub task_count: usize,
+	pub root_date: Date,
+	pub trim_units: u16,
+	pub padding_units: u16,
 }
 
 impl std::fmt::Display for BuilderSummary {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, 
-            "RoadlineBuilder: {} tasks, root: {:?}, spacing: {}×{}", 
-            self.task_count, 
-            self.root_date, 
-            self.trim_units, 
-            self.padding_units
-        )
-    }
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(
+			f,
+			"RoadlineBuilder: {} tasks, root: {:?}, spacing: {}×{}",
+			self.task_count, self.root_date, self.trim_units, self.padding_units
+		)
+	}
 }
 
-
-
 /// Builder for creating Roadline representations.
-/// 
+///
 /// Uses the builder pattern to configure visual parameters and assemble
 /// tasks into a complete visual representation.
-/// 
+///
 /// # Example
-/// 
+///
 /// ```no_run
 /// use roadline_representation_core::roadline::RoadlineBuilder;
 /// use roadline_representation_core::reified::{Trim, DownLanePadding, ReifiedUnit};
-/// 
+///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let roadline = RoadlineBuilder::new()
 ///     .with_trim(Trim::new(ReifiedUnit::new(15)))
@@ -102,701 +97,795 @@ impl std::fmt::Display for BuilderSummary {
 /// ```
 #[derive(Debug)]
 pub struct RoadlineBuilder {
-    config: ReifiedConfig,
-    graph: Graph,
-    root_date: Date,
+	config: ReifiedConfig,
+	graph: Graph,
+	root_date: Date,
 }
 
 impl Default for RoadlineBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
+	fn default() -> Self {
+		Self::new()
+	}
 }
 
 impl RoadlineBuilder {
-    /// Create a new builder with sensible defaults.
-    /// 
-    /// This constructor cannot fail and uses:
-    /// - Start date: 2000-01-01 (Y2K as a reasonable epoch)
-    /// - Default visual configuration (10 units trim, 2 units padding)
-    /// - Empty task graph
-    /// 
-    /// This is the recommended way to start building a roadline.
-    pub fn new() -> Self {
-        // Use Y2K as a safe, memorable epoch that won't fail
-        use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
-        let naive_date = NaiveDate::from_ymd_opt(2000, 1, 1)
-            .expect("Y2K date should always be valid");
-        let naive_time = NaiveTime::from_hms_opt(0, 0, 0)
-            .expect("Midnight should always be valid");
-        let naive_datetime = NaiveDateTime::new(naive_date, naive_time);
-        let y2k_date = Date::new(DateTime::from_naive_utc_and_offset(naive_datetime, Utc));
-        
-        Self {
-            config: ReifiedConfig::default_config(),
-            graph: Graph::new(),
-            root_date: y2k_date,
-        }
-    }
+	/// Create a new builder with sensible defaults.
+	///
+	/// This constructor cannot fail and uses:
+	/// - Start date: 2000-01-01 (Y2K as a reasonable epoch)
+	/// - Default visual configuration (10 units trim, 2 units padding)
+	/// - Empty task graph
+	///
+	/// This is the recommended way to start building a roadline.
+	pub fn new() -> Self {
+		// Use Y2K as a safe, memorable epoch that won't fail
+		use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
+		let naive_date =
+			NaiveDate::from_ymd_opt(2000, 1, 1).expect("Y2K date should always be valid");
+		let naive_time = NaiveTime::from_hms_opt(0, 0, 0).expect("Midnight should always be valid");
+		let naive_datetime = NaiveDateTime::new(naive_date, naive_time);
+		let y2k_date = Date::new(DateTime::from_naive_utc_and_offset(naive_datetime, Utc));
 
-    /// Create a new builder starting at the Unix epoch.
-    /// 
-    /// This may fail if the system doesn't support Unix epoch dates.
-    /// For an infallible constructor, use `RoadlineBuilder::new()` instead.
-    pub fn start_of_epoch() -> Result<Self, RoadlineBuilderError> {
-        let root_date = Date::start_of_epoch()
-            .map_err(|e| RoadlineBuilderError::DateParsing { 
-                message: e.to_string() 
-            })?;
-            
-        Ok(Self {
-            config: ReifiedConfig::default_config(),
-            graph: Graph::new(),
-            root_date,
-        })
-    }
+		Self { config: ReifiedConfig::default_config(), graph: Graph::new(), root_date: y2k_date }
+	}
 
-    /// Create a new builder with a custom start date.
-    pub fn with_start_date(start_date: Date) -> Self {
-        Self {
-            config: ReifiedConfig::default_config(),
-            graph: Graph::new(),
-            root_date: start_date,
-        }
-    }
+	/// Create a new builder starting at the Unix epoch.
+	///
+	/// This may fail if the system doesn't support Unix epoch dates.
+	/// For an infallible constructor, use `RoadlineBuilder::new()` instead.
+	pub fn start_of_epoch() -> Result<Self, RoadlineBuilderError> {
+		let root_date = Date::start_of_epoch()
+			.map_err(|e| RoadlineBuilderError::DateParsing { message: e.to_string() })?;
 
-    /// Create a new builder with a date parsed from an ISO string.
-    /// 
-    /// # Example
-    /// ```no_run
-    /// # use roadline_representation_core::roadline::RoadlineBuilder;
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// let builder = RoadlineBuilder::from_iso_date("2024-01-01T00:00:00Z")?;
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub fn from_iso_date(iso_string: &str) -> Result<Self, RoadlineBuilderError> {
-        use chrono::{DateTime, Utc};
-        
-        let datetime = DateTime::parse_from_rfc3339(iso_string)
-            .map_err(|e| RoadlineBuilderError::DateParsing { 
-                message: format!("Failed to parse '{}': {}", iso_string, e)
-            })?
-            .with_timezone(&Utc);
-            
-        let date = Date::new(datetime);
-        Ok(Self::with_start_date(date))
-    }
+		Ok(Self { config: ReifiedConfig::default_config(), graph: Graph::new(), root_date })
+	}
 
-    /// Create a new builder with a date from year, month, day.
-    /// 
-    /// # Example
-    /// ```no_run
-    /// # use roadline_representation_core::roadline::RoadlineBuilder;
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// let builder = RoadlineBuilder::from_ymd(2024, 3, 15)?;
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub fn from_ymd(year: i32, month: u32, day: u32) -> Result<Self, RoadlineBuilderError> {
-        use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
-        
-        let naive_date = NaiveDate::from_ymd_opt(year, month, day)
-            .ok_or_else(|| RoadlineBuilderError::DateParsing {
-                message: format!("Invalid date {}-{:02}-{:02}", year, month, day)
-            })?;
-        let naive_time = NaiveTime::from_hms_opt(0, 0, 0)
-            .expect("Midnight should always be valid");
-        let naive_datetime = NaiveDateTime::new(naive_date, naive_time);
-        let date = Date::new(DateTime::from_naive_utc_and_offset(naive_datetime, Utc));
-        
-        Ok(Self::with_start_date(date))
-    }
+	/// Create a new builder with a custom start date.
+	pub fn with_start_date(start_date: Date) -> Self {
+		Self { config: ReifiedConfig::default_config(), graph: Graph::new(), root_date: start_date }
+	}
 
-    /// Set the connection trim (horizontal gutter space for arrows).
-    pub fn with_trim(mut self, trim: Trim) -> Self {
-        self.config.connection_trim = trim;
-        self
-    }
+	/// Create a new builder with a date parsed from an ISO string.
+	///
+	/// # Example
+	/// ```no_run
+	/// # use roadline_representation_core::roadline::RoadlineBuilder;
+	/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+	/// let builder = RoadlineBuilder::from_iso_date("2024-01-01T00:00:00Z")?;
+	/// # Ok(())
+	/// # }
+	/// ```
+	pub fn from_iso_date(iso_string: &str) -> Result<Self, RoadlineBuilderError> {
+		use chrono::{DateTime, Utc};
 
-    /// Set the inter-lane padding (vertical spacing between task lanes).
-    pub fn with_padding(mut self, padding: DownLanePadding) -> Self {
-        self.config.inter_lane_padding = padding;
-        self
-    }
+		let datetime = DateTime::parse_from_rfc3339(iso_string)
+			.map_err(|e| RoadlineBuilderError::DateParsing {
+				message: format!("Failed to parse '{}': {}", iso_string, e),
+			})?
+			.with_timezone(&Utc);
 
-    /// Set the complete visual configuration.
-    pub fn with_config(mut self, config: ReifiedConfig) -> Self {
-        self.config = config;
-        self
-    }
+		let date = Date::new(datetime);
+		Ok(Self::with_start_date(date))
+	}
 
-    /// Set trim and padding with convenient unit values.
-    /// 
-    /// # Example
-    /// ```
-    /// # use roadline_representation_core::roadline::RoadlineBuilder;
-    /// let builder = RoadlineBuilder::new()
-    ///     .with_spacing(15, 3); // 15 units trim, 3 units padding
-    /// ```
-    pub fn with_spacing(mut self, trim_units: u16, padding_units: u16) -> Self {
-        self.config.connection_trim = Trim::new(ReifiedUnit::new(trim_units));
-        self.config.inter_lane_padding = DownLanePadding::new(ReifiedUnit::new(padding_units));
-        self
-    }
+	/// Create a new builder with a date from year, month, day.
+	///
+	/// # Example
+	/// ```no_run
+	/// # use roadline_representation_core::roadline::RoadlineBuilder;
+	/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+	/// let builder = RoadlineBuilder::from_ymd(2024, 3, 15)?;
+	/// # Ok(())
+	/// # }
+	/// ```
+	pub fn from_ymd(year: i32, month: u32, day: u32) -> Result<Self, RoadlineBuilderError> {
+		use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
 
-    /// Use a compact layout configuration (minimal spacing).
-    pub fn compact(mut self) -> Self {
-        self.config = ReifiedConfig::new(
-            Trim::new(ReifiedUnit::new(5)),         // Minimal gutter
-            DownLanePadding::new(ReifiedUnit::new(1)) // Minimal padding
-        );
-        self
-    }
+		let naive_date = NaiveDate::from_ymd_opt(year, month, day).ok_or_else(|| {
+			RoadlineBuilderError::DateParsing {
+				message: format!("Invalid date {}-{:02}-{:02}", year, month, day),
+			}
+		})?;
+		let naive_time = NaiveTime::from_hms_opt(0, 0, 0).expect("Midnight should always be valid");
+		let naive_datetime = NaiveDateTime::new(naive_date, naive_time);
+		let date = Date::new(DateTime::from_naive_utc_and_offset(naive_datetime, Utc));
 
-    /// Use a spacious layout configuration (generous spacing).
-    pub fn spacious(mut self) -> Self {
-        self.config = ReifiedConfig::new(
-            Trim::new(ReifiedUnit::new(20)),        // Large gutter
-            DownLanePadding::new(ReifiedUnit::new(5)) // Large padding
-        );
-        self
-    }
+		Ok(Self::with_start_date(date))
+	}
 
-    /// Add a single task to the graph.
-    pub fn add_task(&mut self, task: Task) -> Result<&mut Self, RoadlineBuilderError> {
-        self.graph.add(task)?;
-        Ok(self)
-    }
+	/// Set the connection trim (horizontal gutter space for arrows).
+	pub fn with_trim(mut self, trim: Trim) -> Self {
+		self.config.connection_trim = trim;
+		self
+	}
 
-    /// Add multiple tasks to the graph.
-    pub fn add_tasks(&mut self, tasks: impl IntoIterator<Item = Task>) -> Result<&mut Self, RoadlineBuilderError> {
-        for task in tasks {
-            self.add_task(task)?;
-        }
-        Ok(self)
-    }
+	/// Set the inter-lane padding (vertical spacing between task lanes).
+	pub fn with_padding(mut self, padding: DownLanePadding) -> Self {
+		self.config.inter_lane_padding = padding;
+		self
+	}
 
-    /// Add a task and return a mutable reference for method chaining.
-    /// 
-    /// # Example
-    /// ```no_run
-    /// # use roadline_representation_core::roadline::RoadlineBuilder;
-    /// # use roadline_util::task::Task;
-    /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let task1: Task = todo!();
-    /// let roadline = RoadlineBuilder::new()
-    ///     .task(task1)?
-    ///     .build()?;
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub fn task(mut self, task: Task) -> Result<Self, RoadlineBuilderError> {
-        self.graph.add(task)?;
-        Ok(self)
-    }
+	/// Set the complete visual configuration.
+	pub fn with_config(mut self, config: ReifiedConfig) -> Self {
+		self.config = config;
+		self
+	}
 
-    /// Add multiple tasks in a fluent style.
-    /// 
-    /// # Example
-    /// ```no_run
-    /// # use roadline_representation_core::roadline::RoadlineBuilder;
-    /// # use roadline_util::task::Task;
-    /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let tasks: Vec<Task> = vec![];
-    /// let roadline = RoadlineBuilder::new()
-    ///     .tasks(tasks)?
-    ///     .build()?;
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub fn tasks(mut self, tasks: impl IntoIterator<Item = Task>) -> Result<Self, RoadlineBuilderError> {
-        for task in tasks {
-            self.graph.add(task)?;
-        }
-        Ok(self)
-    }
+	/// Set trim and padding with convenient unit values.
+	///
+	/// # Example
+	/// ```
+	/// # use roadline_representation_core::roadline::RoadlineBuilder;
+	/// let builder = RoadlineBuilder::new()
+	///     .with_spacing(15, 3); // 15 units trim, 3 units padding
+	/// ```
+	pub fn with_spacing(mut self, trim_units: u16, padding_units: u16) -> Self {
+		self.config.connection_trim = Trim::new(ReifiedUnit::new(trim_units));
+		self.config.inter_lane_padding = DownLanePadding::new(ReifiedUnit::new(padding_units));
+		self
+	}
 
-    /// Try to add a task, but continue building even if it fails.
-    /// Returns the error for inspection but doesn't fail the builder.
-    pub fn try_task(mut self, task: Task) -> (Self, Option<RoadlineBuilderError>) {
-        match self.graph.add(task) {
-            Ok(()) => (self, None),
-            Err(e) => (self, Some(e.into())),
-        }
-    }
+	/// Use a compact layout configuration (minimal spacing).
+	pub fn compact(mut self) -> Self {
+		self.config = ReifiedConfig::new(
+			Trim::new(ReifiedUnit::new(5)),            // Minimal gutter
+			DownLanePadding::new(ReifiedUnit::new(1)), // Minimal padding
+		);
+		self
+	}
 
-    /// Get the current number of tasks in the builder.
-    pub fn task_count(&self) -> usize {
-        self.graph.task_count()
-    }
+	/// Use a spacious layout configuration (generous spacing).
+	pub fn spacious(mut self) -> Self {
+		self.config = ReifiedConfig::new(
+			Trim::new(ReifiedUnit::new(20)),           // Large gutter
+			DownLanePadding::new(ReifiedUnit::new(5)), // Large padding
+		);
+		self
+	}
 
-    /// Check if the builder contains any tasks.
-    pub fn is_empty(&self) -> bool {
-        self.task_count() == 0
-    }
+	/// Add a single task to the graph.
+	pub fn add_task(&mut self, task: Task) -> Result<&mut Self, RoadlineBuilderError> {
+		self.graph.add(task)?;
+		Ok(self)
+	}
 
-    /// Get the current root date.
-    pub fn root_date(&self) -> &Date {
-        &self.root_date
-    }
+	/// Add multiple tasks to the graph.
+	pub fn add_tasks(
+		&mut self,
+		tasks: impl IntoIterator<Item = Task>,
+	) -> Result<&mut Self, RoadlineBuilderError> {
+		for task in tasks {
+			self.add_task(task)?;
+		}
+		Ok(self)
+	}
 
-    /// Get the current visual configuration.
-    pub fn config(&self) -> &ReifiedConfig {
-        &self.config
-    }
+	/// Add a task and return a mutable reference for method chaining.
+	///
+	/// # Example
+	/// ```no_run
+	/// # use roadline_representation_core::roadline::RoadlineBuilder;
+	/// # use roadline_util::task::Task;
+	/// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+	/// # let task1: Task = todo!();
+	/// let roadline = RoadlineBuilder::new()
+	///     .task(task1)?
+	///     .build()?;
+	/// # Ok(())
+	/// # }
+	/// ```
+	pub fn task(mut self, task: Task) -> Result<Self, RoadlineBuilderError> {
+		self.graph.add(task)?;
+		Ok(self)
+	}
 
-    /// Validate the current task graph for common issues.
-    /// Returns Ok(()) if the graph looks valid, or the first error found.
-    pub fn validate(&self) -> Result<(), RoadlineBuilderError> {
-        if self.is_empty() {
-            return Err(RoadlineBuilderError::NoTasks);
-        }
+	/// Add multiple tasks in a fluent style.
+	///
+	/// # Example
+	/// ```no_run
+	/// # use roadline_representation_core::roadline::RoadlineBuilder;
+	/// # use roadline_util::task::Task;
+	/// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+	/// # let tasks: Vec<Task> = vec![];
+	/// let roadline = RoadlineBuilder::new()
+	///     .tasks(tasks)?
+	///     .build()?;
+	/// # Ok(())
+	/// # }
+	/// ```
+	pub fn tasks(
+		mut self,
+		tasks: impl IntoIterator<Item = Task>,
+	) -> Result<Self, RoadlineBuilderError> {
+		for task in tasks {
+			self.graph.add(task)?;
+		}
+		Ok(self)
+	}
 
-        // This is a lightweight validation - full validation happens in build()
-        // We could add more checks here like cycle detection, but that's expensive
-        Ok(())
-    }
+	/// Try to add a task, but continue building even if it fails.
+	/// Returns the error for inspection but doesn't fail the builder.
+	pub fn try_task(mut self, task: Task) -> (Self, Option<RoadlineBuilderError>) {
+		match self.graph.add(task) {
+			Ok(()) => (self, None),
+			Err(e) => (self, Some(e.into())),
+		}
+	}
 
-    /// Get a summary of the current builder state.
-    pub fn summary(&self) -> BuilderSummary {
-        BuilderSummary {
-            task_count: self.task_count(),
-            root_date: self.root_date.clone(),
-            trim_units: self.config.connection_trim.value().value(),
-            padding_units: self.config.inter_lane_padding.value().value(),
-        }
-    }
+	/// Get the current number of tasks in the builder.
+	pub fn task_count(&self) -> usize {
+		self.graph.task_count()
+	}
 
-    /// Consume the builder and create the final Roadline representation.
-    /// 
-    /// This orchestrates the entire pipeline:
-    /// 1. Graph → RangeAlgebra (temporal positioning)
-    /// 2. RangeAlgebra → GridAlgebra (discrete grid placement)  
-    /// 3. GridAlgebra → Reified (continuous visual coordinates + connections)
-    pub fn build(self) -> Result<Roadline, RoadlineBuilderError> {
-        if self.is_empty() {
-            return Err(RoadlineBuilderError::NoTasks);
-        }
+	/// Check if the builder contains any tasks.
+	pub fn is_empty(&self) -> bool {
+		self.task_count() == 0
+	}
 
-        // Step 1: Build the range algebra (temporal positioning)
-        let range_algebra = PreRangeAlgebra::new(self.graph)
-            .compute(self.root_date)?;
+	/// Get the current root date.
+	pub fn root_date(&self) -> &Date {
+		&self.root_date
+	}
 
-        // Step 2: Build the grid algebra (discrete placement)
-        let grid_algebra = PreGridAlgebra::new(range_algebra)
-            .compute()?;
+	/// Get the current visual configuration.
+	pub fn config(&self) -> &ReifiedConfig {
+		&self.config
+	}
 
-        // Step 3: Reify to visual coordinates (continuous + connections)
-        let reified = PreReified::with_config(grid_algebra, self.config)
-            .compute()?;
+	/// Validate the current task graph for common issues.
+	/// Returns Ok(()) if the graph looks valid, or the first error found.
+	pub fn validate(&self) -> Result<(), RoadlineBuilderError> {
+		if self.is_empty() {
+			return Err(RoadlineBuilderError::NoTasks);
+		}
 
-        Ok(Roadline::new(reified))
-    }
+		// This is a lightweight validation - full validation happens in build()
+		// We could add more checks here like cycle detection, but that's expensive
+		Ok(())
+	}
+
+	/// Get a summary of the current builder state.
+	pub fn summary(&self) -> BuilderSummary {
+		BuilderSummary {
+			task_count: self.task_count(),
+			root_date: self.root_date.clone(),
+			trim_units: self.config.connection_trim.value().value(),
+			padding_units: self.config.inter_lane_padding.value().value(),
+		}
+	}
+
+	/// Consume the builder and create the final Roadline representation.
+	///
+	/// This orchestrates the entire pipeline:
+	/// 1. Graph → RangeAlgebra (temporal positioning)
+	/// 2. RangeAlgebra → GridAlgebra (discrete grid placement)  
+	/// 3. GridAlgebra → Reified (continuous visual coordinates + connections)
+	pub fn build(self) -> Result<Roadline, RoadlineBuilderError> {
+		if self.is_empty() {
+			return Err(RoadlineBuilderError::NoTasks);
+		}
+
+		// Step 1: Build the range algebra (temporal positioning)
+		let range_algebra = PreRangeAlgebra::new(self.graph).compute(self.root_date)?;
+
+		// Step 2: Build the grid algebra (discrete placement)
+		let grid_algebra = PreGridAlgebra::new(range_algebra).compute()?;
+
+		// Step 3: Reify to visual coordinates (continuous + connections)
+		let reified = PreReified::new_with_config(grid_algebra, self.config).compute()?;
+
+		Ok(Roadline::new(reified))
+	}
 }
 
 /// The final Roadline representation containing all visual and connection data.
-/// 
+///
 /// This is the output of the builder pipeline and provides high-level access
 /// to the computed visual layout without exposing internal implementation details.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Roadline {
-    reified: Reified,
+	reified: Reified,
 }
 
 impl Roadline {
-    /// Internal constructor - use RoadlineBuilder to create instances.
-    pub(crate) fn new(reified: Reified) -> Self {
-        Self { reified }
-    }
+	/// Internal constructor - use RoadlineBuilder to create instances.
+	pub(crate) fn new(reified: Reified) -> Self {
+		Self { reified }
+	}
 
-    // === High-level Statistics ===
+	/// === Borrows ===
 
-    /// Get the total number of tasks in the roadline.
-    pub fn task_count(&self) -> usize {
-        self.reified.task_count()
-    }
+	/// Borrows the graph algebra.
+	pub fn graph(&self) -> &Graph {
+		self.reified.graph()
+	}
 
-    /// Get the total number of dependency connections.
-    pub fn connection_count(&self) -> usize {
-        self.reified.connection_count()
-    }
+	// === High-level Statistics ===
 
-    /// Get the maximum visual bounds (width, height) for layout purposes.
-    pub fn visual_bounds(&self) -> (ReifiedUnit, ReifiedUnit) {
-        self.reified.visual_bounds()
-    }
+	/// Get the total number of tasks in the roadline.
+	pub fn task_count(&self) -> usize {
+		self.reified.task_count()
+	}
 
-    /// Get the visual configuration used to generate this roadline.
-    pub fn config(&self) -> &ReifiedConfig {
-        self.reified.config()
-    }
+	/// Get the total number of dependency connections.
+	pub fn connection_count(&self) -> usize {
+		self.reified.connection_count()
+	}
 
-    // === Task Access ===
+	/// Get the maximum visual bounds (width, height) for layout purposes.
+	pub fn visual_bounds(&self) -> (ReifiedUnit, ReifiedUnit) {
+		self.reified.visual_bounds()
+	}
 
-    /// Get the visual bounds for a specific task.
-    pub fn get_task_bounds(&self, task_id: &TaskId) -> Option<&DownCell> {
-        self.reified.get_down_cell(task_id)
-    }
+	/// Get the visual configuration used to generate this roadline.
+	pub fn config(&self) -> &ReifiedConfig {
+		self.reified.config()
+	}
 
-    /// Check if a task exists in the roadline.
-    pub fn contains_task(&self, task_id: &TaskId) -> bool {
-        self.reified.get_down_cell(task_id).is_some()
-    }
+	// === Task Access ===
 
-    /// Iterate over all tasks and their visual bounds.
-    pub fn tasks(&self) -> impl Iterator<Item = (&TaskId, &DownCell)> {
-        self.reified.task_bounds()
-    }
+	/// Get the visual bounds for a specific task.
+	pub fn get_task_bounds(&self, task_id: &TaskId) -> Option<&DownCell> {
+		self.reified.get_down_cell(task_id)
+	}
 
-    /// Get all task IDs in the roadline.
-    pub fn task_ids(&self) -> impl Iterator<Item = &TaskId> {
-        self.reified.task_bounds().map(|(id, _)| id)
-    }
+	/// Check if a task exists in the roadline.
+	pub fn contains_task(&self, task_id: &TaskId) -> bool {
+		self.reified.get_down_cell(task_id).is_some()
+	}
 
-    // === Connection Access ===
+	/// Iterate over all tasks and their visual bounds.
+	pub fn tasks(&self) -> impl Iterator<Item = (&TaskId, &DownCell)> {
+		self.reified.task_bounds()
+	}
 
-    /// Get the visual routing for a specific dependency connection.
-    pub fn get_connection(&self, dependency_id: &DependencyId) -> Option<&Joint> {
-        self.reified.get_joint(dependency_id)
-    }
+	/// Get all task IDs in the roadline.
+	pub fn task_ids(&self) -> impl Iterator<Item = &TaskId> {
+		self.reified.task_bounds().map(|(id, _)| id)
+	}
 
-    /// Check if a dependency connection exists in the roadline.
-    pub fn contains_connection(&self, dependency_id: &DependencyId) -> bool {
-        self.reified.get_joint(dependency_id).is_some()
-    }
+	// === Traversals ===
 
-    /// Iterate over all connections and their visual routing.
-    pub fn connections(&self) -> impl Iterator<Item = (&DependencyId, &Joint)> {
-        self.reified.connections()
-    }
+	/// Performs a depth-first search starting from the given task.
+	pub fn dfs(
+		&self,
+		start_task: &TaskId,
+		visit: impl FnMut(&TaskId, usize) -> Result<(), Box<dyn std::error::Error + Send + Sync>>,
+	) -> Result<(), GraphError> {
+		self.graph().dfs(start_task, visit)
+	}
 
-    /// Get all dependency connection IDs in the roadline.
-    pub fn connection_ids(&self) -> impl Iterator<Item = &DependencyId> {
-        self.reified.connections().map(|(id, _)| id)
-    }
+	/// Performs a breadth-first search starting from the given task.
+	pub fn bfs(
+		&self,
+		start_task: &TaskId,
+		visit: impl FnMut(&TaskId, usize) -> Result<(), Box<dyn std::error::Error + Send + Sync>>,
+	) -> Result<(), GraphError> {
+		self.graph().bfs(start_task, visit)
+	}
 
-    // === Rendering Helpers ===
+	// === Connection Access ===
 
-    /// Get all task rectangles for rendering.
-    /// Returns (task_id, x_start, y_start, x_end, y_end) tuples.
-    pub fn task_rectangles(&self) -> impl Iterator<Item = (&TaskId, u16, u16, u16, u16)> {
-        self.reified.task_bounds().map(|(id, cell)| {
-            let x_start = cell.down_stretch().down_stretch().start().value();
-            let x_end = cell.down_stretch().down_stretch().end().value();
-            let y_start = cell.down_lane().range().start().value();
-            let y_end = cell.down_lane().range().end().value();
-            (id, x_start, y_start, x_end, y_end)
-        })
-    }
+	/// Get the visual routing for a specific dependency connection.
+	pub fn get_connection(&self, dependency_id: &DependencyId) -> Option<&Joint> {
+		self.reified.get_joint(dependency_id)
+	}
 
-    /// Get all Bezier curves for rendering connections.
-    /// Returns (dependency_id, start_point, end_point, control1, control2) tuples.
-    pub fn bezier_curves(&self) -> impl Iterator<Item = (&DependencyId, &ConnectionPoint, &ConnectionPoint, &ConnectionPoint, &ConnectionPoint)> {
-        self.reified.connections().map(|(id, joint)| {
-            let bezier = joint.bezier_connection();
-            (id, &bezier.start, &bezier.end, &bezier.control1, &bezier.control2)
-        })
-    }
+	/// Check if a dependency connection exists in the roadline.
+	pub fn contains_connection(&self, dependency_id: &DependencyId) -> bool {
+		self.reified.get_joint(dependency_id).is_some()
+	}
 
-    /// Get connection endpoints for rendering arrows.
-    /// Returns (dependency_id, start_point, end_point) tuples.
-    pub fn connection_endpoints(&self) -> impl Iterator<Item = (&DependencyId, &ConnectionPoint, &ConnectionPoint)> {
-        self.reified.connections().map(|(id, joint)| {
-            let bezier = joint.bezier_connection();
-            (id, &bezier.start, &bezier.end)
-        })
-    }
+	/// Iterate over all connections and their visual routing.
+	pub fn connections(&self) -> impl Iterator<Item = (&DependencyId, &Joint)> {
+		self.reified.connections()
+	}
 
-    // === Layer Access (for advanced usage) ===
+	/// Get all dependency connection IDs in the roadline.
+	pub fn connection_ids(&self) -> impl Iterator<Item = &DependencyId> {
+		self.reified.connections().map(|(id, _)| id)
+	}
 
-    /// Get direct access to the underlying reified representation.
-    /// 
-    /// This provides full access to the internal data structures but
-    /// breaks the abstraction. Use the high-level methods when possible.
-    pub fn reified(&self) -> &Reified {
-        &self.reified
-    }
+	// === Rendering Helpers ===
 
-    /// Get access to the underlying grid algebra layer.
-    pub fn grid_algebra(&self) -> &GridAlgebra {
-        self.reified.grid()
-    }
+	/// Gets the task bounds for a given task id.
+	pub fn task_bounds(&self, task_id: &TaskId) -> (u16, u16, u16, u16) {
+		self.reified
+			.get_down_cell(task_id)
+			.map(|cell| {
+				(
+					cell.down_stretch().down_stretch().start().value(),
+					cell.down_lane().range().start().value(),
+					cell.down_stretch().down_stretch().end().value(),
+					cell.down_lane().range().end().value(),
+				)
+			})
+			.unwrap()
+	}
 
-    /// Get access to the underlying range algebra layer.
-    pub fn range_algebra(&self) -> &RangeAlgebra {
-        self.reified.grid().range_algebra()
-    }
+	/// Get all task rectangles for rendering.
+	/// Returns (task_id, x_start, y_start, x_end, y_end) tuples.
+	pub fn task_rectangles(&self) -> impl Iterator<Item = (&TaskId, u16, u16, u16, u16)> {
+		self.reified.task_bounds().map(|(id, cell)| {
+			let x_start = cell.down_stretch().down_stretch().start().value();
+			let x_end = cell.down_stretch().down_stretch().end().value();
+			let y_start = cell.down_lane().range().start().value();
+			let y_end = cell.down_lane().range().end().value();
+			(id, x_start, y_start, x_end, y_end)
+		})
+	}
+
+	/// Get all Bezier curves for rendering connections.
+	/// Returns (dependency_id, start_point, end_point, control1, control2) tuples.
+	pub fn bezier_curves(
+		&self,
+	) -> impl Iterator<
+		Item = (
+			&DependencyId,
+			&ConnectionPoint,
+			&ConnectionPoint,
+			&ConnectionPoint,
+			&ConnectionPoint,
+		),
+	> {
+		self.reified.connections().map(|(id, joint)| {
+			let bezier = joint.bezier_connection();
+			(id, &bezier.start, &bezier.end, &bezier.control1, &bezier.control2)
+		})
+	}
+
+	/// Get connection endpoints for rendering arrows.
+	/// Returns (dependency_id, start_point, end_point) tuples.
+	pub fn connection_endpoints(
+		&self,
+	) -> impl Iterator<Item = (&DependencyId, &ConnectionPoint, &ConnectionPoint)> {
+		self.reified.connections().map(|(id, joint)| {
+			let bezier = joint.bezier_connection();
+			(id, &bezier.start, &bezier.end)
+		})
+	}
+
+	// === Layer Access (for advanced usage) ===
+
+	/// Get direct access to the underlying reified representation.
+	///
+	/// This provides full access to the internal data structures but
+	/// breaks the abstraction. Use the high-level methods when possible.
+	pub fn reified(&self) -> &Reified {
+		&self.reified
+	}
+
+	/// Get access to the underlying grid algebra layer.
+	pub fn grid_algebra(&self) -> &GridAlgebra {
+		self.reified.grid()
+	}
+
+	/// Get access to the underlying range algebra layer.
+	pub fn range_algebra(&self) -> &RangeAlgebra {
+		self.reified.grid().range_algebra()
+	}
+
+	/// Gets the task for a given task id.
+	pub fn task(&self, task_id: &TaskId) -> Option<&Task> {
+		self.reified.grid().task(task_id)
+	}
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use roadline_util::task::{Task, range::{Start, End, PointOfReference, TargetDate}};
-    use roadline_util::duration::Duration;
-    use std::collections::BTreeSet;
-    use std::time::Duration as StdDuration;
+	use super::*;
+	use roadline_util::duration::Duration;
+	use roadline_util::task::{
+		range::{End, PointOfReference, Start, TargetDate},
+		Task,
+	};
+	use std::collections::BTreeSet;
+	use std::time::Duration as StdDuration;
 
-    fn create_test_task(
-        id: u8, 
-        reference_id: u8, 
-        offset_days: u64, 
-        duration_days: u64
-    ) -> Result<Task, anyhow::Error> {
-        let id = TaskId::new(id);
-        let reference_id = TaskId::new(reference_id);
-        
-        let start = Start::from(TargetDate {
-            point_of_reference: PointOfReference::from(reference_id),
-            duration: Duration::from(StdDuration::from_secs(offset_days * 24 * 60 * 60)),
-        });
-        
-        let end = End::from(Duration::from(StdDuration::from_secs(duration_days * 24 * 60 * 60)));
-        
-        let range = roadline_util::task::Range::new(start, end);
-        
-        Ok(Task::new(
-            id,
-            roadline_util::task::Title::new_test(),
-            BTreeSet::new(),
-            BTreeSet::new(),
-            roadline_util::task::Summary::new_test(),
-            range,
-        ))
-    }
+	fn create_test_task(
+		id: u8,
+		reference_id: u8,
+		offset_days: u64,
+		duration_days: u64,
+	) -> Result<Task, anyhow::Error> {
+		let id = TaskId::new(id);
+		let reference_id = TaskId::new(reference_id);
 
-    fn create_test_task_with_dependencies(
-        id: u8, 
-        reference_id: u8, 
-        offset_days: u64, 
-        duration_days: u64,
-        dependencies: BTreeSet<u8>
-    ) -> Result<Task, anyhow::Error> {
-        let mut task = create_test_task(id, reference_id, offset_days, duration_days)?;
-        task.dependencies_mut().extend(dependencies.into_iter().map(|id| TaskId::new(id)));
-        Ok(task)
-    }
+		let start = Start::from(TargetDate {
+			point_of_reference: PointOfReference::from(reference_id),
+			duration: Duration::from(StdDuration::from_secs(offset_days * 24 * 60 * 60)),
+		});
 
-    #[test]
-    fn test_builder_basic_functionality() -> Result<(), anyhow::Error> {
-        let mut builder = RoadlineBuilder::start_of_epoch()?;
-        
-        let task1 = create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::new())?;
-        let task2 = create_test_task_with_dependencies(2, 1, 5 * 24 * 60 * 60, 10 * 24 * 60 * 60, BTreeSet::from_iter([1]))?;
-        
-        builder.add_task(task1)?;
-        builder.add_task(task2)?;
-        
-        let roadline = builder.build()?;
-        
-        assert_eq!(roadline.task_count(), 2);
-        assert_eq!(roadline.connection_count(), 1);
-        
-        Ok(())
-    }
+		let end = End::from(Duration::from(StdDuration::from_secs(duration_days * 24 * 60 * 60)));
 
-    #[test]
-    fn test_builder_no_tasks_error() {
-        let builder = RoadlineBuilder::start_of_epoch().unwrap();
-        let result = builder.build();
-        
-        assert!(matches!(result, Err(RoadlineBuilderError::NoTasks)));
-    }
+		let range = roadline_util::task::Range::new(start, end);
 
-    #[test]
-    fn test_infallible_constructor() {
-        // This should never panic
-        let builder = RoadlineBuilder::new();
-        assert_eq!(builder.task_count(), 0);
-        assert!(builder.is_empty());
-        
-        // Default should work the same way
-        let default_builder = RoadlineBuilder::default();
-        assert_eq!(default_builder.task_count(), 0);
-    }
+		Ok(Task::new(
+			id,
+			roadline_util::task::Title::new_test(),
+			BTreeSet::new(),
+			BTreeSet::new(),
+			roadline_util::task::Summary::new_test(),
+			range,
+		))
+	}
 
-    #[test]
-    fn test_fluent_api() -> Result<(), anyhow::Error> {
-        let task1 = create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::new())?;
-        let task2 = create_test_task_with_dependencies(2, 1, 5 * 24 * 60 * 60, 10 * 24 * 60 * 60, BTreeSet::from_iter([1]))?;
-        
-        let roadline = RoadlineBuilder::new()
-            .compact()
-            .task(task1)?
-            .task(task2)?
-            .build()?;
-        
-        assert_eq!(roadline.task_count(), 2);
-        assert_eq!(roadline.config().connection_trim.value().value(), 5); // Compact config
-        assert_eq!(roadline.config().inter_lane_padding.value().value(), 1);
-        
-        Ok(())
-    }
+	fn create_test_task_with_dependencies(
+		id: u8,
+		reference_id: u8,
+		offset_days: u64,
+		duration_days: u64,
+		dependencies: BTreeSet<u8>,
+	) -> Result<Task, anyhow::Error> {
+		let mut task = create_test_task(id, reference_id, offset_days, duration_days)?;
+		task.dependencies_mut()
+			.extend(dependencies.into_iter().map(|id| TaskId::new(id)));
+		Ok(task)
+	}
 
-    #[test] 
-    fn test_date_constructors() -> Result<(), anyhow::Error> {
-        // Test YMD constructor
-        let builder1 = RoadlineBuilder::from_ymd(2024, 1, 1)?;
-        assert!(!builder1.is_empty() || builder1.is_empty()); // Just verify it doesn't crash
-        
-        // Test ISO date constructor
-        let builder2 = RoadlineBuilder::from_iso_date("2024-03-15T10:30:00Z")?;
-        assert!(!builder2.is_empty() || builder2.is_empty()); // Just verify it doesn't crash
-        
-        // Test invalid date
-        assert!(RoadlineBuilder::from_ymd(2024, 13, 1).is_err());
-        assert!(RoadlineBuilder::from_iso_date("invalid-date").is_err());
-        
-        Ok(())
-    }
+	#[test]
+	fn test_builder_basic_functionality() -> Result<(), anyhow::Error> {
+		let mut builder = RoadlineBuilder::start_of_epoch()?;
 
-    #[test]
-    fn test_spacing_presets() -> Result<(), anyhow::Error> {
-        let task1 = create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::new())?;
-        let task2 = create_test_task_with_dependencies(2, 1, 5 * 24 * 60 * 60, 10 * 24 * 60 * 60, BTreeSet::from_iter([1]))?;
-        
-        // Test compact
-        let compact_roadline = RoadlineBuilder::new()
-            .compact()
-            .task(task1.clone())?
-            .task(task2.clone())?
-            .build()?;
-        assert_eq!(compact_roadline.config().connection_trim.value().value(), 5);
-        assert_eq!(compact_roadline.config().inter_lane_padding.value().value(), 1);
-        
-        // Test spacious
-        let spacious_roadline = RoadlineBuilder::new()
-            .spacious()
-            .task(task1)?
-            .task(task2)?
-            .build()?;
-        assert_eq!(spacious_roadline.config().connection_trim.value().value(), 20);
-        assert_eq!(spacious_roadline.config().inter_lane_padding.value().value(), 5);
-        
-        Ok(())
-    }
+		let task1 =
+			create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::new())?;
+		let task2 = create_test_task_with_dependencies(
+			2,
+			1,
+			5 * 24 * 60 * 60,
+			10 * 24 * 60 * 60,
+			BTreeSet::from_iter([1]),
+		)?;
 
-    #[test]
-    fn test_builder_summary() {
-        let builder = RoadlineBuilder::new()
-            .with_spacing(15, 3);
-            
-        let summary = builder.summary();
-        assert_eq!(summary.task_count, 0);
-        assert_eq!(summary.trim_units, 15);
-        assert_eq!(summary.padding_units, 3);
-        
-        // Test display
-        let display_str = format!("{}", summary);
-        assert!(display_str.contains("0 tasks"));
-        assert!(display_str.contains("15×3"));
-    }
+		builder.add_task(task1)?;
+		builder.add_task(task2)?;
 
-    #[test]
-    fn test_validation() {
-        let empty_builder = RoadlineBuilder::new();
-        assert!(matches!(empty_builder.validate(), Err(RoadlineBuilderError::NoTasks)));
-        
-        // With tasks, validation should pass
-        let mut builder_with_tasks = RoadlineBuilder::new();
-        let task = create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::new()).unwrap();
-        builder_with_tasks.add_task(task).unwrap();
-        assert!(builder_with_tasks.validate().is_ok());
-    }
+		let roadline = builder.build()?;
 
-    #[test]
-    fn test_error_wrapping_preserves_information() -> Result<(), anyhow::Error> {
-        use std::collections::BTreeSet;
-        
-        // Create a cycle: task1 -> task2 -> task1 (circular dependency)
-        let mut builder = RoadlineBuilder::new();
-        let task1 = create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::from_iter([2]))?; // Depends on 2
-        let task2 = create_test_task_with_dependencies(2, 1, 5 * 24 * 60 * 60, 10 * 24 * 60 * 60, BTreeSet::from_iter([1]))?; // Depends on 1 - CYCLE!
-        
-        builder.add_task(task1)?;
-        builder.add_task(task2)?;
-        
-        // This should fail during build() with a range algebra error that gets wrapped
-        let result = builder.build();
-        assert!(result.is_err());
-        
-        let error = result.unwrap_err();
-        // Verify it's a RangeAlgebra error variant that wraps the original error
-        match &error {
-            RoadlineBuilderError::RangeAlgebra { source } => {
-                // The original error information is preserved 
-                let error_str = source.to_string();
-                assert!(error_str.contains("cycle") || error_str.contains("circular"), 
-                       "Expected cycle error, got: {}", error_str);
-            },
-            other => panic!("Expected RangeAlgebra error, got: {:?}", other),
-        }
-        
-        // Test that the error chain is accessible
-        let chain = std::error::Error::source(&error);
-        assert!(chain.is_some(), "Error should have a source");
-        
-        Ok(())
-    }
+		assert_eq!(roadline.task_count(), 2);
+		assert_eq!(roadline.connection_count(), 1);
 
-    #[test]
-    fn test_builder_custom_config() -> Result<(), anyhow::Error> {
-        let mut builder = RoadlineBuilder::start_of_epoch()?
-            .with_trim(Trim::new(ReifiedUnit::new(20)))
-            .with_padding(DownLanePadding::new(ReifiedUnit::new(5)));
-        
-        let task1 = create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::new())?;
-        let task2 = create_test_task_with_dependencies(2, 1, 5 * 24 * 60 * 60, 10 * 24 * 60 * 60, BTreeSet::from_iter([1]))?;
-        
-        builder.add_task(task1)?;
-        builder.add_task(task2)?;
-        
-        let roadline = builder.build()?;
-        
-        assert_eq!(roadline.config().connection_trim.value().value(), 20);
-        assert_eq!(roadline.config().inter_lane_padding.value().value(), 5);
-        
-        Ok(())
-    }
+		Ok(())
+	}
 
-    #[test]
-    fn test_roadline_access_methods() -> Result<(), anyhow::Error> {
-        let mut builder = RoadlineBuilder::start_of_epoch()?;
-        
-        let task1 = create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::new())?;
-        let task2 = create_test_task_with_dependencies(2, 1, 5 * 24 * 60 * 60, 10 * 24 * 60 * 60, BTreeSet::from_iter([1]))?;
-        
-        builder.add_task(task1)?;
-        builder.add_task(task2)?;
-        
-        let roadline = builder.build()?;
-        
-        // Test task access
-        assert!(roadline.contains_task(&TaskId::new(1)));
-        assert!(roadline.contains_task(&TaskId::new(2)));
-        assert!(!roadline.contains_task(&TaskId::new(3)));
-        
-        assert!(roadline.get_task_bounds(&TaskId::new(1)).is_some());
-        assert!(roadline.get_task_bounds(&TaskId::new(3)).is_none());
-        
-        // Test iteration
-        let task_ids: Vec<_> = roadline.task_ids().cloned().collect();
-        assert_eq!(task_ids.len(), 2);
-        assert!(task_ids.contains(&TaskId::new(1)));
-        assert!(task_ids.contains(&TaskId::new(2)));
-        
-        // Test visual bounds
-        let (max_x, max_y) = roadline.visual_bounds();
-        assert!(max_x.value() > 0);
-        assert!(max_y.value() > 0);
-        
-        // Test rendering helpers
-        let rectangles: Vec<_> = roadline.task_rectangles().collect();
-        assert_eq!(rectangles.len(), 2);
-        
-        let curves: Vec<_> = roadline.bezier_curves().collect();
-        assert_eq!(curves.len(), 1);
-        
-        Ok(())
-    }
+	#[test]
+	fn test_builder_no_tasks_error() {
+		let builder = RoadlineBuilder::start_of_epoch().unwrap();
+		let result = builder.build();
+
+		assert!(matches!(result, Err(RoadlineBuilderError::NoTasks)));
+	}
+
+	#[test]
+	fn test_infallible_constructor() {
+		// This should never panic
+		let builder = RoadlineBuilder::new();
+		assert_eq!(builder.task_count(), 0);
+		assert!(builder.is_empty());
+
+		// Default should work the same way
+		let default_builder = RoadlineBuilder::default();
+		assert_eq!(default_builder.task_count(), 0);
+	}
+
+	#[test]
+	fn test_fluent_api() -> Result<(), anyhow::Error> {
+		let task1 =
+			create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::new())?;
+		let task2 = create_test_task_with_dependencies(
+			2,
+			1,
+			5 * 24 * 60 * 60,
+			10 * 24 * 60 * 60,
+			BTreeSet::from_iter([1]),
+		)?;
+
+		let roadline = RoadlineBuilder::new().compact().task(task1)?.task(task2)?.build()?;
+
+		assert_eq!(roadline.task_count(), 2);
+		assert_eq!(roadline.config().connection_trim.value().value(), 5); // Compact config
+		assert_eq!(roadline.config().inter_lane_padding.value().value(), 1);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_date_constructors() -> Result<(), anyhow::Error> {
+		// Test YMD constructor
+		let builder1 = RoadlineBuilder::from_ymd(2024, 1, 1)?;
+		assert!(!builder1.is_empty() || builder1.is_empty()); // Just verify it doesn't crash
+
+		// Test ISO date constructor
+		let builder2 = RoadlineBuilder::from_iso_date("2024-03-15T10:30:00Z")?;
+		assert!(!builder2.is_empty() || builder2.is_empty()); // Just verify it doesn't crash
+
+		// Test invalid date
+		assert!(RoadlineBuilder::from_ymd(2024, 13, 1).is_err());
+		assert!(RoadlineBuilder::from_iso_date("invalid-date").is_err());
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_spacing_presets() -> Result<(), anyhow::Error> {
+		let task1 =
+			create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::new())?;
+		let task2 = create_test_task_with_dependencies(
+			2,
+			1,
+			5 * 24 * 60 * 60,
+			10 * 24 * 60 * 60,
+			BTreeSet::from_iter([1]),
+		)?;
+
+		// Test compact
+		let compact_roadline = RoadlineBuilder::new()
+			.compact()
+			.task(task1.clone())?
+			.task(task2.clone())?
+			.build()?;
+		assert_eq!(compact_roadline.config().connection_trim.value().value(), 5);
+		assert_eq!(compact_roadline.config().inter_lane_padding.value().value(), 1);
+
+		// Test spacious
+		let spacious_roadline =
+			RoadlineBuilder::new().spacious().task(task1)?.task(task2)?.build()?;
+		assert_eq!(spacious_roadline.config().connection_trim.value().value(), 20);
+		assert_eq!(spacious_roadline.config().inter_lane_padding.value().value(), 5);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_builder_summary() {
+		let builder = RoadlineBuilder::new().with_spacing(15, 3);
+
+		let summary = builder.summary();
+		assert_eq!(summary.task_count, 0);
+		assert_eq!(summary.trim_units, 15);
+		assert_eq!(summary.padding_units, 3);
+
+		// Test display
+		let display_str = format!("{}", summary);
+		assert!(display_str.contains("0 tasks"));
+		assert!(display_str.contains("15×3"));
+	}
+
+	#[test]
+	fn test_validation() {
+		let empty_builder = RoadlineBuilder::new();
+		assert!(matches!(empty_builder.validate(), Err(RoadlineBuilderError::NoTasks)));
+
+		// With tasks, validation should pass
+		let mut builder_with_tasks = RoadlineBuilder::new();
+		let task = create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::new())
+			.unwrap();
+		builder_with_tasks.add_task(task).unwrap();
+		assert!(builder_with_tasks.validate().is_ok());
+	}
+
+	#[test]
+	fn test_error_wrapping_preserves_information() -> Result<(), anyhow::Error> {
+		use std::collections::BTreeSet;
+
+		// Create a cycle: task1 -> task2 -> task1 (circular dependency)
+		let mut builder = RoadlineBuilder::new();
+		let task1 = create_test_task_with_dependencies(
+			1,
+			1,
+			0,
+			10 * 24 * 60 * 60,
+			BTreeSet::from_iter([2]),
+		)?; // Depends on 2
+		let task2 = create_test_task_with_dependencies(
+			2,
+			1,
+			5 * 24 * 60 * 60,
+			10 * 24 * 60 * 60,
+			BTreeSet::from_iter([1]),
+		)?; // Depends on 1 - CYCLE!
+
+		builder.add_task(task1)?;
+		builder.add_task(task2)?;
+
+		// This should fail during build() with a range algebra error that gets wrapped
+		let result = builder.build();
+		assert!(result.is_err());
+
+		let error = result.unwrap_err();
+		// Verify it's a RangeAlgebra error variant that wraps the original error
+		match &error {
+			RoadlineBuilderError::RangeAlgebra { source } => {
+				// The original error information is preserved
+				let error_str = source.to_string();
+				assert!(
+					error_str.contains("cycle") || error_str.contains("circular"),
+					"Expected cycle error, got: {}",
+					error_str
+				);
+			}
+			other => panic!("Expected RangeAlgebra error, got: {:?}", other),
+		}
+
+		// Test that the error chain is accessible
+		let chain = std::error::Error::source(&error);
+		assert!(chain.is_some(), "Error should have a source");
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_builder_custom_config() -> Result<(), anyhow::Error> {
+		let mut builder = RoadlineBuilder::start_of_epoch()?
+			.with_trim(Trim::new(ReifiedUnit::new(20)))
+			.with_padding(DownLanePadding::new(ReifiedUnit::new(5)));
+
+		let task1 =
+			create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::new())?;
+		let task2 = create_test_task_with_dependencies(
+			2,
+			1,
+			5 * 24 * 60 * 60,
+			10 * 24 * 60 * 60,
+			BTreeSet::from_iter([1]),
+		)?;
+
+		builder.add_task(task1)?;
+		builder.add_task(task2)?;
+
+		let roadline = builder.build()?;
+
+		assert_eq!(roadline.config().connection_trim.value().value(), 20);
+		assert_eq!(roadline.config().inter_lane_padding.value().value(), 5);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_roadline_access_methods() -> Result<(), anyhow::Error> {
+		let mut builder = RoadlineBuilder::start_of_epoch()?;
+
+		let task1 =
+			create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::new())?;
+		let task2 = create_test_task_with_dependencies(
+			2,
+			1,
+			5 * 24 * 60 * 60,
+			10 * 24 * 60 * 60,
+			BTreeSet::from_iter([1]),
+		)?;
+
+		builder.add_task(task1)?;
+		builder.add_task(task2)?;
+
+		let roadline = builder.build()?;
+
+		// Test task access
+		assert!(roadline.contains_task(&TaskId::new(1)));
+		assert!(roadline.contains_task(&TaskId::new(2)));
+		assert!(!roadline.contains_task(&TaskId::new(3)));
+
+		assert!(roadline.get_task_bounds(&TaskId::new(1)).is_some());
+		assert!(roadline.get_task_bounds(&TaskId::new(3)).is_none());
+
+		// Test iteration
+		let task_ids: Vec<_> = roadline.task_ids().cloned().collect();
+		assert_eq!(task_ids.len(), 2);
+		assert!(task_ids.contains(&TaskId::new(1)));
+		assert!(task_ids.contains(&TaskId::new(2)));
+
+		// Test visual bounds
+		let (max_x, max_y) = roadline.visual_bounds();
+		assert!(max_x.value() > 0);
+		assert!(max_y.value() > 0);
+
+		// Test rendering helpers
+		let rectangles: Vec<_> = roadline.task_rectangles().collect();
+		assert_eq!(rectangles.len(), 2);
+
+		let curves: Vec<_> = roadline.bezier_curves().collect();
+		assert_eq!(curves.len(), 1);
+
+		Ok(())
+	}
 }

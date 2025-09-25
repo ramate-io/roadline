@@ -113,6 +113,7 @@
           bzip2
           elfutils
           jemalloc
+          alsa-lib
         ];
 
         # Specific version of toolchain

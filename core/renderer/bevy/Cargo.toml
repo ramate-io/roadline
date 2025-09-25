@@ -1,0 +1,40 @@
+[package]
+name = "roadline-bevy-renderer"
+version = { workspace = true }
+edition  = { workspace = true }
+license  = { workspace = true }
+authors = { workspace = true }
+repository = { workspace = true }
+homepage = { workspace = true }
+publish = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+roadline-util = { workspace = true }
+roadline-representation-core = { workspace = true }
+chrono = { workspace = true }
+
+# Bevy core dependencies
+bevy = { workspace = true }
+bevy-ui-anchor = { workspace = true }
+
+# For web integration with Dioxus (optional for now)
+wasm-bindgen = { workspace = true, optional = true }
+web-sys = { workspace = true, optional = true }
+js-sys = { workspace = true, optional = true }
+
+[features]
+default = []
+web = ["wasm-bindgen", "web-sys", "js-sys"]
+test-utils = []
+
+[[example]]
+name = "basic_renderer"
+path = "examples/basic_renderer.rs"
+required-features = ["test-utils"]
+
+[lints]
+workspace = true
