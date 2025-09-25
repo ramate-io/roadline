@@ -1,3 +1,4 @@
+pub mod events;
 pub mod test_utils;
 
 use crate::components::{SelectionState, Task};
