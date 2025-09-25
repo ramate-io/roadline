@@ -318,53 +318,57 @@ impl TaskSelectedForExternEventSystem {
 			events.write(TaskSelectedForExternEvent { selected_task, renderer_selection_state });
 		}
 	}
-
-	/// Create a system that emits events for testing purposes
-	pub fn build_test_system(
-		self,
-	) -> impl FnMut(Query<(Entity, &Transform, &Task)>, EventWriter<TaskSelectedForExternEvent>) {
-		move |task_query: Query<(Entity, &Transform, &Task)>,
-		      mut events: EventWriter<TaskSelectedForExternEvent>| {
-			if !self.emit_events {
-				return;
-			}
-
-			// For testing, emit events for all tasks
-			for (_entity, _transform, task) in task_query.iter() {
-				self.emit_task_selected_for_extern(
-					&mut events,
-					task.task_id,
-					SelectionState::Selected,
-				);
-			}
-		}
-	}
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::bundles::task::tests::utils::{setup_task_test_app, TestTasksParams};
-	use bevy::ecs::system::RunSystemOnce;
 
 	/// Setup a test app with basic resources for testing the event system
 	fn setup_event_test_app() -> bevy::prelude::App {
-		let mut app = setup_task_test_app();
-		app.add_plugins(bevy::input::InputPlugin);
+		let mut app = crate::systems::task::cursor_interaction::clicks::test_utils::setup_cursor_interaction_test_app();
 		app.add_event::<TaskSelectedForExternEvent>();
-		app.add_event::<MouseButtonInput>();
 		app.add_event::<TouchInput>();
 		app.insert_resource(TouchDurationTracker::new(500)); // 500ms hold duration
 
-		// Create a minimal roadline for testing
-		let roadline = roadline_representation_core::roadline::RoadlineBuilder::new()
-			.build()
-			.unwrap_or_else(|_| {
-				roadline_representation_core::roadline::RoadlineBuilder::new().build().unwrap()
-			});
-		app.insert_resource(crate::resources::Roadline::new(roadline));
-
 		app
+	}
+
+	/// Helper function to spawn a test task at the origin
+	fn spawn_test_task(
+		app: &mut bevy::prelude::App,
+		task_id: TaskId,
+		position: Vec3,
+		size: Vec2,
+		title: String,
+	) -> Result<(), Box<dyn std::error::Error>> {
+		crate::systems::task::cursor_interaction::clicks::test_utils::spawn_test_task(
+			app, task_id, position, size, title,
+		)?;
+		Ok(())
+	}
+
+	/// Helper function to simulate a mouse click at world position (0,0)
+	fn simulate_mouse_click_at_origin(
+		mut windows: Query<(Entity, &mut Window)>,
+		mut mouse_events: EventWriter<MouseButtonInput>,
+		cameras: Query<(&Camera, &GlobalTransform)>,
+	) {
+		let (window_entity, mut window) = windows.single_mut().unwrap();
+		let (camera, camera_transform) = cameras.single().unwrap();
+
+		// Click at world position (0,0,0)
+		let world_pos = Vec3::new(0.0, 0.0, 0.0);
+
+		// Convert world coordinates to screen coordinates
+		let screen_pos = camera.world_to_viewport(camera_transform, world_pos).unwrap();
+
+		window.set_cursor_position(Some(screen_pos));
+		mouse_events.write(MouseButtonInput {
+			button: MouseButton::Left,
+			state: bevy::input::ButtonState::Pressed,
+			window: window_entity,
+		});
 	}
 
 	#[test]
@@ -383,26 +387,27 @@ mod tests {
 	#[test]
 	fn test_event_system_with_tasks() -> Result<(), Box<dyn std::error::Error>> {
 		let mut app = setup_event_test_app();
-
-		// Spawn a test task
-		let params = TestTasksParams::new().with_basic_task(
-			TaskId::from(1),
-			bevy::math::Vec3::new(0.0, 0.0, 0.0),
-			bevy::math::Vec2::new(100.0, 50.0),
-			"Test Task".to_string(),
-		);
-		app.world_mut().run_system_once(params.build())?;
-
-		// Create event system with events enabled
 		let event_system = TaskSelectedForExternEventSystem {
 			input_triggers: vec![InputTrigger::AnyClick],
 			emit_events: true,
 			pixels_per_unit: 50.0,
 		};
 
-		// Build and run the test system
-		let system_fn = event_system.build_test_system();
+		// Spawn a test task at origin
+		spawn_test_task(
+			&mut app,
+			TaskId::from(1),
+			Vec3::new(0.0, 0.0, 0.0), // Center of world
+			Vec2::new(20.0, 20.0),    // Reasonable size
+			"Test Task".to_string(),
+		)?;
+
+		// Build and run the system
+		let system_fn = event_system.build();
 		app.add_systems(bevy::prelude::Update, system_fn);
+
+		// Simulate a click at the origin where the task is located
+		app.add_systems(bevy::prelude::Update, simulate_mouse_click_at_origin);
 		app.update();
 
 		// Check that events were emitted
@@ -410,7 +415,7 @@ mod tests {
 			.world_mut()
 			.resource_mut::<bevy::ecs::event::Events<TaskSelectedForExternEvent>>();
 		let event_count = events.drain().count();
-		assert!(event_count > 0, "Should emit events when emit_events is true");
+		assert!(event_count > 0, "Should emit events when task is clicked");
 
 		Ok(())
 	}
@@ -418,26 +423,27 @@ mod tests {
 	#[test]
 	fn test_event_system_disabled() -> Result<(), Box<dyn std::error::Error>> {
 		let mut app = setup_event_test_app();
-
-		// Spawn a test task
-		let params = TestTasksParams::new().with_basic_task(
-			TaskId::from(1),
-			bevy::math::Vec3::new(0.0, 0.0, 0.0),
-			bevy::math::Vec2::new(100.0, 50.0),
-			"Test Task".to_string(),
-		);
-		app.world_mut().run_system_once(params.build())?;
-
-		// Create event system with events disabled
 		let event_system = TaskSelectedForExternEventSystem {
 			input_triggers: vec![InputTrigger::AnyClick],
 			emit_events: false,
 			pixels_per_unit: 50.0,
 		};
 
-		// Build and run the test system
-		let system_fn = event_system.build_test_system();
+		// Spawn a test task at origin
+		spawn_test_task(
+			&mut app,
+			TaskId::from(1),
+			Vec3::new(0.0, 0.0, 0.0), // Center of world
+			Vec2::new(20.0, 20.0),    // Reasonable size
+			"Test Task".to_string(),
+		)?;
+
+		// Build and run the system
+		let system_fn = event_system.build();
 		app.add_systems(bevy::prelude::Update, system_fn);
+
+		// Simulate a click at the origin where the task is located
+		app.add_systems(bevy::prelude::Update, simulate_mouse_click_at_origin);
 		app.update();
 
 		// Check that no events were emitted

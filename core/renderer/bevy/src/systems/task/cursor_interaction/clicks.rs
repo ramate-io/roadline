@@ -482,9 +482,7 @@ mod tests {
 			let (window_entity, mut window) = windows.single_mut().unwrap();
 			let (camera, camera_transform) = cameras.single().unwrap();
 
-			// Task is at Vec3(0.0, 0.0, 0.0) with size Vec2(20.0, 20.0)
-			// Camera is at z=1000 looking down, so we need to click at z=0 (in front of camera)
-			// But let's try clicking at a position that's definitely in front of the camera
+			// Click at 0,0 to avoid viewport issues
 			let world_pos = Vec3::new(0.0, 0.0, 0.0); // Halfway between camera and origin
 
 			// Convert world coordinates to screen coordinates

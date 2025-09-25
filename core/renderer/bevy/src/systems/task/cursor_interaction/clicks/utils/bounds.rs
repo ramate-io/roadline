@@ -54,9 +54,6 @@ impl TaskBoundsChecker {
 		let max_y = task_pos.y + sprite_height / 2.0;
 
 		// Check if position is within task bounds
-		world_pos.x >= min_x
-			&& world_pos.x <= max_x
-			&& world_pos.y >= min_y
-			&& world_pos.y <= max_y
+		world_pos.x >= min_x && world_pos.x <= max_x && world_pos.y >= min_y && world_pos.y <= max_y
 	}
 }
