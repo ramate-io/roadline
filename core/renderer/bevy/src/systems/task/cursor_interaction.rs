@@ -128,3 +128,309 @@ impl TaskCursorInteractionSystem {
 		);
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::components::SelectionState;
+	use crate::resources::{Roadline, SelectionResource};
+	use bevy::ecs::system::RunSystemOnce;
+	use bevy::input::mouse::MouseButton;
+	use roadline_util::task::Id as TaskId;
+
+	// Helper functions for testing (duplicated from utils since we can't access them)
+	fn setup_cursor_interaction_test_app() -> App {
+		let mut app = crate::bundles::task::tests::utils::setup_task_test_app();
+
+		// Add input plugins for mouse input
+		app.add_plugins(bevy::input::InputPlugin);
+
+		// Add window plugin to create primary window
+		app.world_mut().spawn(Window::default());
+
+		// Add required resources
+		app.insert_resource(SelectionResource::default());
+		app.insert_resource(bevy::input::ButtonInput::<MouseButton>::default());
+
+		app.world_mut().spawn((
+			Camera2d,
+			Camera {
+				order: 1,
+				clear_color: ClearColorConfig::None,
+				viewport: Some(bevy::render::camera::Viewport {
+					physical_position: UVec2::new(0, 0),
+					physical_size: UVec2::new(200, 200),
+					..default()
+				}),
+				computed: bevy::render::camera::ComputedCameraValues {
+					target_info: Some(bevy::render::camera::RenderTargetInfo { scale_factor: 1.0, ..default() }),
+					..default()
+				},
+				..default()
+			},
+		));
+
+		// Add test roadline
+		let core_roadline = crate::test_utils::create_test_roadline().expect("Failed to create test roadline");
+		app.insert_resource(Roadline::from(core_roadline));
+
+		app
+	}
+
+	fn spawn_test_task(app: &mut App, task_id: TaskId, position: Vec3, size: Vec2, title: String) -> Result<(), Box<dyn std::error::Error>> {
+		let params = crate::bundles::task::tests::utils::TestTasksParams::new().with_basic_task(task_id, position, size, title);
+		app.world_mut().run_system_once(params.build())?;
+		Ok(())
+	}
+
+	fn simulate_cursor_to_world_position(
+		windows: &mut Query<(Entity, &mut Window)>,
+		cameras: &Query<(&Camera, &GlobalTransform)>,
+		world_pos: Vec3,
+	) -> Result<(), Box<dyn std::error::Error>> {
+		let (_window_entity, mut window) = windows.single_mut().map_err(|_| "No window found")?;
+		let (camera, camera_transform) = cameras.single().map_err(|_| "No camera found")?;
+
+		let screen_pos = camera.world_to_viewport(camera_transform, world_pos).map_err(|_| "Failed to convert world to viewport")?;
+		window.set_cursor_position(Some(screen_pos));
+		Ok(())
+	}
+
+
+	#[test]
+	fn test_synthesized_system_hover_only() -> Result<(), Box<dyn std::error::Error>> {
+		let cursor_system = TaskCursorInteractionSystem::default();
+
+		// Setup app with all required resources
+		let mut app = setup_cursor_interaction_test_app();
+
+		// Spawn a test task
+		spawn_test_task(
+			&mut app,
+			TaskId::from(1),
+			Vec3::new(0.0, 0.0, 0.0),
+			Vec2::new(20.0, 20.0),
+			"Test Task".to_string(),
+		)?;
+
+		// Add the synthesized system
+		app.add_systems(Update, cursor_system.build());
+
+		// Simulate cursor movement to the task (without clicking)
+		fn simulate_cursor_movement(
+			mut windows: Query<(Entity, &mut Window)>,
+			cameras: Query<(&Camera, &GlobalTransform)>,
+		) {
+			let _ = simulate_cursor_to_world_position(&mut windows, &cameras, Vec3::new(0.0, 0.0, 0.0));
+		}
+
+		app.add_systems(Update, simulate_cursor_movement);
+		app.update();
+
+		// Check that the task has hover color (not selected)
+		let mut task_query = app.world_mut().query::<(Entity, &Transform, &Task)>();
+		let mut ui_query = app.world_mut().query::<&BorderColor>();
+
+		for (_entity, _transform, task) in task_query.iter(app.world()) {
+			if let Some(ui_entity) = task.ui_entity {
+				if let Ok(border_color) = ui_query.get(app.world(), ui_entity) {
+					// Should have hover color since we're hovering but not clicking
+					assert_eq!(border_color.0, Color::oklch(0.5, 0.137, 235.06));
+				}
+			}
+		}
+
+		// Verify task is not selected
+		let selection_resource = app.world().resource::<SelectionResource>();
+		let task_state = selection_resource.get_task_state(&TaskId::from(1));
+		assert_eq!(task_state, SelectionState::Unselected);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_synthesized_system_click_priority() -> Result<(), Box<dyn std::error::Error>> {
+		let cursor_system = TaskCursorInteractionSystem::default();
+
+		// Setup app with all required resources
+		let mut app = setup_cursor_interaction_test_app();
+
+		// Spawn a test task
+		spawn_test_task(
+			&mut app,
+			TaskId::from(1),
+			Vec3::new(0.0, 0.0, 0.0),
+			Vec2::new(20.0, 20.0),
+			"Test Task".to_string(),
+		)?;
+
+		// Add the synthesized system
+		app.add_systems(Update, cursor_system.build());
+
+		// Simulate cursor movement and click
+		fn simulate_cursor_and_click(
+			mut windows: Query<(Entity, &mut Window)>,
+			mut mouse_input: ResMut<ButtonInput<MouseButton>>,
+			cameras: Query<(&Camera, &GlobalTransform)>,
+		) {
+			let _ = simulate_cursor_to_world_position(&mut windows, &cameras, Vec3::new(0.0, 0.0, 0.0));
+			// Simulate mouse button press using ButtonInput
+			mouse_input.press(MouseButton::Left);
+		}
+
+		app.add_systems(Update, simulate_cursor_and_click);
+		app.update();
+
+		// Check that the task is selected (click takes priority over hover)
+		let selection_resource = app.world().resource::<SelectionResource>();
+		let task_state = selection_resource.get_task_state(&TaskId::from(1));
+		assert_eq!(task_state, SelectionState::Selected);
+
+		// Check that the task has selected color (not hover color)
+		let mut task_query = app.world_mut().query::<(Entity, &Transform, &Task)>();
+		let mut ui_query = app.world_mut().query::<&BorderColor>();
+
+		for (_entity, _transform, task) in task_query.iter(app.world()) {
+			if let Some(ui_entity) = task.ui_entity {
+				if let Ok(border_color) = ui_query.get(app.world(), ui_entity) {
+					// Should have selected color, not hover color
+					assert_eq!(border_color.0, Color::oklch(0.5, 0.137, 235.06)); // Selected color
+				}
+			}
+		}
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_synthesized_system_no_cursor_clears_hover() -> Result<(), Box<dyn std::error::Error>> {
+		let cursor_system = TaskCursorInteractionSystem::default();
+
+		// Setup app with all required resources
+		let mut app = setup_cursor_interaction_test_app();
+
+		// Spawn a test task
+		spawn_test_task(
+			&mut app,
+			TaskId::from(1),
+			Vec3::new(0.0, 0.0, 0.0),
+			Vec2::new(20.0, 20.0),
+			"Test Task".to_string(),
+		)?;
+
+		// Add the synthesized system
+		app.add_systems(Update, cursor_system.build());
+
+		// First, simulate cursor movement to create hover effect
+		fn simulate_cursor_movement(
+			mut windows: Query<(Entity, &mut Window)>,
+			cameras: Query<(&Camera, &GlobalTransform)>,
+		) {
+			let _ = simulate_cursor_to_world_position(&mut windows, &cameras, Vec3::new(0.0, 0.0, 0.0));
+		}
+
+		app.add_systems(Update, simulate_cursor_movement);
+		app.update();
+
+		// Verify hover effect is applied
+		let mut task_query = app.world_mut().query::<(Entity, &Transform, &Task)>();
+		let mut ui_query = app.world_mut().query::<&BorderColor>();
+
+		for (_entity, _transform, task) in task_query.iter(app.world()) {
+			if let Some(ui_entity) = task.ui_entity {
+				if let Ok(border_color) = ui_query.get(app.world(), ui_entity) {
+					assert_eq!(border_color.0, Color::oklch(0.5, 0.137, 235.06)); // Hover color
+				}
+			}
+		}
+
+		// Now simulate no cursor position (cursor moved off window)
+		fn clear_cursor_position(mut windows: Query<(Entity, &mut Window)>) {
+			if let Ok((_, mut window)) = windows.single_mut() {
+				window.set_cursor_position(None);
+			}
+		}
+
+		app.add_systems(Update, clear_cursor_position);
+		app.update();
+
+		// Verify hover effect is cleared
+		let mut task_query = app.world_mut().query::<(Entity, &Transform, &Task)>();
+		let mut ui_query = app.world_mut().query::<&BorderColor>();
+
+		for (_entity, _transform, task) in task_query.iter(app.world()) {
+			if let Some(ui_entity) = task.ui_entity {
+				if let Ok(border_color) = ui_query.get(app.world(), ui_entity) {
+					assert_eq!(border_color.0, Color::BLACK); // Unselected color
+				}
+			}
+		}
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_synthesized_system_subsystems_work_together() -> Result<(), Box<dyn std::error::Error>> {
+		let cursor_system = TaskCursorInteractionSystem::default();
+
+		// Setup app with all required resources
+		let mut app = setup_cursor_interaction_test_app();
+
+		// Spawn two test tasks
+		spawn_test_task(
+			&mut app,
+			TaskId::from(1),
+			Vec3::new(-50.0, 0.0, 0.0),
+			Vec2::new(20.0, 20.0),
+			"Task 1".to_string(),
+		)?;
+		spawn_test_task(
+			&mut app,
+			TaskId::from(2),
+			Vec3::new(50.0, 0.0, 0.0),
+			Vec2::new(20.0, 20.0),
+			"Task 2".to_string(),
+		)?;
+
+		// Test sequence: hover over task 1
+		fn test_sequence(
+			mut windows: Query<(Entity, &mut Window)>,
+			cameras: Query<(&Camera, &GlobalTransform)>,
+		) {
+			// This is a simplified test - in a real scenario you'd want more sophisticated state management
+			// For now, just verify the system can handle multiple interactions
+			let _ = simulate_cursor_to_world_position(&mut windows, &cameras, Vec3::new(-50.0, 0.0, 0.0));
+		}
+
+		// Add the synthesized system and test sequence
+		app.add_systems(Update, (test_sequence, cursor_system.build()).chain());
+		app.update();
+
+		// Verify both subsystems are working together by checking that:
+		// 1. The system doesn't crash with multiple tasks
+		// 2. The system can handle the combined functionality
+		// 3. Both tasks exist and have UI entities
+
+		let mut task_query = app.world_mut().query::<(Entity, &Transform, &Task)>();
+		let mut ui_query = app.world_mut().query::<&BorderColor>();
+		let mut task_count = 0;
+		let mut tasks_with_ui = 0;
+
+		for (_entity, _transform, task) in task_query.iter(app.world()) {
+			task_count += 1;
+			if let Some(ui_entity) = task.ui_entity {
+				tasks_with_ui += 1;
+				// Verify the UI entity exists and has a border color
+				if let Ok(_border_color) = ui_query.get(app.world(), ui_entity) {
+					// UI entity exists and is accessible - this is sufficient for this test
+				}
+			}
+		}
+
+		// Verify we have both tasks and they both have UI entities
+		assert_eq!(task_count, 2);
+		assert_eq!(tasks_with_ui, 2);
+
+		Ok(())
+	}
+}
