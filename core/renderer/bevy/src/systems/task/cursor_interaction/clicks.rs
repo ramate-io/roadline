@@ -1,5 +1,6 @@
 pub mod events;
 pub mod test_utils;
+pub mod utils;
 
 use crate::components::{SelectionState, Task};
 use crate::events::interactions::TaskSelectionChangedEvent;
