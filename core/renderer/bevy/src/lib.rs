@@ -1,5 +1,6 @@
 pub mod bundles;
 pub mod components;
+pub mod events;
 pub mod resources;
 pub mod roadline_renderer;
 pub mod systems;
