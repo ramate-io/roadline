@@ -1,4 +1,4 @@
-	use crate::bundles::task::{TaskSize, TaskSpawner};
+use crate::bundles::task::TaskSpawner;
 use crate::components::Task;
 use crate::resources::{RenderUpdateEvent, Roadline};
 use crate::RoadlineRenderConfig;
@@ -136,6 +136,7 @@ impl TaskSpawningSystem {
 mod tests {
 	use super::*;
 	use crate::bundles::task::tests::utils::{setup_task_test_app, TestTasksParams};
+	use crate::bundles::task::TaskSize;
 	use crate::resources::{RenderUpdateEvent, Roadline};
 	use crate::test_utils::create_test_roadline;
 	use bevy::ecs::system::RunSystemOnce;

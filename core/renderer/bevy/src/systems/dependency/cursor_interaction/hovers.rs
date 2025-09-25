@@ -249,23 +249,6 @@ mod tests {
 			.id()
 	}
 
-	/// Helper function to simulate cursor movement to a world position
-	fn simulate_cursor_movement(
-		mut windows: Query<(Entity, &mut Window)>,
-		cameras: Query<(&Camera, &GlobalTransform)>,
-	) {
-		let (_window_entity, mut window) = windows.single_mut().unwrap();
-		let (camera, camera_transform) = cameras.single().unwrap();
-
-		// Use 0,0 as the world position (as suggested)
-		let world_pos = Vec3::new(0.0, 0.0, 0.0);
-
-		// Convert world coordinates to screen coordinates
-		let screen_pos = camera.world_to_viewport(camera_transform, world_pos).unwrap();
-
-		window.set_cursor_position(Some(screen_pos));
-	}
-
 	#[test]
 	fn test_dependency_hover_system_builds_correctly() -> Result<(), Box<dyn std::error::Error>> {
 		let hover_system = DependencyHoverSystem::default();
