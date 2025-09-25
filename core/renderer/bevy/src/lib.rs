@@ -63,6 +63,8 @@ impl RoadlinePlugin {
 
 	/// Common setup shared between normal and headless builds
 	fn add_common_setup(&self, app: &mut App) {
+		let task_cursor_interaction_system = systems::TaskCursorInteractionSystem::default();
+
 		app
 			// Add bevy_ui_anchor plugin
 			.add_plugins(AnchorUiPlugin::<UiCameraMarker>::new())
@@ -87,7 +89,7 @@ impl RoadlinePlugin {
 					systems::TaskSpawningSystem::default().build(),
 					systems::DependencySpawningSystem::default().build(),
 					systems::DependencyHoverSystem::default().build(),
-					systems::TaskCursorInteractionSystem::default().build(),
+					task_cursor_interaction_system.build(),
 					// systems::click_selection_system,
 				),
 			);

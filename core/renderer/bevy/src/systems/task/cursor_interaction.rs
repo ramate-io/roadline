@@ -8,6 +8,7 @@ pub use hovers::TaskHoverSystem;
 use crate::components::Task;
 use crate::events::interactions::TaskSelectionChangedEvent;
 use crate::resources::{Roadline, SelectionResource};
+use bevy::input::mouse::{MouseButton, MouseButtonInput};
 use bevy::input::ButtonInput;
 use bevy::prelude::*;
 use bevy::ui::BorderColor;
@@ -38,6 +39,10 @@ impl TaskCursorInteractionSystem {
 		EventWriter<TaskSelectionChangedEvent>,
 		Res<crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem>,
 		EventWriter<crate::events::interactions::output::task::TaskSelectedForExternEvent>,
+		EventReader<MouseButtonInput>,
+		EventReader<TouchInput>,
+		Res<ButtonInput<KeyCode>>,
+		ResMut<crate::systems::task::cursor_interaction::clicks::events::output::task_selected_for_extern::TouchDurationTracker>,
 	){
 		move |camera_query: Query<
 			(&Camera, &GlobalTransform),
@@ -51,7 +56,11 @@ impl TaskCursorInteractionSystem {
 		      roadline: Option<Res<Roadline>>,
 		      mut task_selection_changed_events: EventWriter<TaskSelectionChangedEvent>,
 		      event_system: Res<crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem>,
-		      mut task_extern_events: EventWriter<crate::events::interactions::output::task::TaskSelectedForExternEvent>| {
+		      mut task_extern_events: EventWriter<crate::events::interactions::output::task::TaskSelectedForExternEvent>,
+		      mut mouse_events: EventReader<MouseButtonInput>,
+		      mut touch_events: EventReader<TouchInput>,
+		      keyboard_input: Res<ButtonInput<KeyCode>>,
+		      mut touch_tracker: ResMut<crate::systems::task::cursor_interaction::clicks::events::output::task_selected_for_extern::TouchDurationTracker>| {
 			self.task_cursor_interaction(
 				camera_query,
 				windows,
@@ -63,6 +72,10 @@ impl TaskCursorInteractionSystem {
 				&mut task_selection_changed_events,
 				&event_system,
 				&mut task_extern_events,
+				&mut mouse_events,
+				&mut touch_events,
+				&keyboard_input,
+				&mut touch_tracker,
 			)
 		}
 	}
@@ -85,6 +98,10 @@ impl TaskCursorInteractionSystem {
 		task_extern_events: &mut EventWriter<
 			crate::events::interactions::output::task::TaskSelectedForExternEvent,
 		>,
+		mouse_events: &mut EventReader<MouseButtonInput>,
+		touch_events: &mut EventReader<TouchInput>,
+		keyboard_input: &Res<ButtonInput<KeyCode>>,
+		touch_tracker: &mut ResMut<crate::systems::task::cursor_interaction::clicks::events::output::task_selected_for_extern::TouchDurationTracker>,
 	) {
 		// Get camera and window info
 		let Ok((camera, camera_transform)) = camera_query.single() else {
@@ -132,6 +149,10 @@ impl TaskCursorInteractionSystem {
 				task_selection_changed_events,
 				event_system,
 				task_extern_events,
+				mouse_events,
+				touch_events,
+				keyboard_input,
+				touch_tracker,
 			);
 			return; // Exit early if we handled a click
 		}

@@ -6,6 +6,7 @@ use crate::components::{SelectionState, Task};
 use crate::events::interactions::output::task::TaskSelectedForExternEvent;
 use crate::events::interactions::TaskSelectionChangedEvent;
 use crate::resources::{Roadline, SelectionResource};
+use crate::systems::task::cursor_interaction::clicks::events::output::task_selected_for_extern::TouchDurationTracker;
 use crate::systems::task::cursor_interaction::clicks::events::output::TaskSelectedForExternEventSystem;
 use crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem;
 use crate::systems::task::cursor_interaction::clicks::utils::TaskBoundsChecker;
@@ -60,6 +61,9 @@ impl TaskClickSystem {
 		EventWriter<TaskSelectionChangedEvent>,
 		Res<TaskSelectionChangedEventSystem>,
 		EventWriter<TaskSelectedForExternEvent>,
+		EventReader<TouchInput>,
+		Res<ButtonInput<KeyCode>>,
+		ResMut<TouchDurationTracker>,
 	) {
 		move |task_query: Query<(Entity, &Transform, &Task)>,
 		      mut selection_resource: ResMut<SelectionResource>,
@@ -73,7 +77,10 @@ impl TaskClickSystem {
 		      windows: Query<&Window>,
 		      mut task_selection_changed_events: EventWriter<TaskSelectionChangedEvent>,
 		      task_selection_event_system: Res<TaskSelectionChangedEventSystem>,
-		      mut task_extern_events: EventWriter<TaskSelectedForExternEvent>| {
+		      mut task_extern_events: EventWriter<TaskSelectedForExternEvent>,
+		      mut touch_events: EventReader<TouchInput>,
+		      keyboard_input: Res<ButtonInput<KeyCode>>,
+		      mut touch_tracker: ResMut<TouchDurationTracker>| {
 			use bevy::input::ButtonState;
 
 			// Process mouse button events
@@ -113,6 +120,10 @@ impl TaskClickSystem {
 						&mut task_selection_changed_events,
 						&task_selection_event_system,
 						&mut task_extern_events,
+						&mut mouse_events,
+						&mut touch_events,
+						&keyboard_input,
+						&mut touch_tracker,
 					);
 				}
 			}
@@ -131,7 +142,23 @@ impl TaskClickSystem {
 		task_selection_changed_events: &mut EventWriter<TaskSelectionChangedEvent>,
 		task_selection_event_system: &TaskSelectionChangedEventSystem,
 		task_extern_events: &mut EventWriter<TaskSelectedForExternEvent>,
+		mouse_events: &mut EventReader<MouseButtonInput>,
+		touch_events: &mut EventReader<TouchInput>,
+		keyboard_input: &Res<ButtonInput<KeyCode>>,
+		touch_tracker: &mut ResMut<TouchDurationTracker>,
 	) {
+		// Run the extern event system
+		self.extern_event_system.process_input_events(
+			world_pos,
+			task_query,
+			&mut mouse_events,
+			&mut touch_events,
+			&keyboard_input,
+			&roadline,
+			&mut touch_tracker,
+			&mut events,
+		);
+
 		// Use TaskBoundsChecker to find the clicked task
 		if let Some(task_id) = TaskBoundsChecker::find_task_at_position(
 			task_query,
@@ -147,7 +174,6 @@ impl TaskClickSystem {
 				task_query,
 				task_selection_changed_events,
 				task_selection_event_system,
-				task_extern_events,
 			);
 		}
 	}
@@ -162,7 +188,6 @@ impl TaskClickSystem {
 		task_query: &Query<(Entity, &Transform, &Task)>,
 		task_selection_changed_events: &mut EventWriter<TaskSelectionChangedEvent>,
 		task_selection_event_system: &TaskSelectionChangedEventSystem,
-		task_extern_events: &mut EventWriter<TaskSelectedForExternEvent>,
 	) {
 		// Get current selection state
 		let current_state = selection_resource.get_task_state(&task_id);
@@ -182,13 +207,6 @@ impl TaskClickSystem {
 			task_selection_changed_events,
 			task_id,
 			current_state,
-			new_state,
-		);
-
-		// Emit extern event for external handling
-		self.extern_event_system.emit_task_selected_for_extern(
-			task_extern_events,
-			task_id,
 			new_state,
 		);
 

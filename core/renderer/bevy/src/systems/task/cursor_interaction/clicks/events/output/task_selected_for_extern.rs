@@ -4,6 +4,7 @@ use crate::resources::Roadline;
 use crate::systems::task::cursor_interaction::clicks::utils::TaskBoundsChecker;
 use bevy::input::mouse::{MouseButton, MouseButtonInput};
 use bevy::input::touch::{TouchInput, TouchPhase};
+use bevy::input::ButtonState;
 use bevy::prelude::*;
 use roadline_util::task::Id as TaskId;
 use std::collections::HashMap;
@@ -90,6 +91,7 @@ impl InputMatcher {
 		keyboard_input: &ButtonInput<KeyCode>,
 	) -> bool {
 		triggers.iter().any(|trigger| {
+			println!("Checking trigger: {:?}", trigger);
 			match trigger {
 				InputTrigger::ShiftLeftClick => {
 					button == MouseButton::Left
@@ -153,6 +155,7 @@ impl InputMatcher {
 	pub fn process_mouse_events(
 		&self,
 		triggers: &[InputTrigger],
+		world_pos: Vec2,
 		task_query: &Query<(Entity, &Transform, &Task)>,
 		roadline: &Roadline,
 		mouse_events: &mut EventReader<MouseButtonInput>,
@@ -161,10 +164,6 @@ impl InputMatcher {
 	) {
 		for mouse_event in mouse_events.read() {
 			if self.matches_mouse_input(triggers, mouse_event.button, mouse_event, keyboard_input) {
-				// Convert mouse position to world coordinates
-				// This is a simplified version - in practice you'd need camera/viewport conversion
-				let world_pos = Vec2::new(0.0, 0.0); // Placeholder
-
 				if let Some(task_id) = self.find_task_at_position(task_query, roadline, world_pos) {
 					emit_fn(task_id, SelectionState::Selected);
 				}
@@ -247,6 +246,8 @@ impl TaskSelectedForExternEventSystem {
 		Res<Roadline>,
 		ResMut<TouchDurationTracker>,
 		EventWriter<TaskSelectedForExternEvent>,
+		Query<(&Camera, &GlobalTransform), (With<Camera2d>, Without<bevy::ui::IsDefaultUiCamera>)>,
+		Query<&Window>,
 	) {
 		move |task_query: Query<(Entity, &Transform, &Task)>,
 		      mut mouse_events: EventReader<MouseButtonInput>,
@@ -254,27 +255,62 @@ impl TaskSelectedForExternEventSystem {
 		      keyboard_input: Res<ButtonInput<KeyCode>>,
 		      roadline: Res<Roadline>,
 		      mut touch_tracker: ResMut<TouchDurationTracker>,
-		      mut events: EventWriter<TaskSelectedForExternEvent>| {
-			self.process_input_events(
-				&task_query,
-				&mut mouse_events,
-				&mut touch_events,
-				&keyboard_input,
-				&roadline,
-				&mut touch_tracker,
-				&mut events,
-			);
+		      mut events: EventWriter<TaskSelectedForExternEvent>,
+		      camera_query: Query<
+			(&Camera, &GlobalTransform),
+			(With<Camera2d>, Without<bevy::ui::IsDefaultUiCamera>),
+		>,
+		      windows: Query<&Window>| {
+			for ev in mouse_events.read() {
+				if ev.button == MouseButton::Left && ev.state == ButtonState::Pressed {
+					// Get camera and window info
+					let Ok((camera, camera_transform)) = camera_query.single() else {
+						panic!("No camera found");
+					};
+
+					let Ok(window) = windows.single() else {
+						panic!("No window found");
+					};
+
+					// Get mouse position
+					let Some(cursor_position) = window.cursor_position() else {
+						panic!("No cursor position found");
+					};
+
+					// Convert screen coordinates to world coordinates
+					let world_pos = match camera
+						.viewport_to_world_2d(camera_transform, cursor_position)
+					{
+						Ok(world_pos) => world_pos,
+						Err(e) => {
+							panic!("Failed to convert cursor position to world position: {:?}", e);
+						}
+					};
+
+					self.process_input_events(
+						world_pos,
+						&task_query,
+						&mut mouse_events,
+						&mut touch_events,
+						&keyboard_input,
+						&roadline,
+						&mut touch_tracker,
+						&mut events,
+					);
+				}
+			}
 		}
 	}
 
 	/// Process all input events and emit task selected events
 	pub fn process_input_events(
 		&self,
+		world_pos: Vec2,
 		task_query: &Query<(Entity, &Transform, &Task)>,
 		mouse_events: &mut EventReader<MouseButtonInput>,
 		touch_events: &mut EventReader<TouchInput>,
 		keyboard_input: &Res<ButtonInput<KeyCode>>,
-		roadline: &Res<Roadline>,
+		roadline: &Roadline,
 		touch_tracker: &mut ResMut<TouchDurationTracker>,
 		events: &mut EventWriter<TaskSelectedForExternEvent>,
 	) {
@@ -290,6 +326,7 @@ impl TaskSelectedForExternEventSystem {
 		// Process all input events using the helper
 		matcher.process_mouse_events(
 			&self.input_triggers,
+			world_pos,
 			task_query,
 			roadline,
 			mouse_events,
@@ -315,7 +352,9 @@ impl TaskSelectedForExternEventSystem {
 		renderer_selection_state: SelectionState,
 	) {
 		if self.emit_events {
-			events.write(TaskSelectedForExternEvent { selected_task, renderer_selection_state });
+			let event = TaskSelectedForExternEvent { selected_task, renderer_selection_state };
+			println!("Emitting task selected for extern event: {:?}", event);
+			events.write(event);
 		}
 	}
 }
