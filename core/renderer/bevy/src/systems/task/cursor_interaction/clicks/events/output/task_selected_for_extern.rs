@@ -730,7 +730,7 @@ mod tests {
 
 		let keyboard_input = ButtonInput::<KeyCode>::default();
 
-		assert!(matcher.matches_mouse_input(
+		assert!(!matcher.matches_mouse_input(
 			&triggers,
 			MouseButton::Left,
 			&mouse_input,
