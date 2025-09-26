@@ -1,5 +1,5 @@
 [package]
-name = "roadline-site-dioxus-bevy"
+name = "roadline-site-leptos-bevy"
 version = { workspace = true }
 edition  = { workspace = true }
 license  = { workspace = true }
@@ -19,7 +19,9 @@ roadline-bevy-renderer = { workspace = true }
 chrono = { workspace = true }
 bevy = { workspace = true }
 leptos = { workspace = true }
+leptos-use = { workspace = true }
 leptos-bevy-canvas = { workspace = true }
+console_error_panic_hook = { workspace = true }
 
 [lints]
 workspace = true

@@ -1,9 +1,11 @@
 use crate::app::bevy_app::{init_bevy_app, TaskSelectedForExternEvent};
-use crate::{RENDER_HEIGHT, RENDER_WIDTH};
 use leptos::prelude::Set;
 use leptos::prelude::*;
 use leptos_bevy_canvas::prelude::*;
 use leptos_use::use_debounce_fn;
+
+const RENDER_WIDTH: f32 = 600.0;
+const RENDER_HEIGHT: f32 = 500.0;
 
 #[derive(Copy, Clone)]
 pub enum EventDirection {
@@ -14,14 +16,14 @@ pub enum EventDirection {
 
 #[component]
 pub fn App() -> impl IntoView {
-	let (click_event_receiver, click_event_sender) = event_b2l::<TaskSelectedForExternEvent>();
+	let (task_selected_for_extern_receiver, task_selected_for_extern_sender) =
+		event_b2l::<TaskSelectedForExternEvent>();
 
-	let (text, set_text) = signal(String::new());
 	let (event_str, set_event_str) = signal(String::new());
 	let (event_direction, set_event_direction) = signal(EventDirection::None);
 
 	Effect::new(move || {
-		if let Some(event) = click_event_receiver.get() {
+		if let Some(event) = task_selected_for_extern_receiver.get() {
 			set_event_str.set(format!("{:#?}", event));
 			set_event_direction.set(EventDirection::BevyToLeptos);
 		}
@@ -37,7 +39,7 @@ pub fn App() -> impl IntoView {
 					style:max-height=format!("{}px", RENDER_HEIGHT)
 				>
 					<BevyCanvas
-						init=move || { init_bevy_app(text_receiver, click_event_sender) }
+						init=move || { init_bevy_app(task_selected_for_extern_sender).unwrap() }
 						{..}
 						width=RENDER_WIDTH
 						height=RENDER_HEIGHT
@@ -46,35 +48,6 @@ pub fn App() -> impl IntoView {
 			</Frame>
 
 			<EventDisplay event_str event_direction />
-
-			<Frame class="border-blue-500 bg-blue-500/5 max-w-[200px]">
-				<h2 class="text-xl font-bold text-blue-500 relative top-[-10px]">Leptos</h2>
-				<TextDisplay text click_event_receiver />
-			</Frame>
-		</div>
-	}
-}
-
-#[component]
-pub fn TextDisplay(text: ReadSignal<String>) -> impl IntoView {
-	view! {
-		<div class="mt-3 text-sm font-medium text-white">
-			Preview
-		</div>
-		<div class="mt-2 border text-sm rounded-lg block w-full p-2.5 bg-gray-700 border-gray-600 text-white">
-			<For
-				each=move || { text.get().chars().enumerate().collect::<Vec<_>>() }
-				key=|(i, _)| *i
-				children=move |(i, c)| {
-					let class = move || {
-						format!(
-							"relative inline-block transition-all duration-200 ease-out {class}",
-						)
-					};
-
-					view! { <span class=class>{c}</span> }
-				}
-			/>
 		</div>
 	}
 }

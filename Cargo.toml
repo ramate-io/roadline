@@ -70,7 +70,12 @@ tonic-reflection = "0.12.3"
 tonic-web = "0.12.3"
 prost = "0.13.3"
 leptos = "0.8.2"
+leptos-use = { version = "0.16", default-features = false, features = [
+    "use_raf_fn",
+    "use_debounce_fn"
+] }
 leptos-bevy-canvas = { git = "https://github.com/ramate-io/leptos-bevy-canvas" , rev = "72ede97d63edb1ec3ae9ff87c3eb449fec8dbad7" }
+console_error_panic_hook = "0.1"
 wasm-bindgen = "0.2"
 web-sys = "0.3"
 wasm-bindgen-futures = "0.4"

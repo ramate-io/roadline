@@ -4530,14 +4530,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "roadline-site-dioxus-bevy"
+name = "roadline-site-leptos-bevy"
 version = "0.0.1"
 dependencies = [
  "anyhow",
  "bevy",
  "chrono",
+ "console_error_panic_hook",
  "leptos",
  "leptos-bevy-canvas",
+ "leptos-use",
  "roadline-bevy-renderer",
  "roadline-representation-core",
  "roadline-util",
