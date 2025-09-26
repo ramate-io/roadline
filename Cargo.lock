@@ -537,6 +537,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy-dioxus-plugin"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "bevy",
+ "chrono",
+ "dioxus",
+ "serde",
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "bevy-type-safe"
 version = "0.0.1"
 dependencies = [
@@ -2757,18 +2769,6 @@ dependencies = [
  "jni",
  "libc",
  "once_cell",
-]
-
-[[package]]
-name = "dioxus-plugin"
-version = "0.0.1"
-dependencies = [
- "anyhow",
- "bevy",
- "chrono",
- "dioxus",
- "serde",
- "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -6410,6 +6410,7 @@ version = "0.0.1"
 dependencies = [
  "anyhow",
  "bevy",
+ "bevy-dioxus-plugin",
  "chrono",
  "dioxus",
  "js-sys",

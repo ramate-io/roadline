@@ -19,6 +19,7 @@ roadline-bevy-renderer = { workspace = true }
 chrono = { workspace = true }
 bevy = { workspace = true }
 dioxus = { workspace = true }
+bevy-dioxus-plugin = { workspace = true }
 
 # For web integration with Dioxus (optional for now)
 wasm-bindgen = { workspace = true }

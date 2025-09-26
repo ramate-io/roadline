@@ -98,6 +98,7 @@ roadline-representation-core = { path = "core/representation" }
 roadline-bevy-renderer = { path = "core/renderer/bevy" }
 
 bevy-ui-anchor = { path = "util/bevy/ui-anchor" }
+bevy-dioxus-plugin = { path = "util/bevy/dioxus-plugin" }
 
 
 [workspace.lints.clippy]
