@@ -70,7 +70,7 @@ tonic-reflection = "0.12.3"
 tonic-web = "0.12.3"
 prost = "0.13.3"
 leptos = "0.8.2"
-leptos-bevy-canvas = "0.3.0"
+leptos-bevy-canvas = { git = "https://github.com/ramate-io/leptos-bevy-canvas" , rev = "72ede97d63edb1ec3ae9ff87c3eb449fec8dbad7" }
 wasm-bindgen = "0.2"
 web-sys = "0.3"
 wasm-bindgen-futures = "0.4"
@@ -99,10 +99,6 @@ roadline-representation-core = { path = "core/representation" }
 roadline-bevy-renderer = { path = "core/renderer/bevy" }
 
 bevy-ui-anchor = { path = "util/bevy/ui-anchor" }
-
-[patches.crates-io]
-bevy = { git = "https://github.com/ramate-io/bevy", rev = "390623a9289c10760e779b19c9b6c245e2179b54" }
-
 
 [workspace.lints.clippy]
 debug_assert_with_mut_call = "deny"
