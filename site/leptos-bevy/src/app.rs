@@ -1,4 +1,5 @@
-pub mod dioxus_app;
+pub mod bevy_app;
+pub mod leptos_app;
 
 /// Errors thrown by the [RoadlineApp].
 #[derive(Debug, thiserror::Error)]
