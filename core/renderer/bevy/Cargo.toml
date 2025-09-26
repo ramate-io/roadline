@@ -35,5 +35,9 @@ test-utils = []
 name = "basic_renderer"
 path = "examples/basic_renderer.rs"
 
+[[bin]]
+name = "roadline-bevy-for-canvas"
+path = "bin/roadline-bevy-for-canvas.rs"
+
 [lints]
 workspace = true
