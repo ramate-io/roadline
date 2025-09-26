@@ -1,0 +1,29 @@
+[package]
+name = "roadline-site-dioxus-bevy"
+version = { workspace = true }
+edition  = { workspace = true }
+license  = { workspace = true }
+authors = { workspace = true }
+repository = { workspace = true }
+homepage = { workspace = true }
+publish = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+roadline-util = { workspace = true }
+roadline-representation-core = { workspace = true }
+roadline-bevy-renderer = { workspace = true }
+chrono = { workspace = true }
+bevy = { workspace = true }
+dioxus = { workspace = true }
+
+# For web integration with Dioxus (optional for now)
+wasm-bindgen = { workspace = true }
+web-sys = { workspace = true }
+js-sys = { workspace = true }
+
+[lints]
+workspace = true

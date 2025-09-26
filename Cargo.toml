@@ -4,10 +4,16 @@ resolver = "2"
 
 members = [
 
+  # util
   "util/roadline/*",
   "util/bevy/*",
+
+  # core
   "core/representation",
-  "core/renderer/*"
+  "core/renderer/*",
+
+  # site
+  "site/dioxus-bevy"
   
 ]
 
@@ -89,6 +95,7 @@ clap-markdown-ext = { git = "https://github.com/movementlabsxyz/clap-markdown-ex
 # internal
 roadline-util = { path = "util/roadline/roadline" }
 roadline-representation-core = { path = "core/representation" }
+roadline-bevy-renderer = { path = "core/renderer/bevy" }
 
 bevy-ui-anchor = { path = "util/bevy/ui-anchor" }
 
