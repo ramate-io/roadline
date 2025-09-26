@@ -1,5 +1,4 @@
-use crate::bevy_app::init_bevy_app;
-use crate::events::{ClickEvent, TextEvent};
+use crate::app::bevy_app::{init_bevy_app, TaskSelectedForExternEvent};
 use crate::{RENDER_HEIGHT, RENDER_WIDTH};
 use leptos::prelude::Set;
 use leptos::prelude::*;
@@ -15,23 +14,11 @@ pub enum EventDirection {
 
 #[component]
 pub fn App() -> impl IntoView {
-	let (text_event_sender, text_receiver) = event_l2b::<TextEvent>();
-	let (click_event_receiver, click_event_sender) = event_b2l::<ClickEvent>();
+	let (click_event_receiver, click_event_sender) = event_b2l::<TaskSelectedForExternEvent>();
 
 	let (text, set_text) = signal(String::new());
 	let (event_str, set_event_str) = signal(String::new());
 	let (event_direction, set_event_direction) = signal(EventDirection::None);
-
-	let on_input = move |text: String| {
-		set_text.set(text.clone());
-
-		let text_event = TextEvent { text };
-
-		set_event_str.set(format!("{:#?}", text_event));
-		set_event_direction.set(EventDirection::LeptosToBevy);
-
-		text_event_sender.send(text_event).ok();
-	};
 
 	Effect::new(move || {
 		if let Some(event) = click_event_receiver.get() {
@@ -62,7 +49,6 @@ pub fn App() -> impl IntoView {
 
 			<Frame class="border-blue-500 bg-blue-500/5 max-w-[200px]">
 				<h2 class="text-xl font-bold text-blue-500 relative top-[-10px]">Leptos</h2>
-				<TextInput on_input=on_input />
 				<TextDisplay text click_event_receiver />
 			</Frame>
 		</div>
@@ -70,10 +56,7 @@ pub fn App() -> impl IntoView {
 }
 
 #[component]
-pub fn TextDisplay(
-	text: ReadSignal<String>,
-	click_event_receiver: LeptosEventReceiver<ClickEvent>,
-) -> impl IntoView {
+pub fn TextDisplay(text: ReadSignal<String>) -> impl IntoView {
 	view! {
 		<div class="mt-3 text-sm font-medium text-white">
 			Preview
@@ -84,12 +67,6 @@ pub fn TextDisplay(
 				key=|(i, _)| *i
 				children=move |(i, c)| {
 					let class = move || {
-						let class = if let Some(event) = click_event_receiver.get() {
-							if event.char_index == i { "top-[-5px]" } else { "top-0" }
-						} else {
-							"top-0"
-						};
-
 						format!(
 							"relative inline-block transition-all duration-200 ease-out {class}",
 						)
