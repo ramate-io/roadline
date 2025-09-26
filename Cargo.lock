@@ -2760,6 +2760,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "dioxus-plugin"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "bevy",
+ "chrono",
+ "dioxus",
+ "serde",
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "dioxus-rsx"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

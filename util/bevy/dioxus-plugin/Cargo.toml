@@ -1,0 +1,18 @@
+[package]
+name = "bevy-dioxus-plugin"
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+description = "A small bevy plugin for rendering bevy on a Dioxus Canvas."
+license = { workspace = true }
+repository = { workspace = true }
+keywords = ["bevy", "ui"]
+readme = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+chrono = { workspace = true }
+bevy = { workspace = true }
+dioxus = { workspace = true }
