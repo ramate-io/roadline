@@ -1,5 +1,7 @@
 use crate::bundles::task::tests::utils::{setup_task_test_app, TestTasksParams};
+use crate::events::interactions::TaskSelectionChangedEvent;
 use crate::resources::{Roadline, SelectionResource};
+use crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem;
 use crate::test_utils::create_test_roadline;
 use bevy::ecs::system::RunSystemOnce;
 use bevy::prelude::*;
@@ -20,6 +22,12 @@ pub fn setup_cursor_interaction_test_app() -> App {
 	// Add required resources
 	app.insert_resource(SelectionResource::default());
 	app.insert_resource(bevy::input::ButtonInput::<bevy::input::mouse::MouseButton>::default());
+
+	// Add event system resources
+	app.add_event::<TaskSelectionChangedEvent>();
+	app.add_event::<crate::events::interactions::output::task::TaskSelectedForExternEvent>();
+	app.insert_resource(TaskSelectionChangedEventSystem::default());
+	app.insert_resource(crate::systems::task::cursor_interaction::clicks::events::output::task_selected_for_extern::TouchDurationTracker::default());
 
 	app.world_mut().spawn((
 		Camera2d,

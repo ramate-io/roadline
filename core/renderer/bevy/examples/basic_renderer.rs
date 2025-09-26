@@ -1,4 +1,4 @@
-use bevy::{asset::load_internal_binary_asset, prelude::*};
+use bevy::prelude::*;
 use roadline_bevy_renderer::{RoadlineRenderConfig, RoadlineRenderer};
 
 // Import test utilities for the example

@@ -1,7 +1,15 @@
+pub mod events;
 pub mod test_utils;
+pub mod utils;
 
 use crate::components::{SelectionState, Task};
+use crate::events::interactions::output::task::TaskSelectedForExternEvent;
+use crate::events::interactions::TaskSelectionChangedEvent;
 use crate::resources::{Roadline, SelectionResource};
+use crate::systems::task::cursor_interaction::clicks::events::output::task_selected_for_extern::TouchDurationTracker;
+use crate::systems::task::cursor_interaction::clicks::events::output::TaskSelectedForExternEventSystem;
+use crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem;
+use crate::systems::task::cursor_interaction::clicks::utils::TaskBoundsChecker;
 use bevy::input::mouse::{MouseButton, MouseButtonInput};
 use bevy::prelude::*;
 use bevy::ui::BorderColor;
@@ -18,6 +26,7 @@ pub struct TaskClickSystem {
 	pub unselected_dependency_color: Color,
 	pub selected_dependency_color: Color,
 	pub pixels_per_unit: f32,
+	pub extern_event_system: TaskSelectedForExternEventSystem,
 }
 
 impl Default for TaskClickSystem {
@@ -32,6 +41,7 @@ impl Default for TaskClickSystem {
 			unselected_dependency_color: Color::BLACK,
 			selected_dependency_color: Color::oklch(0.5, 0.137, 235.06),
 			pixels_per_unit: 50.0,
+			extern_event_system: TaskSelectedForExternEventSystem::default(),
 		}
 	}
 }
@@ -48,6 +58,12 @@ impl TaskClickSystem {
 		EventReader<MouseButtonInput>,
 		Query<(&Camera, &GlobalTransform), (With<Camera2d>, Without<bevy::ui::IsDefaultUiCamera>)>,
 		Query<&Window>,
+		EventWriter<TaskSelectionChangedEvent>,
+		Res<TaskSelectionChangedEventSystem>,
+		EventWriter<TaskSelectedForExternEvent>,
+		EventReader<TouchInput>,
+		Res<ButtonInput<KeyCode>>,
+		ResMut<TouchDurationTracker>,
 	) {
 		move |task_query: Query<(Entity, &Transform, &Task)>,
 		      mut selection_resource: ResMut<SelectionResource>,
@@ -58,7 +74,13 @@ impl TaskClickSystem {
 			(&Camera, &GlobalTransform),
 			(With<Camera2d>, Without<bevy::ui::IsDefaultUiCamera>),
 		>,
-		      windows: Query<&Window>| {
+		      windows: Query<&Window>,
+		      mut task_selection_changed_events: EventWriter<TaskSelectionChangedEvent>,
+		      task_selection_event_system: Res<TaskSelectionChangedEventSystem>,
+		      mut task_extern_events: EventWriter<TaskSelectedForExternEvent>,
+		      mut touch_events: EventReader<TouchInput>,
+		      keyboard_input: Res<ButtonInput<KeyCode>>,
+		      mut touch_tracker: ResMut<TouchDurationTracker>| {
 			use bevy::input::ButtonState;
 
 			// Process mouse button events
@@ -90,11 +112,18 @@ impl TaskClickSystem {
 
 					self.handle_task_clicks(
 						world_pos,
+						ev,
 						&task_query,
 						&mut selection_resource,
 						&mut ui_query,
 						&roadline,
 						self.pixels_per_unit,
+						&mut task_selection_changed_events,
+						&task_selection_event_system,
+						&mut task_extern_events,
+						&mut touch_events,
+						&keyboard_input,
+						&mut touch_tracker,
 					);
 				}
 			}
@@ -105,46 +134,45 @@ impl TaskClickSystem {
 	pub fn handle_task_clicks(
 		&self,
 		world_pos: Vec2,
+		mouse_event: &MouseButtonInput,
 		task_query: &Query<(Entity, &Transform, &Task)>,
 		selection_resource: &mut ResMut<SelectionResource>,
 		ui_query: &mut Query<&mut BorderColor>,
 		roadline: &Roadline,
 		pixels_per_unit: f32,
+		task_selection_changed_events: &mut EventWriter<TaskSelectionChangedEvent>,
+		task_selection_event_system: &TaskSelectionChangedEventSystem,
+		task_extern_events: &mut EventWriter<TaskSelectedForExternEvent>,
+		_touch_events: &mut EventReader<TouchInput>,
+		keyboard_input: &Res<ButtonInput<KeyCode>>,
+		_touch_tracker: &mut ResMut<TouchDurationTracker>,
 	) {
-		for (_entity, transform, task) in task_query.iter() {
-			// Get task position from transform
-			let task_pos = transform.translation.truncate();
+		// Run the extern event system for this specific mouse event
+		self.extern_event_system.process_single_mouse_event(
+			world_pos,
+			mouse_event,
+			task_query,
+			&keyboard_input,
+			&roadline,
+			task_extern_events,
+		);
 
-			// Get actual task bounds from roadline
-			let (start_x, start_y, end_x, end_y) = roadline.task_bounds(&task.task_id);
-			let width = end_x - start_x;
-			let height = end_y - start_y;
-
-			// Convert reified units to pixel coordinates using same scaling as task system
-			let sprite_width = width as f32 * pixels_per_unit;
-			let sprite_height = height as f32 * pixels_per_unit;
-
-			let min_x = task_pos.x - sprite_width / 2.0;
-			let max_x = task_pos.x + sprite_width / 2.0;
-			let min_y = task_pos.y - sprite_height / 2.0;
-			let max_y = task_pos.y + sprite_height / 2.0;
-
-			// Check if mouse is within task bounds
-			let in_bounds = world_pos.x >= min_x
-				&& world_pos.x <= max_x
-				&& world_pos.y >= min_y
-				&& world_pos.y <= max_y;
-
-			if in_bounds {
-				self.handle_task_click(
-					task.task_id,
-					selection_resource,
-					ui_query,
-					roadline,
-					task_query,
-				);
-				return; // Exit early if we clicked on a task
-			}
+		// Use TaskBoundsChecker to find the clicked task
+		if let Some(task_id) = TaskBoundsChecker::find_task_at_position(
+			task_query,
+			roadline,
+			world_pos,
+			pixels_per_unit,
+		) {
+			self.handle_task_click(
+				task_id,
+				selection_resource,
+				ui_query,
+				roadline,
+				task_query,
+				task_selection_changed_events,
+				task_selection_event_system,
+			);
 		}
 	}
 
@@ -156,6 +184,8 @@ impl TaskClickSystem {
 		ui_query: &mut Query<&mut BorderColor>,
 		roadline: &Roadline,
 		task_query: &Query<(Entity, &Transform, &Task)>,
+		task_selection_changed_events: &mut EventWriter<TaskSelectionChangedEvent>,
+		task_selection_event_system: &TaskSelectionChangedEventSystem,
 	) {
 		// Get current selection state
 		let current_state = selection_resource.get_task_state(&task_id);
@@ -169,6 +199,14 @@ impl TaskClickSystem {
 		};
 
 		selection_resource.set_task_state(task_id, new_state);
+
+		// Emit selection changed event
+		task_selection_event_system.emit_task_selection_changed(
+			task_selection_changed_events,
+			task_id,
+			current_state,
+			new_state,
+		);
 
 		// Update visual feedback
 		self.update_task_visual_feedback(task_id, new_state, ui_query, task_query);
@@ -399,24 +437,47 @@ mod tests {
 			mut selection_resource: ResMut<SelectionResource>,
 			mut ui_query: Query<&mut BorderColor>,
 			roadline: Res<Roadline>,
+			mut task_selection_changed_events: EventWriter<TaskSelectionChangedEvent>,
+			task_selection_event_system: Res<TaskSelectionChangedEventSystem>,
+			mut task_extern_events: EventWriter<TaskSelectedForExternEvent>,
+			mut touch_events: EventReader<TouchInput>,
+			keyboard_input: Res<ButtonInput<KeyCode>>,
+			mut touch_tracker: ResMut<TouchDurationTracker>,
 		) {
 			// Test with world coordinates that should hit the task
 			// Task is at Vec3(100.0, 200.0, 0.0) with actual bounds min=(75, 175), max=(125, 225)
 			// So let's click at the center: (100, 200)
 			let world_pos = Vec2::new(100.0, 200.0);
 
+			// Create a synthetic mouse event for testing
+			let mouse_event = MouseButtonInput {
+				button: MouseButton::Left,
+				state: bevy::input::ButtonState::Pressed,
+				window: Entity::from_raw(0), // Use a dummy entity for testing
+			};
+
 			click_system.handle_task_clicks(
 				world_pos,
+				&mouse_event,
 				&task_query,
 				&mut selection_resource,
 				&mut ui_query,
 				&roadline,
 				click_system.pixels_per_unit,
+				&mut task_selection_changed_events,
+				&task_selection_event_system,
+				&mut task_extern_events,
+				&mut touch_events,
+				&keyboard_input,
+				&mut touch_tracker,
 			);
 		}
 
 		// Add the click system as a resource and the test system
 		app.insert_resource(click_system);
+		app.insert_resource(crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem::default());
+		app.insert_resource(TouchDurationTracker::default());
+		app.add_event::<TaskSelectedForExternEvent>();
 		app.add_systems(Update, test_click_logic);
 
 		// Run the test system
@@ -454,9 +515,7 @@ mod tests {
 			let (window_entity, mut window) = windows.single_mut().unwrap();
 			let (camera, camera_transform) = cameras.single().unwrap();
 
-			// Task is at Vec3(0.0, 0.0, 0.0) with size Vec2(20.0, 20.0)
-			// Camera is at z=1000 looking down, so we need to click at z=0 (in front of camera)
-			// But let's try clicking at a position that's definitely in front of the camera
+			// Click at 0,0 to avoid viewport issues
 			let world_pos = Vec3::new(0.0, 0.0, 0.0); // Halfway between camera and origin
 
 			// Convert world coordinates to screen coordinates
@@ -469,6 +528,9 @@ mod tests {
 				window: window_entity,
 			});
 		}
+
+		// Add the extern event
+		app.add_event::<TaskSelectedForExternEvent>();
 
 		// Systems need to be chained to avoid first registration bug.
 		app.add_systems(Update, (simulate_click, click_system.build()).chain());

@@ -1,11 +1,14 @@
 pub mod clicks;
 pub mod hovers;
 
+pub use clicks::events::output::TaskSelectedForExternEventSystem;
 pub use clicks::TaskClickSystem;
 pub use hovers::TaskHoverSystem;
 
 use crate::components::Task;
+use crate::events::interactions::TaskSelectionChangedEvent;
 use crate::resources::{Roadline, SelectionResource};
+use bevy::input::mouse::{MouseButton, MouseButtonInput};
 use bevy::input::ButtonInput;
 use bevy::prelude::*;
 use bevy::ui::BorderColor;
@@ -33,7 +36,14 @@ impl TaskCursorInteractionSystem {
 		Query<&mut BorderColor>,
 		ResMut<SelectionResource>,
 		Option<Res<Roadline>>,
-	) {
+		EventWriter<TaskSelectionChangedEvent>,
+		Res<crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem>,
+		EventWriter<crate::events::interactions::output::task::TaskSelectedForExternEvent>,
+		EventReader<MouseButtonInput>,
+		EventReader<TouchInput>,
+		Res<ButtonInput<KeyCode>>,
+		ResMut<crate::systems::task::cursor_interaction::clicks::events::output::task_selected_for_extern::TouchDurationTracker>,
+	){
 		move |camera_query: Query<
 			(&Camera, &GlobalTransform),
 			(With<Camera2d>, Without<bevy::ui::IsDefaultUiCamera>),
@@ -43,7 +53,14 @@ impl TaskCursorInteractionSystem {
 		      task_query: Query<(Entity, &Transform, &Task)>,
 		      ui_query: Query<&mut BorderColor>,
 		      selection_resource: ResMut<SelectionResource>,
-		      roadline: Option<Res<Roadline>>| {
+		      roadline: Option<Res<Roadline>>,
+		      mut task_selection_changed_events: EventWriter<TaskSelectionChangedEvent>,
+		      event_system: Res<crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem>,
+		      mut task_extern_events: EventWriter<crate::events::interactions::output::task::TaskSelectedForExternEvent>,
+		      mut mouse_events: EventReader<MouseButtonInput>,
+		      mut touch_events: EventReader<TouchInput>,
+		      keyboard_input: Res<ButtonInput<KeyCode>>,
+		      mut touch_tracker: ResMut<crate::systems::task::cursor_interaction::clicks::events::output::task_selected_for_extern::TouchDurationTracker>| {
 			self.task_cursor_interaction(
 				camera_query,
 				windows,
@@ -52,6 +69,13 @@ impl TaskCursorInteractionSystem {
 				ui_query,
 				selection_resource,
 				roadline,
+				&mut task_selection_changed_events,
+				&event_system,
+				&mut task_extern_events,
+				&mut mouse_events,
+				&mut touch_events,
+				&keyboard_input,
+				&mut touch_tracker,
 			)
 		}
 	}
@@ -64,11 +88,20 @@ impl TaskCursorInteractionSystem {
 			(With<Camera2d>, Without<bevy::ui::IsDefaultUiCamera>),
 		>,
 		windows: Query<&Window>,
-		mouse_input: Res<ButtonInput<MouseButton>>,
+		_mouse_input: Res<ButtonInput<MouseButton>>,
 		task_query: Query<(Entity, &Transform, &Task)>,
 		mut ui_query: Query<&mut BorderColor>,
 		mut selection_resource: ResMut<SelectionResource>,
 		roadline: Option<Res<Roadline>>,
+		task_selection_changed_events: &mut EventWriter<TaskSelectionChangedEvent>,
+		event_system: &crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem,
+		task_extern_events: &mut EventWriter<
+			crate::events::interactions::output::task::TaskSelectedForExternEvent,
+		>,
+		mouse_events: &mut EventReader<MouseButtonInput>,
+		touch_events: &mut EventReader<TouchInput>,
+		keyboard_input: &Res<ButtonInput<KeyCode>>,
+		touch_tracker: &mut ResMut<crate::systems::task::cursor_interaction::clicks::events::output::task_selected_for_extern::TouchDurationTracker>,
 	) {
 		// Get camera and window info
 		let Ok((camera, camera_transform)) = camera_query.single() else {
@@ -105,16 +138,25 @@ impl TaskCursorInteractionSystem {
 		let pixels_per_unit = 50.0;
 
 		// Check for clicks first (higher priority)
-		if mouse_input.just_pressed(MouseButton::Left) {
-			self.click_system.handle_task_clicks(
-				world_pos,
-				&task_query,
-				&mut selection_resource,
-				&mut ui_query,
-				&roadline,
-				pixels_per_unit,
-			);
-			return; // Exit early if we handled a click
+		for ev in mouse_events.read() {
+			if ev.button == MouseButton::Left && ev.state == bevy::input::ButtonState::Pressed {
+				self.click_system.handle_task_clicks(
+					world_pos,
+					ev,
+					&task_query,
+					&mut selection_resource,
+					&mut ui_query,
+					&roadline,
+					pixels_per_unit,
+					task_selection_changed_events,
+					event_system,
+					task_extern_events,
+					touch_events,
+					keyboard_input,
+					touch_tracker,
+				);
+				return; // Exit early if we handled a click
+			}
 		}
 
 		// Handle hover effects (lower priority)
@@ -135,10 +177,9 @@ mod tests {
 	use crate::components::SelectionState;
 	use crate::resources::SelectionResource;
 	use crate::systems::task::cursor_interaction::clicks::test_utils::{
-		setup_cursor_interaction_test_app, simulate_cursor_to_world_position, spawn_test_task,
+		setup_cursor_interaction_test_app, simulate_cursor_to_world_position, simulate_mouse_click,
+		spawn_test_task,
 	};
-	use bevy::input::mouse::MouseButton;
-	use bevy::input::ButtonInput;
 	use roadline_util::task::Id as TaskId;
 
 	#[test]
@@ -158,6 +199,7 @@ mod tests {
 		)?;
 
 		// Add the synthesized system
+		app.add_event::<crate::events::interactions::output::task::TaskSelectedForExternEvent>();
 		app.add_systems(Update, cursor_system.build());
 
 		// Simulate cursor movement to the task (without clicking)
@@ -210,18 +252,24 @@ mod tests {
 		)?;
 
 		// Add the synthesized system
+		app.add_event::<crate::events::interactions::output::task::TaskSelectedForExternEvent>();
 		app.add_systems(Update, cursor_system.build());
 
 		// Simulate cursor movement and click
 		fn simulate_cursor_and_click(
 			mut windows: Query<(Entity, &mut Window)>,
-			mut mouse_input: ResMut<ButtonInput<MouseButton>>,
+			mut mouse_events: EventWriter<MouseButtonInput>,
 			cameras: Query<(&Camera, &GlobalTransform)>,
 		) {
 			let _ =
 				simulate_cursor_to_world_position(&mut windows, &cameras, Vec3::new(0.0, 0.0, 0.0));
-			// Simulate mouse button press using ButtonInput
-			mouse_input.press(MouseButton::Left);
+			// Simulate mouse button press using MouseButtonInput events
+			let _ = simulate_mouse_click(
+				&mut windows,
+				&mut mouse_events,
+				&cameras,
+				Vec3::new(0.0, 0.0, 0.0),
+			);
 		}
 
 		app.add_systems(Update, simulate_cursor_and_click);
@@ -265,6 +313,7 @@ mod tests {
 		)?;
 
 		// Add the synthesized system
+		app.add_event::<crate::events::interactions::output::task::TaskSelectedForExternEvent>();
 		app.add_systems(Update, cursor_system.build());
 
 		// First, simulate cursor movement to create hover effect
@@ -345,6 +394,7 @@ mod tests {
 		}
 
 		// Add the synthesized system and test sequence
+		app.add_event::<crate::events::interactions::output::task::TaskSelectedForExternEvent>();
 		app.add_systems(Update, (test_sequence, cursor_system.build()).chain());
 		app.update();
 
@@ -389,17 +439,23 @@ mod tests {
 		// Test sequence: hover and click over the task at origin
 		fn test_sequence(
 			mut windows: Query<(Entity, &mut Window)>,
-			mut mouse_input: ResMut<ButtonInput<MouseButton>>,
+			mut mouse_events: EventWriter<MouseButtonInput>,
 			cameras: Query<(&Camera, &GlobalTransform)>,
 		) {
 			// Hover over the task at origin
 			let _ =
 				simulate_cursor_to_world_position(&mut windows, &cameras, Vec3::new(0.0, 0.0, 0.0));
-			// Simulate mouse button press using ButtonInput
-			mouse_input.press(MouseButton::Left);
+			// Simulate mouse button press using MouseButtonInput events
+			let _ = simulate_mouse_click(
+				&mut windows,
+				&mut mouse_events,
+				&cameras,
+				Vec3::new(0.0, 0.0, 0.0),
+			);
 		}
 
 		// Add the synthesized system and test sequence
+		app.add_event::<crate::events::interactions::output::task::TaskSelectedForExternEvent>();
 		app.add_systems(Update, (test_sequence, cursor_system.build()).chain());
 		app.update();
 

@@ -34,7 +34,6 @@ test-utils = []
 [[example]]
 name = "basic_renderer"
 path = "examples/basic_renderer.rs"
-required-features = ["test-utils"]
 
 [lints]
 workspace = true
