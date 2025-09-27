@@ -3,9 +3,6 @@ use leptos::prelude::Set;
 use leptos::prelude::*;
 use leptos_bevy_canvas::prelude::*;
 
-const RENDER_WIDTH: u32 = 600;
-const RENDER_HEIGHT: u32 = 500;
-
 #[derive(Copy, Clone)]
 pub enum EventDirection {
 	None,
@@ -29,37 +26,15 @@ pub fn App() -> impl IntoView {
 		}
 	});
 
-	/*let (a, set_a) = signal(0);
-
-	Effect::new(move |_| {
-		// immediately prints "Value: 0" and subscribes to `a`
-		log::info!("Value: {}", a.get());
-	});
-
-	log::info!("App component rendered");*/
-
 	view! {
-		<div class="flex w-full mx-auto max-w-[1400px] p-5 items-center">
-			<Frame class="border-red-500 bg-red-500/5 flex-1">
-				/*<button onclick=move || {
-					log::info!("Incrementing a");
-					 set_a.set(a.get() + 1)
-				}>"Increment"</button>*/
-				<h2 class="text-xl font-bold text-red-500 relative top-[-10px]">Bevy</h2>
-				<div
-					class="aspect-[6/5] rounded-lg overflow-hidden"
-					style:max-width="100%"
-					style:max-height="100%"
-				>
-					<BevyCanvas
-						init=move || { init_bevy_app(task_selected_for_extern_sender).unwrap() }
-						{..}
-						width=RENDER_WIDTH
-						height=RENDER_HEIGHT
-					/>
-				</div>
-			</Frame>
-
+		<div style="height: 100vh; width: 100vw;">
+			<BevyCanvas
+				init=move || { init_bevy_app(task_selected_for_extern_sender).unwrap() }
+				{..}
+				height="100%"
+				width="100%"
+				style="outline: none;"
+			/>
 			<EventDisplay event_str />
 		</div>
 	}
