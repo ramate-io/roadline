@@ -241,7 +241,7 @@ fn camera_panning_system(
 							// Set cursor to pan hand
 							commands
 								.entity(window_entity)
-								.insert(CursorIcon::System(SystemCursorIcon::Grabbing));
+								.insert(CursorIcon::System(SystemCursorIcon::Grab));
 						}
 					}
 				}
