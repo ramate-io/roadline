@@ -98,6 +98,7 @@ impl RoadlinePlugin {
 			.insert_resource(RoadlineRenderConfig::default())
 			// Add our custom systems
 			.add_systems(Startup, setup_camera)
+			.add_systems(Update, camera_control_system)
 			.add_systems(
 				Update,
 				(
@@ -132,6 +133,11 @@ fn setup_camera(mut commands: Commands) {
 			clear_color: ClearColorConfig::None,
 			..default()
 		},
+		Projection::Orthographic(OrthographicProjection {
+			scale: 1.0, // This would now control the zoom level
+			..OrthographicProjection::default_2d()
+		}),
+		Transform::from_xyz(0.0, 0.0, 0.0),
 		// This camera will only render entities which are on the same render layer.
 		RenderLayers::layer(2),
 	));
@@ -140,8 +146,37 @@ fn setup_camera(mut commands: Commands) {
 		Camera2d,
 		IsDefaultUiCamera,
 		UiCameraMarker, // Mark this camera for bevy_ui_anchor
+		Transform::from_xyz(0.0, 0.0, 0.0),
 		RenderLayers::layer(1),
 	));
+}
+
+fn camera_control_system(
+	time: Res<Time>,
+	keys: Res<ButtonInput<KeyCode>>,
+	mut camera_query: Query<&mut Transform, With<Camera2d>>,
+) {
+	for mut transform in camera_query.iter_mut() {
+		let move_speed = 200.0 * time.delta_secs();
+
+		// Smooth camera movement
+		let mut movement = Vec3::ZERO;
+
+		if keys.pressed(KeyCode::ArrowUp) {
+			movement.y += move_speed;
+		}
+		if keys.pressed(KeyCode::ArrowDown) {
+			movement.y -= move_speed;
+		}
+		if keys.pressed(KeyCode::ArrowLeft) {
+			movement.x -= move_speed;
+		}
+		if keys.pressed(KeyCode::ArrowRight) {
+			movement.x += move_speed;
+		}
+
+		transform.translation += movement;
+	}
 }
 
 /// Configuration for the renderer
