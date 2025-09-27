@@ -24,6 +24,7 @@
 
         # An LLVM build environment
         dependencies = with pkgs; [
+          trunk-ng
           wasm-bindgen-cli
           dioxus-cli
           protobuf

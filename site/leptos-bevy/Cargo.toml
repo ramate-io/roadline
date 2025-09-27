@@ -18,10 +18,12 @@ roadline-representation-core = { workspace = true }
 roadline-bevy-renderer = { workspace = true }
 chrono = { workspace = true }
 bevy = { workspace = true }
-leptos = { workspace = true }
+leptos = { workspace = true, features = [ "csr" ] }
 leptos-use = { workspace = true }
 leptos-bevy-canvas = { workspace = true }
 console_error_panic_hook = { workspace = true }
+log = { workspace = true }
+console_log = { workspace = true }
 
 [lints]
 workspace = true
