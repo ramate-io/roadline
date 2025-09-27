@@ -7,8 +7,11 @@ pub mod systems;
 
 pub mod test_utils;
 
+use bevy::input::mouse::{MouseButton, MouseButtonInput, MouseMotion};
+use bevy::input::touch::{TouchInput, TouchPhase};
 use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
+use bevy::window::WindowResized;
 use bevy_ui_anchor::AnchorUiPlugin;
 
 use crate::resources::SelectionResource;
@@ -98,7 +101,7 @@ impl RoadlinePlugin {
 			.insert_resource(RoadlineRenderConfig::default())
 			// Add our custom systems
 			.add_systems(Startup, setup_camera)
-			.add_systems(Update, camera_control_system)
+			.add_systems(Update, (camera_control_system, camera_panning_system))
 			.add_systems(
 				Update,
 				(
@@ -146,6 +149,10 @@ fn setup_camera(mut commands: Commands) {
 		Camera2d,
 		IsDefaultUiCamera,
 		UiCameraMarker, // Mark this camera for bevy_ui_anchor
+		Projection::Orthographic(OrthographicProjection {
+			scale: 1.0, // This would now control the zoom level
+			..OrthographicProjection::default_2d()
+		}),
 		Transform::from_xyz(0.0, 0.0, 0.0),
 		RenderLayers::layer(1),
 	));
@@ -176,6 +183,117 @@ fn camera_control_system(
 		}
 
 		transform.translation += movement;
+	}
+}
+
+/// System to handle window resize events and update camera orthographic projection
+pub fn update_camera_on_resize(
+	mut resize_events: EventReader<WindowResized>,
+	mut query: Query<&mut Projection, With<Camera2d>>,
+) {
+	for event in resize_events.read() {
+		println!("Window resized: {}x{}", event.width, event.height);
+
+		// Calculate appropriate scale based on window size
+		// Smaller windows = larger scale (more zoomed in)
+		// Larger windows = smaller scale (more zoomed out)
+		let base_width = 1000.0_f32; // Reference width
+		let base_height = 1000.0_f32; // Reference height
+
+		let width_ratio = base_width / event.width;
+		let height_ratio = base_height / event.height;
+
+		// Use the larger ratio to ensure content fits
+		let scale = width_ratio.max(height_ratio);
+
+		println!("Calculated scale: {}", scale);
+
+		for mut projection in query.iter_mut() {
+			if let Projection::Orthographic(ref mut orthographic) = *projection {
+				orthographic.scale = scale;
+			}
+		}
+	}
+}
+
+/// System to handle mouse/touch panning for camera movement
+fn camera_panning_system(
+	mut mouse_button_events: EventReader<MouseButtonInput>,
+	mut mouse_motion_events: EventReader<MouseMotion>,
+	mut touch_events: EventReader<TouchInput>,
+	mut camera_query: Query<&mut Transform, With<Camera2d>>,
+	windows: Query<&Window>,
+	mut last_mouse_pos: Local<Option<Vec2>>,
+	mut is_panning: Local<bool>,
+) {
+	// Handle mouse button events
+	for event in mouse_button_events.read() {
+		if event.button == MouseButton::Middle || event.button == MouseButton::Right {
+			match event.state {
+				bevy::input::ButtonState::Pressed => {
+					if let Ok(window) = windows.single() {
+						if let Some(cursor_pos) = window.cursor_position() {
+							*last_mouse_pos = Some(cursor_pos);
+							*is_panning = true;
+						}
+					}
+				}
+				bevy::input::ButtonState::Released => {
+					*is_panning = false;
+					*last_mouse_pos = None;
+				}
+			}
+		}
+	}
+
+	// Handle mouse motion for panning
+	if *is_panning {
+		for event in mouse_motion_events.read() {
+			if last_mouse_pos.is_some() {
+				let delta = event.delta;
+
+				// Convert screen delta to world delta
+				// Note: This is a simple conversion - you might want to adjust based on your camera scale
+				let world_delta = Vec3::new(-delta.x, delta.y, 0.0);
+
+				for mut transform in camera_query.iter_mut() {
+					transform.translation += world_delta;
+				}
+
+				// Update last mouse position
+				if let Ok(window) = windows.single() {
+					if let Some(cursor_pos) = window.cursor_position() {
+						*last_mouse_pos = Some(cursor_pos);
+					}
+				}
+			}
+		}
+	}
+
+	// Handle touch events for mobile panning
+	for event in touch_events.read() {
+		match event.phase {
+			TouchPhase::Started => {
+				*last_mouse_pos = Some(event.position);
+				*is_panning = true;
+			}
+			TouchPhase::Moved => {
+				if let Some(last_pos) = *last_mouse_pos {
+					let delta = event.position - last_pos;
+					let world_delta = Vec3::new(-delta.x, delta.y, 0.0);
+
+					for mut transform in camera_query.iter_mut() {
+						transform.translation += world_delta;
+					}
+
+					*last_mouse_pos = Some(event.position);
+				}
+			}
+			TouchPhase::Ended | TouchPhase::Canceled => {
+				*is_panning = false;
+				*last_mouse_pos = None;
+			}
+		}
 	}
 }
 
