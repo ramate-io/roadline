@@ -16,6 +16,7 @@ serde = { workspace = true }
 roadline-util = { workspace = true }
 roadline-representation-core = { workspace = true }
 chrono = { workspace = true }
+log = { workspace = true }
 
 # Bevy core dependencies
 bevy = { workspace = true }

@@ -25,7 +25,7 @@ fn main() -> Result<(), anyhow::Error> {
 		background_color: Color::srgb(1.0, 1.0, 1.0), // White background
 	};
 
-	let renderer = RoadlineRenderer::with_config(config);
+	let renderer = RoadlineRenderer::new().with_config(config);
 
 	// Create and configure the Bevy app
 	let mut app = renderer.create_app();

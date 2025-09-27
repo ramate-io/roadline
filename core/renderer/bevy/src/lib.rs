@@ -20,8 +20,22 @@ pub use roadline_renderer::RoadlineRenderer;
 pub struct UiCameraMarker;
 
 /// Main plugin for the Roadline Bevy renderer
-#[derive(Default)]
-pub struct RoadlinePlugin;
+#[derive(Debug, Clone)]
+pub struct RoadlinePlugin {
+	canvas_id: String,
+}
+
+impl Default for RoadlinePlugin {
+	fn default() -> Self {
+		Self { canvas_id: "#roadline-canvas".to_string() }
+	}
+}
+
+impl RoadlinePlugin {
+	pub fn bevy_leptos_canvas() -> Self {
+		Self { canvas_id: "#bevy_canvas".to_string() }
+	}
+}
 
 impl Plugin for RoadlinePlugin {
 	fn build(&self, app: &mut App) {
@@ -29,7 +43,7 @@ impl Plugin for RoadlinePlugin {
 		app.add_plugins(DefaultPlugins.set(WindowPlugin {
 			primary_window: Some(Window {
 				title: "Roadline Renderer".to_string(),
-				canvas: Some("#roadline-canvas".to_string()), // For web integration
+				canvas: Some(self.canvas_id.clone()), // For web integration
 				fit_canvas_to_parent: true,
 				prevent_default_event_handling: false,
 				..default()
