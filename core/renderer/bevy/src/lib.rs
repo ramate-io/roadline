@@ -11,7 +11,9 @@ use bevy::input::mouse::{MouseButton, MouseButtonInput, MouseMotion};
 use bevy::input::touch::{TouchInput, TouchPhase};
 use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
+use bevy::window::SystemCursorIcon;
 use bevy::window::WindowResized;
+use bevy::winit::cursor::CursorIcon;
 use bevy_ui_anchor::AnchorUiPlugin;
 
 use crate::resources::SelectionResource;
@@ -218,11 +220,12 @@ pub fn update_camera_on_resize(
 
 /// System to handle mouse/touch panning for camera movement
 fn camera_panning_system(
+	mut commands: Commands,
 	mut mouse_button_events: EventReader<MouseButtonInput>,
 	mut mouse_motion_events: EventReader<MouseMotion>,
 	mut touch_events: EventReader<TouchInput>,
 	mut camera_query: Query<&mut Transform, With<Camera2d>>,
-	windows: Query<&Window>,
+	windows: Query<(Entity, &Window)>,
 	mut last_mouse_pos: Local<Option<Vec2>>,
 	mut is_panning: Local<bool>,
 ) {
@@ -231,16 +234,26 @@ fn camera_panning_system(
 		if event.button == MouseButton::Middle || event.button == MouseButton::Right {
 			match event.state {
 				bevy::input::ButtonState::Pressed => {
-					if let Ok(window) = windows.single() {
+					if let Ok((window_entity, window)) = windows.single() {
 						if let Some(cursor_pos) = window.cursor_position() {
 							*last_mouse_pos = Some(cursor_pos);
 							*is_panning = true;
+							// Set cursor to pan hand
+							commands
+								.entity(window_entity)
+								.insert(CursorIcon::System(SystemCursorIcon::Grabbing));
 						}
 					}
 				}
 				bevy::input::ButtonState::Released => {
 					*is_panning = false;
 					*last_mouse_pos = None;
+					// Reset cursor to default
+					if let Ok((window_entity, _)) = windows.single() {
+						commands
+							.entity(window_entity)
+							.insert(CursorIcon::System(SystemCursorIcon::Default));
+					}
 				}
 			}
 		}
@@ -261,7 +274,7 @@ fn camera_panning_system(
 				}
 
 				// Update last mouse position
-				if let Ok(window) = windows.single() {
+				if let Ok((_, window)) = windows.single() {
 					if let Some(cursor_pos) = window.cursor_position() {
 						*last_mouse_pos = Some(cursor_pos);
 					}
@@ -276,6 +289,12 @@ fn camera_panning_system(
 			TouchPhase::Started => {
 				*last_mouse_pos = Some(event.position);
 				*is_panning = true;
+				// Set cursor to pan hand for touch devices (if supported)
+				if let Ok((window_entity, _)) = windows.single() {
+					commands
+						.entity(window_entity)
+						.insert(CursorIcon::System(SystemCursorIcon::Grabbing));
+				}
 			}
 			TouchPhase::Moved => {
 				if let Some(last_pos) = *last_mouse_pos {
@@ -292,6 +311,12 @@ fn camera_panning_system(
 			TouchPhase::Ended | TouchPhase::Canceled => {
 				*is_panning = false;
 				*last_mouse_pos = None;
+				// Reset cursor to default
+				if let Ok((window_entity, _)) = windows.single() {
+					commands
+						.entity(window_entity)
+						.insert(CursorIcon::System(SystemCursorIcon::Default));
+				}
 			}
 		}
 	}
