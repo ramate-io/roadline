@@ -224,35 +224,75 @@ fn camera_panning_system(
 	mut mouse_button_events: EventReader<MouseButtonInput>,
 	mut mouse_motion_events: EventReader<MouseMotion>,
 	mut touch_events: EventReader<TouchInput>,
+	keyboard_input: Res<ButtonInput<KeyCode>>,
 	mut camera_query: Query<&mut Transform, With<Camera2d>>,
 	windows: Query<(Entity, &Window)>,
 	mut last_mouse_pos: Local<Option<Vec2>>,
 	mut is_panning: Local<bool>,
+	mut pan_mode_active: Local<bool>,
 ) {
+	// Check if pan mode should be active (Ctrl/Cmd held down)
+	let ctrl_or_cmd_pressed = keyboard_input.pressed(KeyCode::ControlLeft) 
+		|| keyboard_input.pressed(KeyCode::ControlRight)
+		|| keyboard_input.pressed(KeyCode::SuperLeft)  // Cmd on Mac
+		|| keyboard_input.pressed(KeyCode::SuperRight); // Cmd on Mac
+	
+	// Update pan mode state and cursor
+	if ctrl_or_cmd_pressed != *pan_mode_active {
+		*pan_mode_active = ctrl_or_cmd_pressed;
+		
+		if let Ok((window_entity, _)) = windows.single() {
+			if *pan_mode_active {
+				// Enter pan mode - show grab cursor
+				commands
+					.entity(window_entity)
+					.insert(CursorIcon::System(SystemCursorIcon::Grab));
+			} else {
+				// Exit pan mode - reset cursor and stop panning
+				commands
+					.entity(window_entity)
+					.insert(CursorIcon::System(SystemCursorIcon::Default));
+				*is_panning = false;
+				*last_mouse_pos = None;
+			}
+		}
+	}
+
 	// Handle mouse button events
 	for event in mouse_button_events.read() {
-		if event.button == MouseButton::Middle || event.button == MouseButton::Right {
+		// Only allow panning if pan mode is active (Ctrl/Cmd held) or middle mouse button
+		let can_pan = *pan_mode_active || event.button == MouseButton::Middle;
+		
+		if can_pan && (event.button == MouseButton::Left || event.button == MouseButton::Middle) {
 			match event.state {
 				bevy::input::ButtonState::Pressed => {
 					if let Ok((window_entity, window)) = windows.single() {
 						if let Some(cursor_pos) = window.cursor_position() {
 							*last_mouse_pos = Some(cursor_pos);
 							*is_panning = true;
-							// Set cursor to pan hand
+							// Set cursor to grabbing hand
 							commands
 								.entity(window_entity)
-								.insert(CursorIcon::System(SystemCursorIcon::Grab));
+								.insert(CursorIcon::System(SystemCursorIcon::Grabbing));
 						}
 					}
 				}
 				bevy::input::ButtonState::Released => {
 					*is_panning = false;
 					*last_mouse_pos = None;
-					// Reset cursor to default
+					// Reset cursor based on pan mode state
 					if let Ok((window_entity, _)) = windows.single() {
-						commands
-							.entity(window_entity)
-							.insert(CursorIcon::System(SystemCursorIcon::Default));
+						if *pan_mode_active {
+							// Still in pan mode, show grab cursor
+							commands
+								.entity(window_entity)
+								.insert(CursorIcon::System(SystemCursorIcon::Grab));
+						} else {
+							// Not in pan mode, show default cursor
+							commands
+								.entity(window_entity)
+								.insert(CursorIcon::System(SystemCursorIcon::Default));
+						}
 					}
 				}
 			}
