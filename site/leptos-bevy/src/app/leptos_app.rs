@@ -165,15 +165,15 @@ async fn load_roadline_from_github(path: &str) -> Result<Roadline, anyhow::Error
 	// Parse the path: /gh/org/repo/path/to/file.md
 	let path_parts: Vec<&str> = path.trim_start_matches('/').split('/').collect();
 
-	if path_parts.len() < 3 || path_parts[0] != "gh" {
+	if path_parts.len() < 2 {
 		return Err(anyhow::anyhow!(
-			"Invalid GitHub path format. Expected: /gh/org/repo/path/to/file.md"
+			"Invalid GitHub path format. Expected: /org/repo/path/to/file.md"
 		));
 	}
 
-	let org = path_parts[1];
-	let repo = path_parts[2];
-	let file_path = path_parts[3..].join("/");
+	let org = path_parts[0];
+	let repo = path_parts[1];
+	let file_path = path_parts[2..].join("/");
 
 	log::info!("Parsed GitHub path - org: {}, repo: {}, file: {}", org, repo, file_path);
 
@@ -188,6 +188,7 @@ async fn load_roadline_from_github(path: &str) -> Result<Roadline, anyhow::Error
 		.await?;
 	let roadline = builder.build()?;
 
+	log::info!("Roadline: {:#?}", roadline);
 	log::info!("Successfully loaded roadline with {} tasks", roadline.graph().arena.tasks().len());
 
 	Ok(roadline)
