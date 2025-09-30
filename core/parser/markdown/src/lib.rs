@@ -6,6 +6,7 @@
 
 pub mod dependency;
 pub mod error;
+pub mod instrument;
 pub mod range;
 pub mod subtask;
 pub mod summary;
