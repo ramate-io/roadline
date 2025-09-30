@@ -9,6 +9,8 @@ pub fn init_bevy_app(
 	task_selected_for_extern_sender: BevyEventSender<TaskSelectedForExternEvent>,
 	roadline: Roadline,
 ) -> Result<App, anyhow::Error> {
+	log::info!("Initializing Bevy app with roadline: {:#?}", roadline);
+
 	let renderer = RoadlineRenderer::new().with_plugin(RoadlinePlugin::bevy_leptos_canvas());
 
 	let mut app = renderer.create_app_with_roadline(roadline)?;
