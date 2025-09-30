@@ -12,6 +12,7 @@ members = [
   "core/representation",
   "core/renderer/*",
   "core/parser/*",
+  "core/source/*",
 
   # site
   "site/leptos-bevy"
@@ -82,6 +83,8 @@ web-sys = "0.3"
 wasm-bindgen-futures = "0.4"
 gloo-timers = { version = "0.2" }
 chrono = { version = "0.4.41" }
+reqwest = { version = "0.12", features = ["json"] }
+base64 = "0.22"
 bevy = { git = "https://github.com/ramate-io/bevy", rev = "390623a9289c10760e779b19c9b6c245e2179b54" }
 js-sys = "0.3"
 log = "0.4"
@@ -97,13 +100,14 @@ orfile = { git = "https://github.com/movementlabsxyz/orfile.git", rev = "d022992
 orfile-util = { git = "https://github.com/movementlabsxyz/orfile.git", rev = "d02299214e5aa202130cd1eb9593ce8064d1ec69" }
 orfile-macro = { git = "https://github.com/movementlabsxyz/orfile.git", rev = "d02299214e5aa202130cd1eb9593ce8064d1ec69" }
 
-# docs
-clap-markdown-ext = { git = "https://github.com/movementlabsxyz/clap-markdown-ext.git", rev = "8f54fe424504bf37fb01dc69aaed8166e429fe6a"}
-
-# internal
+# roadline internal dependencies
 roadline-util = { path = "util/roadline/roadline" }
 roadline-representation-core = { path = "core/representation" }
+roadline-parser-markdown = { path = "core/parser/markdown" }
 roadline-bevy-renderer = { path = "core/renderer/bevy" }
+
+# docs
+clap-markdown-ext = { git = "https://github.com/movementlabsxyz/clap-markdown-ext.git", rev = "8f54fe424504bf37fb01dc69aaed8166e429fe6a"}
 
 bevy-ui-anchor = { path = "util/bevy/ui-anchor" }
 

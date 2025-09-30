@@ -175,15 +175,16 @@ impl TaskParser {
 
 			if in_contents {
 				// Check for subtask lines (both direct and indented)
-				if (line.starts_with("- **") && line.contains(":**")) || 
-				   (line.starts_with("    - **") && line.contains(":**")) {
+				if (line.starts_with("- **") && line.contains(":**"))
+					|| (line.starts_with("    - **") && line.contains(":**"))
+				{
 					// Remove indentation for parsing
 					let clean_line = if line.starts_with("    - **") {
 						&line[4..] // Remove "    " prefix
 					} else {
 						line
 					};
-					
+
 					if let Some(subtask) = self.subtask_parser.parse_subtask_line(clean_line)? {
 						// Extract subtask ID for deduplication
 						let subtask_id = self.extract_subtask_id_from_line(clean_line)?;
@@ -202,7 +203,7 @@ impl TaskParser {
 		// Then, parse subsections (#### T1.1: Title format) with deduplication
 		for line in content {
 			let line = line.trim();
-			
+
 			// Look for subsection headers like "#### T1.1: Title"
 			if line.starts_with("#### T") && line.contains(":") {
 				// Extract subtask ID for deduplication
@@ -231,14 +232,16 @@ impl TaskParser {
 	}
 
 	/// Extract subtask ID from a subsection header for deduplication.
-	fn extract_subtask_id_from_subsection_header(&self, header: &str) -> Result<String, MarkdownParseError> {
+	fn extract_subtask_id_from_subsection_header(
+		&self,
+		header: &str,
+	) -> Result<String, MarkdownParseError> {
 		// Extract from format like "#### T1.1: Title"
 		let header_content = &header[5..]; // Remove "#### "
-		let colon_pos = header_content.find(':')
-			.ok_or_else(|| MarkdownParseError::InvalidSubtaskId {
-				id: header.to_string(),
-			})?;
-		
+		let colon_pos = header_content
+			.find(':')
+			.ok_or_else(|| MarkdownParseError::InvalidSubtaskId { id: header.to_string() })?;
+
 		Ok(header_content[..colon_pos].trim().to_string())
 	}
 
@@ -255,10 +258,9 @@ impl TaskParser {
 
 		// Extract the subtask ID and title
 		let header_content = &header[5..]; // Remove "#### "
-		let colon_pos = header_content.find(':')
-			.ok_or_else(|| MarkdownParseError::InvalidSubtaskId {
-				id: header.to_string(),
-			})?;
+		let colon_pos = header_content
+			.find(':')
+			.ok_or_else(|| MarkdownParseError::InvalidSubtaskId { id: header.to_string() })?;
 
 		let subtask_id_str = header_content[..colon_pos].trim();
 		let title_str = header_content[colon_pos + 1..].trim();
@@ -274,7 +276,7 @@ impl TaskParser {
 
 		for line in content {
 			let line = line.trim();
-			
+
 			if line == header {
 				found_header = true;
 				in_subsection = true;
@@ -286,7 +288,7 @@ impl TaskParser {
 				if line.starts_with("#### T") && line != header {
 					break;
 				}
-				
+
 				// Add content lines
 				if !line.is_empty() {
 					if !subsection_content.is_empty() {
@@ -304,14 +306,20 @@ impl TaskParser {
 			title,
 			roadline_util::task::subtask::Content { text: subsection_content },
 			roadline_util::task::subtask::Status::Incomplete, // Default status
-			roadline_util::task::subtask::Lead::new("Unknown".to_string(), "unknown@example.com".to_string()), // Default lead
+			roadline_util::task::subtask::Lead::new(
+				"Unknown".to_string(),
+				"unknown@example.com".to_string(),
+			), // Default lead
 		);
 
 		Ok(Some(subtask))
 	}
 
 	/// Parse a subtask ID from a string like "T1.1".
-	fn parse_subtask_id(&self, id_str: &str) -> Result<roadline_util::task::subtask::Id, MarkdownParseError> {
+	fn parse_subtask_id(
+		&self,
+		id_str: &str,
+	) -> Result<roadline_util::task::subtask::Id, MarkdownParseError> {
 		// For now, create a simple ID based on the string
 		// In a real implementation, this would parse the actual ID structure
 		let hash = self.hash_string(id_str);
@@ -322,7 +330,7 @@ impl TaskParser {
 	fn hash_string(&self, s: &str) -> u64 {
 		use std::collections::hash_map::DefaultHasher;
 		use std::hash::{Hash, Hasher};
-		
+
 		let mut hasher = DefaultHasher::new();
 		s.hash(&mut hasher);
 		hasher.finish()
