@@ -1,6 +1,6 @@
 //! Backward compatibility example for the markdown parser.
 
-use roadline_parser_markdown::RoadmapParser;
+use roadline_parser_markdown::RoadlineParser;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 	// Example with old format end dates
@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     - **[T1.1](#t11-task)**: Example task
 "#;
 
-	let parser = RoadmapParser::new();
+	let parser = RoadlineParser::new();
 
 	// Test old format parsing
 	println!("Testing old format (T1 + 1 month):");

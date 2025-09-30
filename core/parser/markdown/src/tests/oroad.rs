@@ -491,17 +491,16 @@ $\emptyset$
 mod tests {
 	use super::*;
 	use crate::MarkdownParseError;
-	use crate::RoadmapParser;
+	use crate::RoadlineParser;
 
 	#[test]
 	fn test_parse_oroad_0() -> Result<(), MarkdownParseError> {
-		let parser = RoadmapParser::new();
+		let parser = RoadlineParser::new();
 		let tasks = parser.parse_tasks(OROAD_0)?;
-		
-		
+
 		// Should parse 9 tasks (T1 through T9)
 		assert_eq!(tasks.len(), 9);
-		
+
 		// Test T1: Push Towards Validation
 		let t1 = &tasks[0];
 		assert_eq!(t1.id().value(), 1);
@@ -509,7 +508,7 @@ mod tests {
 		assert!(t1.depends_on().is_empty()); // Depends on $\emptyset$
 		assert_eq!(t1.subtasks().len(), 5); // T1.1 through T1.5
 		assert!(t1.summary().text.contains("**T1** focuses on readying OAC for validation"));
-		
+
 		// Test T2: Validation and Accepting Contributions
 		let t2 = &tasks[1];
 		assert_eq!(t2.id().value(), 2);
@@ -518,16 +517,22 @@ mod tests {
 		assert!(t2.depends_on().contains(&roadline_util::task::Id::new(1))); // Depends on T1
 		assert_eq!(t2.subtasks().len(), 7); // T2.1 through T2.6 + subsection
 		assert!(t2.summary().text.contains("**T2** focuses on beginning validation of OAC"));
-		
+
 		// Test T3: Continued Validation and Fuste MVP
 		let t3 = &tasks[2];
 		assert_eq!(t3.id().value(), 3);
-		assert_eq!(t3.title().text, "Continued Validation and [`fuste`](https://github.com/ramate-io/fuste) MVP");
+		assert_eq!(
+			t3.title().text,
+			"Continued Validation and [`fuste`](https://github.com/ramate-io/fuste) MVP"
+		);
 		assert_eq!(t3.depends_on().len(), 1);
 		assert!(t3.depends_on().contains(&roadline_util::task::Id::new(2))); // Depends on T2
 		assert_eq!(t3.subtasks().len(), 4); // T3.1 through T3.4
-		assert!(t3.summary().text.contains("**T3** continues validation and pushes for first proper application"));
-		
+		assert!(t3
+			.summary()
+			.text
+			.contains("**T3** continues validation and pushes for first proper application"));
+
 		// Test T4: Exotic Execution
 		let t4 = &tasks[3];
 		assert_eq!(t4.id().value(), 4);
@@ -535,8 +540,11 @@ mod tests {
 		assert_eq!(t4.depends_on().len(), 1);
 		assert!(t4.depends_on().contains(&roadline_util::task::Id::new(3))); // Depends on T3
 		assert_eq!(t4.subtasks().len(), 3); // T4.1 through T4.3
-		assert!(t4.summary().text.contains("**T4** departs from the drive of previous milestones"));
-		
+		assert!(t4
+			.summary()
+			.text
+			.contains("**T4** departs from the drive of previous milestones"));
+
 		// Test T5: DLT Push
 		let t5 = &tasks[4];
 		assert_eq!(t5.id().value(), 5);
@@ -545,7 +553,7 @@ mod tests {
 		assert!(t5.depends_on().contains(&roadline_util::task::Id::new(4))); // Depends on T4
 		assert_eq!(t5.subtasks().len(), 6); // T5.1 through T5.6
 		assert!(t5.summary().text.contains("**T5** seeks to bring up stable implementations"));
-		
+
 		// Test T6: Killer Apps Phase 1: Traditional L1
 		let t6 = &tasks[5];
 		assert_eq!(t6.id().value(), 6);
@@ -553,8 +561,11 @@ mod tests {
 		assert_eq!(t6.depends_on().len(), 1);
 		assert!(t6.depends_on().contains(&roadline_util::task::Id::new(5))); // Depends on T5
 		assert_eq!(t6.subtasks().len(), 4); // T6.1 through T6.4
-		assert!(t6.summary().text.contains("**T6** emphasizes the support of the first killer app"));
-		
+		assert!(t6
+			.summary()
+			.text
+			.contains("**T6** emphasizes the support of the first killer app"));
+
 		// Test T7: Killer Apps Phase 2: Content Sharing
 		let t7 = &tasks[6];
 		assert_eq!(t7.id().value(), 7);
@@ -562,8 +573,11 @@ mod tests {
 		assert_eq!(t7.depends_on().len(), 1);
 		assert!(t7.depends_on().contains(&roadline_util::task::Id::new(6))); // Depends on T6
 		assert_eq!(t7.subtasks().len(), 3); // T7.1 through T7.3
-		assert!(t7.summary().text.contains("**T7** emphasizes the support of a content sharing application"));
-		
+		assert!(t7
+			.summary()
+			.text
+			.contains("**T7** emphasizes the support of a content sharing application"));
+
 		// Test T8: Killer Apps Phase 3: Content Sharing Continued
 		let t8 = &tasks[7];
 		assert_eq!(t8.id().value(), 8);
@@ -572,7 +586,7 @@ mod tests {
 		assert!(t8.depends_on().contains(&roadline_util::task::Id::new(7))); // Depends on T7
 		assert_eq!(t8.subtasks().len(), 3); // T8.1 through T8.3
 		assert!(t8.summary().text.contains("**T8** emphasizes completion of an MVP"));
-		
+
 		// Test T9: An Interlude
 		let t9 = &tasks[8];
 		assert_eq!(t9.id().value(), 9);
@@ -580,25 +594,31 @@ mod tests {
 		assert_eq!(t9.depends_on().len(), 1);
 		assert!(t9.depends_on().contains(&roadline_util::task::Id::new(8))); // Depends on T8
 		assert_eq!(t9.subtasks().len(), 5); // T9.1 through T9.5
-		assert!(t9.summary().text.contains("**T9** is a milestone conditional on a positive decision"));
-		
+		assert!(t9
+			.summary()
+			.text
+			.contains("**T9** is a milestone conditional on a positive decision"));
+
 		// Test that all tasks have valid ranges
 		for (i, task) in tasks.iter().enumerate() {
 			let task_id = i + 1;
 			// Start should reference the previous task (except T1 which references itself)
 			let expected_ref = if task_id == 1 { 1 } else { task_id - 1 };
-			assert_eq!(usize::from(task.range().start().point_of_reference().0.value()), expected_ref);
-			
+			assert_eq!(
+				usize::from(task.range().start().point_of_reference().0.value()),
+				expected_ref
+			);
+
 			// End should be a duration (1 month)
 			// We can't easily test the exact duration value, but we can ensure it's not zero
 			assert!(task.range().end().duration().0.as_secs() > 0);
 		}
-		
+
 		// Test that the roadline can be built successfully
 		let roadline = parser.parse_and_build(OROAD_0)?;
 		let task_count = roadline.tasks().count();
 		assert_eq!(task_count, 9);
-		
+
 		Ok(())
 	}
 }

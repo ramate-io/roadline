@@ -1,6 +1,6 @@
 //! Basic usage example for the markdown parser.
 
-use roadline_parser_markdown::RoadmapParser;
+use roadline_parser_markdown::RoadlineParser;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 	// Example markdown content
@@ -34,7 +34,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 "#;
 
 	// Create the parser
-	let parser = RoadmapParser::new();
+	let parser = RoadlineParser::new();
 
 	// Parse the markdown content
 	let tasks = parser.parse_tasks(markdown_content)?;
