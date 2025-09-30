@@ -4533,6 +4533,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "roadline-prarser-markdown"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "roadline-representation-core",
+ "roadline-util",
+ "serde",
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "roadline-representation-core"
 version = "0.0.1"
 dependencies = [
