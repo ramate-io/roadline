@@ -1,5 +1,5 @@
 use crate::short_id::ShortId;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// The id of a task.
 ///
@@ -10,24 +10,28 @@ use serde::{Serialize, Deserialize};
 pub struct Id(ShortId);
 
 impl Id {
-    /// Creates a new Id from a byte array.
-    pub fn new(byte: u8) -> Self {
-        Self(ShortId::new(byte))
-    }
+	/// Creates a new Id from a byte array.
+	pub fn new(byte: u8) -> Self {
+		Self(ShortId::new(byte))
+	}
 
-    pub fn new_test() -> Self {
-        Self(ShortId::new_test())
-    }
+	pub fn new_test() -> Self {
+		Self(ShortId::new_test())
+	}
+
+	pub fn value(&self) -> u8 {
+		self.0.into()
+	}
 }
 
 impl From<u8> for Id {
-    fn from(byte: u8) -> Self {
-        Self::new(byte)
-    }
+	fn from(byte: u8) -> Self {
+		Self::new(byte)
+	}
 }
 
 impl From<Id> for u8 {
-    fn from(id: Id) -> Self {
-        id.0.into()
-    }
+	fn from(id: Id) -> Self {
+		id.0.into()
+	}
 }

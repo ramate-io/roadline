@@ -120,30 +120,34 @@ mod tests {
 	use super::*;
 
 	#[test]
-	fn test_end_date_parsing() {
+	fn test_end_date_parsing() -> Result<(), MarkdownParseError> {
 		let parser = EndDate::new();
 
 		// Test new format
-		let result = parser.parse("1 month").unwrap();
+		let result = parser.parse("1 month")?;
 		assert_eq!(result.duration().0.as_secs(), 86400 * 30);
 
 		// Test old format
-		let result = parser.parse("T1 + 1 month").unwrap();
+		let result = parser.parse("T1 + 1 month")?;
 		assert_eq!(result.duration().0.as_secs(), 86400 * 30);
+
+		Ok(())
 	}
 
 	#[test]
-	fn test_duration_parsing() {
+	fn test_duration_parsing() -> Result<(), MarkdownParseError> {
 		let parser = EndDate::new();
 
 		// Test various duration formats
-		let result = parser.parse_duration("1 month").unwrap();
+		let result = parser.parse_duration("1 month")?;
 		assert_eq!(result.as_secs(), 86400 * 30);
 
-		let result = parser.parse_duration("2 weeks").unwrap();
+		let result = parser.parse_duration("2 weeks")?;
 		assert_eq!(result.as_secs(), 86400 * 14);
 
-		let result = parser.parse_duration("30 days").unwrap();
+		let result = parser.parse_duration("30 days")?;
 		assert_eq!(result.as_secs(), 86400 * 30);
+
+		Ok(())
 	}
 }

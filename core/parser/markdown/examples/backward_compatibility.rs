@@ -40,10 +40,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let end_date_parser = &parser.task_parser.end_date_parser;
 
 	// Test parsing directly
-	let old_result = end_date_parser.parse("T1 + 1 month")?;
+	let _old_result = end_date_parser.parse("T1 + 1 month")?;
 	println!("  Old format parsed successfully");
 
-	let new_result = end_date_parser.parse("1 month")?;
+	let _new_result = end_date_parser.parse("1 month")?;
 	println!("  New format parsed successfully");
 
 	println!("\nBackward compatibility test completed successfully!");

@@ -1,7 +1,7 @@
 //! Range parsing functionality for markdown roadmap documents.
 
-pub mod start;
 pub mod end;
+pub mod start;
 
-pub use start::StartDate;
 pub use end::EndDate;
+pub use start::StartDate;
