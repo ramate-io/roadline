@@ -6,7 +6,6 @@ use leptos_bevy_canvas::prelude::*;
 use leptos_router::components::*;
 use leptos_router::hooks::use_params_map;
 use leptos_router::path;
-use roadline_bevy_renderer::test_utils::create_test_roadline;
 use roadline_representation_core::roadline::Roadline;
 use roadline_source_github_markdown::{GitHubSource, GitHubUrl};
 use std::sync::Arc;
@@ -96,6 +95,8 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 		}
 	});
 
+	let task_selected_for_extern_sender_clone = task_selected_for_extern_sender.clone();
+
 	view! {
 		<div style="height: 100vh; width: 100vw;">
 			{move || {
@@ -117,11 +118,12 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 					}.into_any()
 				} else if let Some(roadline_arc) = roadline.get() {
 					let roadline_clone = roadline_arc.clone();
+					let sender_clone = task_selected_for_extern_sender_clone.clone();
 					view! {
 						<BevyCanvas
 							init=move || {
 								let roadline = roadline_clone.blocking_read();
-								init_bevy_app(task_selected_for_extern_sender, roadline.clone()).unwrap()
+								init_bevy_app(sender_clone, roadline.clone()).unwrap()
 							}
 							{..}
 							height="100%"
