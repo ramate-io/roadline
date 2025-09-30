@@ -491,11 +491,11 @@ $\emptyset$
 mod tests {
 	use super::*;
 	use crate::MarkdownParseError;
-	use crate::RoadmapParser;
+	use crate::RoadlineParser;
 
 	#[test]
 	fn test_parse_oroad_0() -> Result<(), MarkdownParseError> {
-		let parser = RoadmapParser::new();
+		let parser = RoadlineParser::new();
 		let tasks = parser.parse_tasks(OROAD_0)?;
 
 		// Should parse 9 tasks (T1 through T9)

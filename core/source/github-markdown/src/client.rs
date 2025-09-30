@@ -34,14 +34,20 @@ impl GitHubClient {
 	///
 	/// This method automatically determines the best way to fetch the content
 	/// based on the URL type and uses the most efficient method.
-    pub async fn fetch_content(&self, github_url: &GitHubUrl) -> std::result::Result<String, GitHubSourceError> {
+	pub async fn fetch_content(
+		&self,
+		github_url: &GitHubUrl,
+	) -> std::result::Result<String, GitHubSourceError> {
 		// For raw URLs, fetch directly from raw.githubusercontent.com
 		let raw_url = github_url.to_raw_url();
 		self.fetch_raw_content(&raw_url).await
 	}
 
 	/// Fetch content directly from a raw GitHub URL.
-    pub async fn fetch_raw_content(&self, raw_url: &str) -> std::result::Result<String, GitHubSourceError> {
+	pub async fn fetch_raw_content(
+		&self,
+		raw_url: &str,
+	) -> std::result::Result<String, GitHubSourceError> {
 		let mut request = self.client.get(raw_url);
 
 		// Add authentication if available
@@ -65,7 +71,10 @@ impl GitHubClient {
 	///
 	/// This method is more reliable for private repositories but requires
 	/// authentication and has rate limits.
-    pub async fn fetch_content_via_api(&self, github_url: &GitHubUrl) -> std::result::Result<String, GitHubSourceError> {
+	pub async fn fetch_content_via_api(
+		&self,
+		github_url: &GitHubUrl,
+	) -> std::result::Result<String, GitHubSourceError> {
 		let api_url = github_url.to_api_url();
 		let mut request = self.client.get(&api_url);
 

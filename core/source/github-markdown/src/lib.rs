@@ -34,4 +34,3 @@ pub use client::GitHubClient;
 pub use error::GitHubSourceError;
 pub use parser::GitHubSource;
 pub use url::{GitHubUrl, GitHubUrlType};
-

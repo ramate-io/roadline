@@ -31,7 +31,7 @@ use roadline_util::task::Task;
 /// # Example
 ///
 /// ```no_run
-/// use roadline_parser_markdown::RoadmapParser;
+/// use roadline_parser_markdown::RoadlineParser;
 /// use roadline_representation_core::roadline::RoadlineBuilder;
 ///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -44,7 +44,7 @@ use roadline_util::task::Task;
 ///     - **T1.1**: Complete draft of OART-1: BFA
 /// "#;
 ///
-/// let parser = RoadmapParser::new();
+/// let parser = RoadlineParser::new();
 /// let tasks = parser.parse_tasks(markdown_content)?;
 /// let roadline = RoadlineBuilder::new()
 ///     .tasks(tasks)?
@@ -53,18 +53,18 @@ use roadline_util::task::Task;
 /// # }
 /// ```
 #[derive(Debug, Clone)]
-pub struct RoadmapParser {
+pub struct RoadlineParser {
 	pub task_parser: TaskParser,
 	pub dependency_parser: DependencyParser,
 }
 
-impl Default for RoadmapParser {
+impl Default for RoadlineParser {
 	fn default() -> Self {
 		Self::new()
 	}
 }
 
-impl RoadmapParser {
+impl RoadlineParser {
 	/// Create a new roadmap parser with default configuration.
 	pub fn new() -> Self {
 		Self { task_parser: TaskParser::new(), dependency_parser: DependencyParser::new() }
