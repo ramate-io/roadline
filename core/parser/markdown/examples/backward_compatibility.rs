@@ -35,15 +35,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let new_tasks = parser.parse_tasks(new_format_content)?;
 	println!("  Parsed {} tasks", new_tasks.len());
 
-	// Test the end date parser directly
-	println!("\nTesting end date format detection:");
-	let end_date_parser = &parser.task_parser.end_date_parser;
+	// Test the range parser directly
+	println!("\nTesting range parser:");
+	let range_parser = &parser.task_parser.range_parser;
 
 	// Test parsing directly
-	let _old_result = end_date_parser.parse("T1 + 1 month")?;
+	let _old_result = range_parser.parse(
+		Some("T0 + 0 months"),
+		Some("T1 + 1 month"),
+		&roadline_util::task::Id::new(1),
+	)?;
 	println!("  Old format parsed successfully");
 
-	let _new_result = end_date_parser.parse("1 month")?;
+	let _new_result = range_parser.parse(
+		Some("T0 + 0 months"),
+		Some("1 month"),
+		&roadline_util::task::Id::new(1),
+	)?;
 	println!("  New format parsed successfully");
 
 	println!("\nBackward compatibility test completed successfully!");

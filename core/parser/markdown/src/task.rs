@@ -1,13 +1,11 @@
 //! Task parsing functionality for markdown roadmap documents.
 
 use super::error::MarkdownParseError;
-use super::range::{EndDate, StartDate};
+use super::range::RangeParser;
 use super::subtask::SubtaskParser;
-use roadline_util::duration::Duration;
-use roadline_util::task::range::{PointOfReference, TargetDate};
-use roadline_util::task::{EmbeddedSubtask, End, Id as TaskId, Range, Start, Summary, Task, Title};
+use super::summary::SummaryParser;
+use roadline_util::task::{EmbeddedSubtask, Id as TaskId, Task, Title};
 use std::collections::BTreeSet;
-use std::time::Duration as StdDuration;
 
 /// Parser for individual tasks in markdown documents.
 ///
@@ -16,8 +14,8 @@ use std::time::Duration as StdDuration;
 #[derive(Debug, Clone)]
 pub struct TaskParser {
 	subtask_parser: SubtaskParser,
-	start_date_parser: StartDate,
-	pub end_date_parser: EndDate,
+	pub range_parser: RangeParser,
+	summary_parser: SummaryParser,
 }
 
 impl Default for TaskParser {
@@ -31,8 +29,8 @@ impl TaskParser {
 	pub fn new() -> Self {
 		Self {
 			subtask_parser: SubtaskParser::new(),
-			start_date_parser: StartDate::new(),
-			end_date_parser: EndDate::new(),
+			range_parser: RangeParser::new(),
+			summary_parser: SummaryParser::new(),
 		}
 	}
 
@@ -51,10 +49,14 @@ impl TaskParser {
 		let subtasks = self.parse_subtasks(&section.content)?;
 
 		// Create the task range
-		let range = self.create_task_range(&metadata, &task_id)?;
+		let range = self.range_parser.parse(
+			metadata.starts.as_deref(),
+			metadata.ends.as_deref(),
+			&task_id,
+		)?;
 
 		// Create summary from content before subsections
-		let summary = self.create_summary(&section.content);
+		let summary = self.summary_parser.parse(&section.content);
 
 		Ok(Task::new(
 			task_id,
@@ -180,66 +182,6 @@ impl TaskParser {
 		}
 
 		Ok(subtasks)
-	}
-
-	/// Create a task range from metadata.
-	fn create_task_range(
-		&self,
-		metadata: &TaskMetadata,
-		_task_id: &TaskId,
-	) -> Result<Range, MarkdownParseError> {
-		// Parse the start date
-		let start = if let Some(starts) = &metadata.starts {
-			self.start_date_parser.parse(starts)?
-		} else {
-			// Default start
-			Start::from(TargetDate {
-				point_of_reference: PointOfReference::from(TaskId::new(0)),
-				duration: Duration::from(StdDuration::from_secs(0)),
-			})
-		};
-
-		// Parse the end date
-		let end = if let Some(ends) = &metadata.ends {
-			self.end_date_parser.parse(ends)?
-		} else {
-			// Default end duration
-			End::from(Duration::from(StdDuration::from_secs(86400 * 30)))
-		};
-
-		Ok(Range::new(start, end))
-	}
-
-	/// Create a summary from the task content before any subsections.
-	fn create_summary(&self, content: &[String]) -> Summary {
-		let mut summary_lines = Vec::new();
-
-		for line in content {
-			let line = line.trim();
-
-			// Stop at the Contents section
-			if line == "- **Contents:**" {
-				break;
-			}
-
-			// Skip metadata fields (lines starting with "- **")
-			if line.starts_with("- **") && line.contains(":**") {
-				continue;
-			}
-
-			// Skip empty lines at the beginning
-			if summary_lines.is_empty() && line.is_empty() {
-				continue;
-			}
-
-			// Add content lines to summary
-			if !line.is_empty() {
-				summary_lines.push(line.to_string());
-			}
-		}
-
-		let summary_text = summary_lines.join(" ").trim().to_string();
-		Summary { text: summary_text }
 	}
 }
 

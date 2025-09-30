@@ -8,18 +8,19 @@ pub mod dependency;
 pub mod error;
 pub mod range;
 pub mod subtask;
+pub mod summary;
 pub mod task;
 
 pub use dependency::DependencyParser;
 pub use error::MarkdownParseError;
 pub use range::{EndDate, StartDate};
 pub use subtask::SubtaskParser;
+pub use summary::SummaryParser;
 pub use task::TaskParser;
 
 use crate::task::TaskSection;
 use roadline_representation_core::roadline::RoadlineBuilder;
-use roadline_util::task::{Id as TaskId, Task};
-use std::collections::HashMap;
+use roadline_util::task::Task;
 
 /// Main parser for roadmap markdown documents.
 ///
@@ -83,15 +84,10 @@ impl RoadmapParser {
 		}
 
 		// Second pass: resolve dependencies
-		let task_map: HashMap<u8, TaskId> =
-			tasks.iter().map(|task| (u8::from(*task.id()), *task.id())).collect();
-
 		for (i, section) in task_sections.iter().enumerate() {
 			if let Some(dependencies) = self.dependency_parser.parse_dependencies(section)? {
 				for dep_id in dependencies {
-					if let Some(dep_task_id) = task_map.get(&dep_id) {
-						tasks[i].depends_on_mut().insert(*dep_task_id);
-					}
+					tasks[i].depends_on_mut().insert(dep_id);
 				}
 			}
 		}
