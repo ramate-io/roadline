@@ -34,34 +34,90 @@ impl RangeParser {
 	/// Parse a complete range from start and end date expressions.
 	///
 	/// # Arguments
-	/// * `starts` - Optional start date expression (e.g., "T0 + 0 months")
-	/// * `ends` - Optional end date expression (e.g., "1 month")
-	/// * `task_id` - The task ID for default start reference
+	/// * `starts` - Required start date expression (e.g., "T0 + 0 months")
+	/// * `ends` - Required end date expression (e.g., "1 month")
+	/// * `task_id` - The task ID for reference
 	///
 	/// # Returns
 	/// A `Range` object with parsed start and end dates.
+	///
+	/// # Errors
+	/// Returns an error if either start or end date is missing.
 	pub fn parse(
 		&self,
 		starts: Option<&str>,
 		ends: Option<&str>,
 		_task_id: &TaskId,
 	) -> Result<Range, MarkdownParseError> {
-		// Parse the start date
-		let start = if let Some(starts) = starts {
-			self.start_parser.parse(starts)?
-		} else {
-			// Default start: T0 + 0 months
-			self.start_parser.parse("T0 + 0 months")?
+		// Parse the start date - required
+		let start = match starts {
+			Some(starts) => self.start_parser.parse(starts)?,
+			None => {
+				return Err(MarkdownParseError::InvalidDateExpression {
+					expression: "Missing start date".to_string(),
+				});
+			}
 		};
 
-		// Parse the end date
-		let end = if let Some(ends) = ends {
-			self.end_parser.parse(ends)?
-		} else {
-			// Default end: 1 month duration
-			self.end_parser.parse("1 month")?
+		// Parse the end date - required
+		let end = match ends {
+			Some(ends) => self.end_parser.parse(ends)?,
+			None => {
+				return Err(MarkdownParseError::InvalidDateExpression {
+					expression: "Missing end date".to_string(),
+				});
+			}
 		};
 
 		Ok(Range::new(start, end))
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn test_parse_with_both_dates() -> Result<(), MarkdownParseError> {
+		let parser = RangeParser::new();
+		let result = parser.parse(Some("T0 + 0 months"), Some("1 month"), &TaskId::new(1))?;
+		assert!(result.start().point_of_reference().0.value() == 0);
+		Ok(())
+	}
+
+	#[test]
+	fn test_parse_missing_start_date() {
+		let parser = RangeParser::new();
+		let result = parser.parse(None, Some("1 month"), &TaskId::new(1));
+		assert!(result.is_err());
+		if let Err(MarkdownParseError::InvalidDateExpression { expression }) = result {
+			assert_eq!(expression, "Missing start date");
+		} else {
+			panic!("Expected InvalidDateExpression error");
+		}
+	}
+
+	#[test]
+	fn test_parse_missing_end_date() {
+		let parser = RangeParser::new();
+		let result = parser.parse(Some("T0 + 0 months"), None, &TaskId::new(1));
+		assert!(result.is_err());
+		if let Err(MarkdownParseError::InvalidDateExpression { expression }) = result {
+			assert_eq!(expression, "Missing end date");
+		} else {
+			panic!("Expected InvalidDateExpression error");
+		}
+	}
+
+	#[test]
+	fn test_parse_missing_both_dates() {
+		let parser = RangeParser::new();
+		let result = parser.parse(None, None, &TaskId::new(1));
+		assert!(result.is_err());
+		if let Err(MarkdownParseError::InvalidDateExpression { expression }) = result {
+			assert_eq!(expression, "Missing start date");
+		} else {
+			panic!("Expected InvalidDateExpression error");
+		}
 	}
 }
