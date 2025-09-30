@@ -10,6 +10,7 @@ pub mod range;
 pub mod subtask;
 pub mod summary;
 pub mod task;
+pub mod tests;
 
 pub use dependency::DependencyParser;
 pub use error::MarkdownParseError;
