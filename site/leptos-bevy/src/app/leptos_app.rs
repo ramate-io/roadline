@@ -104,7 +104,7 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 						<div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif;">
 							<div>"Loading roadline from GitHub..."</div>
 						</div>
-					}.into_view()
+					}.into_any()
 				} else if let Some(err) = error.get() {
 					view! {
 						<div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif; color: red;">
@@ -114,7 +114,7 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 								<p>"Path: " {path()}</p>
 							</div>
 						</div>
-					}.into_view()
+					}.into_any()
 				} else if let Some(roadline_arc) = roadline.get() {
 					let roadline_clone = roadline_arc.clone();
 					view! {
@@ -129,13 +129,13 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 							style="outline: none;"
 						/>
 						<EventDisplay event_str />
-					}.into_view()
+					}.into_any()
 				} else {
 					view! {
 						<div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif;">
 							<div>"No roadline loaded"</div>
 						</div>
-					}.into_view()
+					}.into_any()
 				}
 			}}
 		</div>
