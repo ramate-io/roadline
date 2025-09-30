@@ -2,6 +2,7 @@ use crate::app::bevy_app::{init_bevy_app, TaskSelectedForExternEvent};
 use leptos::prelude::Set;
 use leptos::prelude::*;
 use leptos_bevy_canvas::prelude::*;
+use roadline_bevy_renderer::test_utils::create_test_roadline;
 
 #[derive(Copy, Clone)]
 pub enum EventDirection {
@@ -18,6 +19,8 @@ pub fn App() -> impl IntoView {
 
 	let (event_str, set_event_str) = signal(String::new());
 
+	let roadline = create_test_roadline().expect("Failed to create test roadline");
+
 	Effect::new(move || {
 		log::info!("Processing effect for task selected for extern receiver");
 		if let Some(event) = task_selected_for_extern_receiver.get() {
@@ -29,7 +32,7 @@ pub fn App() -> impl IntoView {
 	view! {
 		<div style="height: 100vh; width: 100vw;">
 			<BevyCanvas
-				init=move || { init_bevy_app(task_selected_for_extern_sender).unwrap() }
+				init=move || { init_bevy_app(task_selected_for_extern_sender, roadline).unwrap() }
 				{..}
 				height="100%"
 				width="100%"

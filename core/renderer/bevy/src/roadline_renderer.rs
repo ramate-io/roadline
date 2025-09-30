@@ -64,6 +64,21 @@ impl RoadlineRenderer {
 		Ok(app)
 	}
 
+	pub fn create_app_with_roadline(
+		&self,
+		roadline: CoreRoadline,
+	) -> Result<App, RoadlineRenderError> {
+		let mut app = self.create_app();
+
+		// remove the existing roadline resource
+		app.world_mut().remove_resource::<Roadline>();
+
+		// insert the new roadline resource
+		app.insert_resource(Roadline::new(roadline));
+
+		Ok(app)
+	}
+
 	/// Render reified data in the given app
 	pub fn render(&self, app: &mut App, reified: CoreRoadline) -> Result<(), RoadlineRenderError> {
 		// Validate the reified data
