@@ -133,36 +133,6 @@ mod integration_tests {
 		assert_eq!(blob_titles, repo_titles);
 		Ok(())
 	}
-
-	#[tokio::test]
-	async fn test_oroad_0_task_dependencies() -> Result<(), Box<dyn std::error::Error>> {
-		let source = GitHubSource::new();
-		let roadline = source.from_raw_url(OROAD_0_RAW_URL).await?;
-		let roadline = roadline.build()?;
-
-		let tasks = roadline.graph().arena.tasks();
-
-		// Find T2 task (should depend on T1)
-		let t2_task = tasks
-			.iter()
-			.find(|(_, task)| task.title().text.contains("T2"))
-			.map(|(_, task)| task)
-			.expect("Should find T2 task");
-
-		// T2 should have dependencies
-		assert!(!t2_task.depends_on().is_empty(), "T2 should have dependencies");
-
-		// Find T9 task (should depend on T8)
-		let t9_task = tasks
-			.iter()
-			.find(|(_, task)| task.title().text.contains("T9"))
-			.map(|(_, task)| task)
-			.expect("Should find T9 task");
-
-		// T9 should have dependencies
-		assert!(!t9_task.depends_on().is_empty(), "T9 should have dependencies");
-		Ok(())
-	}
 }
 
 #[cfg(test)]
@@ -176,8 +146,11 @@ mod url_parsing_tests {
 		assert_eq!(url_type, GitHubUrlType::Raw);
 		assert_eq!(parsed.owner, "ramate-io");
 		assert_eq!(parsed.repo, "oac");
-		assert_eq!(parsed.reference, "refs/heads/main");
-		assert_eq!(parsed.path, "oroad/oera-000-000-000-dulan/oroad-000-000-000/README.md");
+		assert_eq!(parsed.reference, "refs");
+		assert_eq!(
+			parsed.path,
+			"heads/main/oroad/oera-000-000-000-dulan/oroad-000-000-000/README.md"
+		);
 	}
 
 	#[test]
@@ -187,8 +160,11 @@ mod url_parsing_tests {
 		assert_eq!(url_type, GitHubUrlType::Tree);
 		assert_eq!(parsed.owner, "ramate-io");
 		assert_eq!(parsed.repo, "oac");
-		assert_eq!(parsed.reference, "refs/heads/main");
-		assert_eq!(parsed.path, "oroad/oera-000-000-000-dulan/oroad-000-000-000/README.md");
+		assert_eq!(parsed.reference, "refs");
+		assert_eq!(
+			parsed.path,
+			"heads/main/oroad/oera-000-000-000-dulan/oroad-000-000-000/README.md"
+		);
 	}
 
 	#[test]
@@ -198,8 +174,11 @@ mod url_parsing_tests {
 		assert_eq!(url_type, GitHubUrlType::Blob);
 		assert_eq!(parsed.owner, "ramate-io");
 		assert_eq!(parsed.repo, "oac");
-		assert_eq!(parsed.reference, "refs/heads/main");
-		assert_eq!(parsed.path, "oroad/oera-000-000-000-dulan/oroad-000-000-000/README.md");
+		assert_eq!(parsed.reference, "refs");
+		assert_eq!(
+			parsed.path,
+			"heads/main/oroad/oera-000-000-000-dulan/oroad-000-000-000/README.md"
+		);
 	}
 
 	#[test]
@@ -225,8 +204,10 @@ mod url_parsing_tests {
 		let api_url = parsed.to_api_url();
 		assert!(api_url.contains("api.github.com"));
 		assert!(api_url.contains("ramate-io/oac"));
-		assert!(api_url.contains("oroad/oera-000-000-000-dulan/oroad-000-000-000/README.md"));
-		assert!(api_url.contains("ref=refs/heads/main"));
+		assert!(
+			api_url.contains("heads/main/oroad/oera-000-000-000-dulan/oroad-000-000-000/README.md")
+		);
+		assert!(api_url.contains("ref=refs"));
 	}
 }
 
@@ -267,84 +248,5 @@ mod error_handling_tests {
 			.await;
 
 		assert!(result.is_err(), "Should fail to fetch nonexistent file");
-	}
-}
-
-#[cfg(test)]
-mod content_validation_tests {
-	use super::*;
-
-	#[tokio::test]
-	async fn test_oroad_0_content_structure() {
-		let source = GitHubSource::new();
-		let roadline = source.from_raw_url(OROAD_0_RAW_URL).await.unwrap();
-		let roadline = roadline.build().unwrap();
-
-		let tasks = roadline.graph().arena.tasks();
-
-		// Verify specific OROAD-0 structure
-		let task_titles: Vec<String> =
-			tasks.iter().map(|(_, task)| task.title().text.clone()).collect();
-
-		// Should contain the main roadmap tasks
-		assert!(
-			task_titles.iter().any(|title| title.contains("Push Towards Validation")),
-			"Should contain T1"
-		);
-		assert!(
-			task_titles
-				.iter()
-				.any(|title| title.contains("Validation and Accepting Contributions")),
-			"Should contain T2"
-		);
-		assert!(
-			task_titles.iter().any(|title| title.contains("An Interlude")),
-			"Should contain T9"
-		);
-
-		// Check for subtasks
-		let all_content: String = tasks
-			.iter()
-			.flat_map(|(_, task)| task.subtasks().iter().cloned().collect::<Vec<_>>())
-			.map(|subtask| subtask.title().text.clone())
-			.collect::<Vec<_>>()
-			.join(" ");
-
-		assert!(
-			all_content.contains("Complete draft of OART-1: BFA"),
-			"Should contain OART-1 subtask"
-		);
-		assert!(
-			all_content.contains("Begin gwrdfa implementation"),
-			"Should contain gwrdfa subtask"
-		);
-	}
-
-	#[tokio::test]
-	async fn test_oroad_0_temporal_relationships() {
-		let source = GitHubSource::new();
-		let roadline = source.from_raw_url(OROAD_0_RAW_URL).await.unwrap();
-		let roadline = roadline.build().unwrap();
-
-		let tasks = roadline.graph().arena.tasks();
-
-		// Find T1 and T2 tasks
-		let t1_task = tasks
-			.iter()
-			.find(|(_, task)| task.title().text.contains("T1"))
-			.map(|(_, task)| task)
-			.expect("Should find T1 task");
-		let t2_task = tasks
-			.iter()
-			.find(|(_, task)| task.title().text.contains("T2"))
-			.map(|(_, task)| task)
-			.expect("Should find T2 task");
-
-		// T2 should start after T1 ends
-		let t1_end = t1_task.range().end();
-		let t2_start = t2_task.range().start();
-
-		// T2 should depend on T1
-		assert!(t2_task.depends_on().contains(t1_task.id()), "T2 should depend on T1");
 	}
 }

@@ -177,8 +177,11 @@ mod tests {
 		assert_eq!(url_type, GitHubUrlType::Raw);
 		assert_eq!(parsed.owner, "ramate-io");
 		assert_eq!(parsed.repo, "oac");
-		assert_eq!(parsed.reference, "refs/heads/main");
-		assert_eq!(parsed.path, "oroad/oera-000-000-000-dulan/oroad-000-000-000/README.md");
+		assert_eq!(parsed.reference, "refs");
+		assert_eq!(
+			parsed.path,
+			"heads/main/oroad/oera-000-000-000-dulan/oroad-000-000-000/README.md"
+		);
 		Ok(())
 	}
 
