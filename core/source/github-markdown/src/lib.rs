@@ -24,6 +24,7 @@
 
 pub mod client;
 pub mod error;
+pub mod metadata;
 pub mod parser;
 pub mod url;
 
@@ -32,5 +33,6 @@ mod tests;
 
 pub use client::GitHubClient;
 pub use error::GitHubSourceError;
+pub use metadata::{GitHubMetadataCollector, MutableGitHubMetadataCollector};
 pub use parser::GitHubSource;
 pub use url::{GitHubUrl, GitHubUrlType};

@@ -157,6 +157,24 @@ impl GitHubUrl {
 			self.owner, self.repo, self.path, self.reference
 		)
 	}
+
+	/// Convert to a GitHub blob URL (human-readable format).
+	pub fn to_blob_url(&self) -> String {
+		format!(
+			"https://github.com/{}/{}/blob/{}/{}",
+			self.owner, self.repo, self.reference, self.path
+		)
+	}
+
+	/// Convert to a GitHub blob URL with a fragment anchor.
+	///
+	/// This creates a deep link to a specific header in the markdown file.
+	pub fn to_blob_url_with_fragment(&self, fragment: &str) -> String {
+		format!(
+			"https://github.com/{}/{}/blob/{}/{}#{}",
+			self.owner, self.repo, self.reference, self.path, fragment
+		)
+	}
 }
 
 impl fmt::Display for GitHubUrl {

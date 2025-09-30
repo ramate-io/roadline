@@ -4,7 +4,7 @@ use roadline_util::task::Id as TaskId;
 #[derive(Debug, Clone)]
 pub struct TaskParsedEvent {
 	pub task: TaskId,
-	pub line_string: String,
+	pub title_line_string: String,
 }
 
 pub trait Instrumentation {
