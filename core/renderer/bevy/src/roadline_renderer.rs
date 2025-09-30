@@ -1,3 +1,5 @@
+use crate::test_utils::create_test_roadline;
+use crate::RoadlinePlugin;
 use crate::{
 	resources::{RenderUpdateEvent, Roadline},
 	RoadlineRenderConfig,
@@ -8,15 +10,21 @@ use roadline_representation_core::roadline::Roadline as CoreRoadline;
 /// High-level interface for rendering roadline visualizations
 pub struct RoadlineRenderer {
 	config: RoadlineRenderConfig,
+	plugin: RoadlinePlugin,
 }
 
 impl RoadlineRenderer {
+	/// Create a new RoadlineRenderer with the default configuration
 	pub fn new() -> Self {
-		Self { config: RoadlineRenderConfig::default() }
+		Self { config: RoadlineRenderConfig::default(), plugin: RoadlinePlugin::default() }
 	}
 
-	pub fn with_config(config: RoadlineRenderConfig) -> Self {
-		Self { config }
+	pub fn with_config(self, config: RoadlineRenderConfig) -> Self {
+		Self { config, ..self }
+	}
+
+	pub fn with_plugin(self, plugin: RoadlinePlugin) -> Self {
+		Self { plugin, ..self }
 	}
 
 	pub fn config(&self) -> &RoadlineRenderConfig {
@@ -32,11 +40,28 @@ impl RoadlineRenderer {
 		let mut app = App::new();
 
 		// Add the roadline plugin and configuration
-		app.add_plugins(crate::RoadlinePlugin)
+		app.add_plugins(self.plugin.clone())
 			.insert_resource(self.config.clone())
 			.add_event::<RenderUpdateEvent>();
 
 		app
+	}
+
+	/// Creates an app with the test roadline
+	pub fn create_app_with_test_roadline(&self) -> Result<App, RoadlineRenderError> {
+		let mut app = self.create_app();
+		let reified = create_test_roadline().map_err(anyhow::Error::from)?;
+		app.insert_resource(Roadline::new(reified));
+
+		if let Some(mut event_writer) =
+			app.world_mut().get_resource_mut::<Events<RenderUpdateEvent>>()
+		{
+			event_writer.send(RenderUpdateEvent);
+		} else {
+			return Err(RoadlineRenderError::EventSystemNotInitialized);
+		}
+
+		Ok(app)
 	}
 
 	/// Render reified data in the given app
@@ -153,4 +178,6 @@ pub enum RoadlineRenderError {
 	EventSystemNotInitialized,
 	#[error("Bevy app not properly configured")]
 	AppNotConfigured,
+	#[error("Roadline renderer encountered an internal error: {0}")]
+	Internal(#[from] anyhow::Error),
 }

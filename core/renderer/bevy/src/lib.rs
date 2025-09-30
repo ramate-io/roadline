@@ -7,8 +7,13 @@ pub mod systems;
 
 pub mod test_utils;
 
+use bevy::input::mouse::{MouseButton, MouseButtonInput, MouseMotion};
+use bevy::input::touch::{TouchInput, TouchPhase};
 use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
+use bevy::window::SystemCursorIcon;
+use bevy::window::WindowResized;
+use bevy::winit::cursor::CursorIcon;
 use bevy_ui_anchor::AnchorUiPlugin;
 
 use crate::resources::SelectionResource;
@@ -20,8 +25,22 @@ pub use roadline_renderer::RoadlineRenderer;
 pub struct UiCameraMarker;
 
 /// Main plugin for the Roadline Bevy renderer
-#[derive(Default)]
-pub struct RoadlinePlugin;
+#[derive(Debug, Clone)]
+pub struct RoadlinePlugin {
+	canvas_id: String,
+}
+
+impl Default for RoadlinePlugin {
+	fn default() -> Self {
+		Self { canvas_id: "#roadline-canvas".to_string() }
+	}
+}
+
+impl RoadlinePlugin {
+	pub fn bevy_leptos_canvas() -> Self {
+		Self { canvas_id: "#bevy_canvas".to_string() }
+	}
+}
 
 impl Plugin for RoadlinePlugin {
 	fn build(&self, app: &mut App) {
@@ -29,7 +48,7 @@ impl Plugin for RoadlinePlugin {
 		app.add_plugins(DefaultPlugins.set(WindowPlugin {
 			primary_window: Some(Window {
 				title: "Roadline Renderer".to_string(),
-				canvas: Some("#roadline-canvas".to_string()), // For web integration
+				canvas: Some(self.canvas_id.clone()), // For web integration
 				fit_canvas_to_parent: true,
 				prevent_default_event_handling: false,
 				..default()
@@ -84,6 +103,7 @@ impl RoadlinePlugin {
 			.insert_resource(RoadlineRenderConfig::default())
 			// Add our custom systems
 			.add_systems(Startup, setup_camera)
+			.add_systems(Update, (camera_control_system, camera_panning_system))
 			.add_systems(
 				Update,
 				(
@@ -118,6 +138,11 @@ fn setup_camera(mut commands: Commands) {
 			clear_color: ClearColorConfig::None,
 			..default()
 		},
+		Projection::Orthographic(OrthographicProjection {
+			scale: 1.0, // This would now control the zoom level
+			..OrthographicProjection::default_2d()
+		}),
+		Transform::from_xyz(0.0, 0.0, 0.0),
 		// This camera will only render entities which are on the same render layer.
 		RenderLayers::layer(2),
 	));
@@ -126,8 +151,215 @@ fn setup_camera(mut commands: Commands) {
 		Camera2d,
 		IsDefaultUiCamera,
 		UiCameraMarker, // Mark this camera for bevy_ui_anchor
+		Projection::Orthographic(OrthographicProjection {
+			scale: 1.0, // This would now control the zoom level
+			..OrthographicProjection::default_2d()
+		}),
+		Transform::from_xyz(0.0, 0.0, 0.0),
 		RenderLayers::layer(1),
 	));
+}
+
+fn camera_control_system(
+	time: Res<Time>,
+	keys: Res<ButtonInput<KeyCode>>,
+	mut camera_query: Query<&mut Transform, With<Camera2d>>,
+) {
+	for mut transform in camera_query.iter_mut() {
+		let move_speed = 200.0 * time.delta_secs();
+
+		// Smooth camera movement
+		let mut movement = Vec3::ZERO;
+
+		if keys.pressed(KeyCode::ArrowUp) {
+			movement.y += move_speed;
+		}
+		if keys.pressed(KeyCode::ArrowDown) {
+			movement.y -= move_speed;
+		}
+		if keys.pressed(KeyCode::ArrowLeft) {
+			movement.x -= move_speed;
+		}
+		if keys.pressed(KeyCode::ArrowRight) {
+			movement.x += move_speed;
+		}
+
+		transform.translation += movement;
+	}
+}
+
+/// System to handle window resize events and update camera orthographic projection
+pub fn update_camera_on_resize(
+	mut resize_events: EventReader<WindowResized>,
+	mut query: Query<&mut Projection, With<Camera2d>>,
+) {
+	for event in resize_events.read() {
+		println!("Window resized: {}x{}", event.width, event.height);
+
+		// Calculate appropriate scale based on window size
+		// Smaller windows = larger scale (more zoomed in)
+		// Larger windows = smaller scale (more zoomed out)
+		let base_width = 1000.0_f32; // Reference width
+		let base_height = 1000.0_f32; // Reference height
+
+		let width_ratio = base_width / event.width;
+		let height_ratio = base_height / event.height;
+
+		// Use the larger ratio to ensure content fits
+		let scale = width_ratio.max(height_ratio);
+
+		println!("Calculated scale: {}", scale);
+
+		for mut projection in query.iter_mut() {
+			if let Projection::Orthographic(ref mut orthographic) = *projection {
+				orthographic.scale = scale;
+			}
+		}
+	}
+}
+
+/// System to handle mouse/touch panning for camera movement
+fn camera_panning_system(
+	mut commands: Commands,
+	mut mouse_button_events: EventReader<MouseButtonInput>,
+	mut mouse_motion_events: EventReader<MouseMotion>,
+	mut touch_events: EventReader<TouchInput>,
+	keyboard_input: Res<ButtonInput<KeyCode>>,
+	mut camera_query: Query<&mut Transform, With<Camera2d>>,
+	windows: Query<(Entity, &Window)>,
+	mut last_mouse_pos: Local<Option<Vec2>>,
+	mut is_panning: Local<bool>,
+	mut pan_mode_active: Local<bool>,
+) {
+	// Check if pan mode should be active (Ctrl/Cmd held down)
+	let ctrl_or_cmd_pressed = keyboard_input.pressed(KeyCode::ControlLeft) 
+		|| keyboard_input.pressed(KeyCode::ControlRight)
+		|| keyboard_input.pressed(KeyCode::SuperLeft)  // Cmd on Mac
+		|| keyboard_input.pressed(KeyCode::SuperRight); // Cmd on Mac
+	
+	// Update pan mode state and cursor
+	if ctrl_or_cmd_pressed != *pan_mode_active {
+		*pan_mode_active = ctrl_or_cmd_pressed;
+		
+		if let Ok((window_entity, _)) = windows.single() {
+			if *pan_mode_active {
+				// Enter pan mode - show grab cursor
+				commands
+					.entity(window_entity)
+					.insert(CursorIcon::System(SystemCursorIcon::Grab));
+			} else {
+				// Exit pan mode - reset cursor and stop panning
+				commands
+					.entity(window_entity)
+					.insert(CursorIcon::System(SystemCursorIcon::Default));
+				*is_panning = false;
+				*last_mouse_pos = None;
+			}
+		}
+	}
+
+	// Handle mouse button events
+	for event in mouse_button_events.read() {
+		// Only allow panning if pan mode is active (Ctrl/Cmd held) or middle mouse button
+		let can_pan = *pan_mode_active || event.button == MouseButton::Middle;
+		
+		if can_pan && (event.button == MouseButton::Left || event.button == MouseButton::Middle) {
+			match event.state {
+				bevy::input::ButtonState::Pressed => {
+					if let Ok((window_entity, window)) = windows.single() {
+						if let Some(cursor_pos) = window.cursor_position() {
+							*last_mouse_pos = Some(cursor_pos);
+							*is_panning = true;
+							// Set cursor to grabbing hand
+							commands
+								.entity(window_entity)
+								.insert(CursorIcon::System(SystemCursorIcon::Grabbing));
+						}
+					}
+				}
+				bevy::input::ButtonState::Released => {
+					*is_panning = false;
+					*last_mouse_pos = None;
+					// Reset cursor based on pan mode state
+					if let Ok((window_entity, _)) = windows.single() {
+						if *pan_mode_active {
+							// Still in pan mode, show grab cursor
+							commands
+								.entity(window_entity)
+								.insert(CursorIcon::System(SystemCursorIcon::Grab));
+						} else {
+							// Not in pan mode, show default cursor
+							commands
+								.entity(window_entity)
+								.insert(CursorIcon::System(SystemCursorIcon::Default));
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Handle mouse motion for panning
+	if *is_panning {
+		for event in mouse_motion_events.read() {
+			if last_mouse_pos.is_some() {
+				let delta = event.delta;
+
+				// Convert screen delta to world delta
+				// Note: This is a simple conversion - you might want to adjust based on your camera scale
+				let world_delta = Vec3::new(-delta.x, delta.y, 0.0);
+
+				for mut transform in camera_query.iter_mut() {
+					transform.translation += world_delta;
+				}
+
+				// Update last mouse position
+				if let Ok((_, window)) = windows.single() {
+					if let Some(cursor_pos) = window.cursor_position() {
+						*last_mouse_pos = Some(cursor_pos);
+					}
+				}
+			}
+		}
+	}
+
+	// Handle touch events for mobile panning
+	for event in touch_events.read() {
+		match event.phase {
+			TouchPhase::Started => {
+				*last_mouse_pos = Some(event.position);
+				*is_panning = true;
+				// Set cursor to pan hand for touch devices (if supported)
+				if let Ok((window_entity, _)) = windows.single() {
+					commands
+						.entity(window_entity)
+						.insert(CursorIcon::System(SystemCursorIcon::Grabbing));
+				}
+			}
+			TouchPhase::Moved => {
+				if let Some(last_pos) = *last_mouse_pos {
+					let delta = event.position - last_pos;
+					let world_delta = Vec3::new(-delta.x, delta.y, 0.0);
+
+					for mut transform in camera_query.iter_mut() {
+						transform.translation += world_delta;
+					}
+
+					*last_mouse_pos = Some(event.position);
+				}
+			}
+			TouchPhase::Ended | TouchPhase::Canceled => {
+				*is_panning = false;
+				*last_mouse_pos = None;
+				// Reset cursor to default
+				if let Ok((window_entity, _)) = windows.single() {
+					commands
+						.entity(window_entity)
+						.insert(CursorIcon::System(SystemCursorIcon::Default));
+				}
+			}
+		}
+	}
 }
 
 /// Configuration for the renderer

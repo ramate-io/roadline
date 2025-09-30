@@ -91,7 +91,7 @@ impl InputMatcher {
 		keyboard_input: &ButtonInput<KeyCode>,
 	) -> bool {
 		triggers.iter().any(|trigger| {
-			println!("Checking trigger: {:?}", trigger);
+			log::info!("Checking trigger: {:?}", trigger);
 			match trigger {
 				InputTrigger::ShiftLeftClick => {
 					button == MouseButton::Left
@@ -159,6 +159,7 @@ impl InputMatcher {
 		emit_fn: &mut dyn FnMut(TaskId, SelectionState),
 	) {
 		for mouse_event in mouse_events.read() {
+			log::info!("Processing mouse event: {:?} {:?}", mouse_event, keyboard_input);
 			if self.matches_mouse_input(triggers, mouse_event.button, mouse_event, keyboard_input) {
 				if let Some(task_id) = self.find_task_at_position(task_query, roadline, world_pos) {
 					emit_fn(task_id, SelectionState::Selected);
@@ -306,12 +307,14 @@ impl TaskSelectedForExternEventSystem {
 		roadline: &Roadline,
 		events: &mut EventWriter<TaskSelectedForExternEvent>,
 	) {
+		log::info!("Processing mouse event: {:?}", self);
 		if !self.emit_events {
 			return;
 		}
 
 		let matcher = InputMatcher::new(self.pixels_per_unit);
 		let mut emit_fn = |task_id: TaskId, state: SelectionState| {
+			log::info!("Emitting task selected for extern event: {:?} {:?}", task_id, state);
 			self.emit_task_selected_for_extern(events, task_id, state);
 		};
 
@@ -322,8 +325,11 @@ impl TaskSelectedForExternEventSystem {
 			mouse_event,
 			keyboard_input,
 		) {
+			log::info!("Mouse event matches triggers");
 			if let Some(task_id) = matcher.find_task_at_position(task_query, roadline, world_pos) {
 				emit_fn(task_id, SelectionState::Selected);
+			} else {
+				log::info!("No task found at position");
 			}
 		}
 	}

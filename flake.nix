@@ -1,7 +1,7 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/a7abebc31a8f60011277437e000eebcc01702b9f";
-    rust-overlay.url = "github:oxalica/rust-overlay/47beae969336c05e892e1e4a9dbaac9593de34ab";
+    rust-overlay.url = "github:oxalica/rust-overlay/02227ca8c229c968dbb5de95584cfb12b4313104";
     flake-utils.url = "github:numtide/flake-utils";
     crane.url = "github:ipetkov/crane";
   };
@@ -20,11 +20,11 @@
           targets = [ host "wasm32-unknown-unknown" ];
         };
         craneLib = (crane.mkLib pkgs).overrideToolchain(toolchain);
-
         frameworks = pkgs.darwin.apple_sdk.frameworks;
 
         # An LLVM build environment
         dependencies = with pkgs; [
+          trunk
           wasm-bindgen-cli
           dioxus-cli
           protobuf

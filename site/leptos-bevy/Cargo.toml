@@ -1,0 +1,29 @@
+[package]
+name = "roadline-site-leptos-bevy"
+version = { workspace = true }
+edition  = { workspace = true }
+license  = { workspace = true }
+authors = { workspace = true }
+repository = { workspace = true }
+homepage = { workspace = true }
+publish = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+roadline-util = { workspace = true }
+roadline-representation-core = { workspace = true }
+roadline-bevy-renderer = { workspace = true }
+chrono = { workspace = true }
+bevy = { workspace = true }
+leptos = { workspace = true, features = [ "csr" ] }
+leptos-use = { workspace = true }
+leptos-bevy-canvas = { workspace = true }
+console_error_panic_hook = { workspace = true }
+log = { workspace = true }
+console_log = { workspace = true }
+
+[lints]
+workspace = true

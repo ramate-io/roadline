@@ -4,10 +4,16 @@ resolver = "2"
 
 members = [
 
+  # util
   "util/roadline/*",
   "util/bevy/*",
+
+  # core
   "core/representation",
-  "core/renderer/*"
+  "core/renderer/*",
+
+  # site
+  "site/leptos-bevy"
   
 ]
 
@@ -63,7 +69,13 @@ tonic-build = { version = "0.12.3", features = ["prost"] }
 tonic-reflection = "0.12.3"
 tonic-web = "0.12.3"
 prost = "0.13.3"
-dioxus = { version = "0.6.3", features = ["fullstack"] }
+leptos = "0.8.8"
+leptos-use = { version = "0.16", default-features = false, features = [
+    "use_raf_fn",
+    "use_debounce_fn"
+] }
+leptos-bevy-canvas = { git = "https://github.com/ramate-io/leptos-bevy-canvas" , rev = "72ede97d63edb1ec3ae9ff87c3eb449fec8dbad7" }
+console_error_panic_hook = "0.1"
 wasm-bindgen = "0.2"
 web-sys = "0.3"
 wasm-bindgen-futures = "0.4"
@@ -71,7 +83,8 @@ gloo-timers = { version = "0.2" }
 chrono = { version = "0.4.41" }
 bevy = { git = "https://github.com/ramate-io/bevy", rev = "390623a9289c10760e779b19c9b6c245e2179b54" }
 js-sys = "0.3"
-
+log = "0.4"
+console_log = "1"
 
 # kestrel 
 kestrel = { git = "https://github.com/movementlabsxyz/kestrel.git", rev = "85e2f681ae3e54b29bb18d4ed7ca750116173321" }
@@ -89,9 +102,9 @@ clap-markdown-ext = { git = "https://github.com/movementlabsxyz/clap-markdown-ex
 # internal
 roadline-util = { path = "util/roadline/roadline" }
 roadline-representation-core = { path = "core/representation" }
+roadline-bevy-renderer = { path = "core/renderer/bevy" }
 
 bevy-ui-anchor = { path = "util/bevy/ui-anchor" }
-
 
 [workspace.lints.clippy]
 debug_assert_with_mut_call = "deny"

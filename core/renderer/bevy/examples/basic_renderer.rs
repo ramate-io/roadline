@@ -25,13 +25,13 @@ fn main() -> Result<(), anyhow::Error> {
 		background_color: Color::srgb(1.0, 1.0, 1.0), // Dark blue background
 	};
 
-	let renderer = RoadlineRenderer::with_config(config);
+	let renderer = RoadlineRenderer::new().with_config(config);
 
 	// Create and configure the Bevy app
 	let mut app = renderer.create_app();
 
 	// Add some additional systems for better visual experience
-	app.add_systems(Update, (keyboard_input_system, camera_control_system, info_display_system));
+	app.add_systems(Update, (keyboard_input_system, info_display_system));
 
 	/*load_internal_binary_asset!(
 		app,
@@ -85,7 +85,7 @@ fn keyboard_input_system(
 	mut camera_query: Query<&mut Transform, With<Camera2d>>,
 	mut exit: EventWriter<AppExit>,
 ) {
-	if let Ok(mut transform) = camera_query.single_mut() {
+	for mut transform in camera_query.iter_mut() {
 		let move_speed = 10.0;
 
 		// Camera movement
@@ -111,35 +111,6 @@ fn keyboard_input_system(
 	// Quit
 	if keys.just_pressed(KeyCode::Escape) {
 		exit.write(AppExit::Success);
-	}
-}
-
-/// System for smooth camera controls
-fn camera_control_system(
-	time: Res<Time>,
-	keys: Res<ButtonInput<KeyCode>>,
-	mut camera_query: Query<&mut Transform, With<Camera2d>>,
-) {
-	if let Ok(mut transform) = camera_query.single_mut() {
-		let move_speed = 200.0 * time.delta_secs();
-
-		// Smooth camera movement
-		let mut movement = Vec3::ZERO;
-
-		if keys.pressed(KeyCode::ArrowUp) {
-			movement.y += move_speed;
-		}
-		if keys.pressed(KeyCode::ArrowDown) {
-			movement.y -= move_speed;
-		}
-		if keys.pressed(KeyCode::ArrowLeft) {
-			movement.x -= move_speed;
-		}
-		if keys.pressed(KeyCode::ArrowRight) {
-			movement.x += move_speed;
-		}
-
-		transform.translation += movement;
 	}
 }
 

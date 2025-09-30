@@ -147,6 +147,7 @@ impl TaskClickSystem {
 		keyboard_input: &Res<ButtonInput<KeyCode>>,
 		_touch_tracker: &mut ResMut<TouchDurationTracker>,
 	) {
+		log::info!("Handling task clicks: {:?} {:?}", mouse_event, keyboard_input);
 		// Run the extern event system for this specific mouse event
 		self.extern_event_system.process_single_mouse_event(
 			world_pos,
