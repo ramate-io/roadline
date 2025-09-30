@@ -4,15 +4,15 @@
 //! used by OAC (Ordered Atomic Collaboration) roadmaps. It parses tasks, subtasks,
 //! dependencies, and dates into the roadline representation system.
 
-pub mod date;
 pub mod dependency;
 pub mod error;
+pub mod range;
 pub mod subtask;
 pub mod task;
 
-pub use date::DateParser;
 pub use dependency::DependencyParser;
 pub use error::MarkdownParseError;
+pub use range::{EndDate, StartDate};
 pub use subtask::SubtaskParser;
 pub use task::TaskParser;
 

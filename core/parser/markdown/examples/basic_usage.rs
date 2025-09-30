@@ -1,12 +1,12 @@
 //! Basic usage example for the markdown parser.
 
-use roadline_prarser_markdown::RoadmapParser;
+use roadline_parser_markdown::RoadmapParser;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 	// Example markdown content
 	let markdown_content = r#"
 ### T0: Project Start
-- **Starts:** 2024-01-01
+- **Starts:** T0 + 0 months
 - **Depends-on:** $\emptyset$
 - **Ends:** 1 month
 - **Contents:**

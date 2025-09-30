@@ -4533,7 +4533,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "roadline-prarser-markdown"
+name = "roadline-parser-markdown"
 version = "0.0.1"
 dependencies = [
  "anyhow",

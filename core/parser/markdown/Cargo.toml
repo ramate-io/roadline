@@ -1,5 +1,5 @@
 [package]
-name = "roadline-prarser-markdown"
+name = "roadline-parser-markdown"
 version = { workspace = true }
 edition  = { workspace = true }
 license  = { workspace = true }
