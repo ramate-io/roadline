@@ -11,6 +11,7 @@ members = [
   # core
   "core/representation",
   "core/renderer/*",
+  "core/parser/*",
 
   # site
   "site/leptos-bevy"
