@@ -53,8 +53,8 @@ impl TaskParser {
 		// Create the task range
 		let range = self.create_task_range(&metadata, &task_id)?;
 
-		// Create summary from title and subtasks
-		let summary = self.create_summary(&title, &subtasks);
+		// Create summary from content before subsections
+		let summary = self.create_summary(&section.content);
 
 		Ok(Task::new(
 			task_id,
@@ -210,14 +210,35 @@ impl TaskParser {
 		Ok(Range::new(start, end))
 	}
 
-	/// Create a summary from the task title and subtasks.
-	fn create_summary(&self, title: &Title, subtasks: &BTreeSet<EmbeddedSubtask>) -> Summary {
-		let mut summary_text = title.text.clone();
+	/// Create a summary from the task content before any subsections.
+	fn create_summary(&self, content: &[String]) -> Summary {
+		let mut summary_lines = Vec::new();
 
-		if !subtasks.is_empty() {
-			summary_text.push_str(&format!(" ({} subtasks)", subtasks.len()));
+		for line in content {
+			let line = line.trim();
+
+			// Stop at the Contents section
+			if line == "- **Contents:**" {
+				break;
+			}
+
+			// Skip metadata fields (lines starting with "- **")
+			if line.starts_with("- **") && line.contains(":**") {
+				continue;
+			}
+
+			// Skip empty lines at the beginning
+			if summary_lines.is_empty() && line.is_empty() {
+				continue;
+			}
+
+			// Add content lines to summary
+			if !line.is_empty() {
+				summary_lines.push(line.to_string());
+			}
 		}
 
+		let summary_text = summary_lines.join(" ").trim().to_string();
 		Summary { text: summary_text }
 	}
 }
