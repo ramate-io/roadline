@@ -165,32 +165,36 @@ mod tests {
 	use super::*;
 
 	#[test]
-	fn test_parse_empty_dependencies() {
+	fn test_parse_empty_dependencies() -> Result<(), MarkdownParseError> {
 		let parser = DependencyParser::new();
-		let result = parser.parse_dependency_value("$\\emptyset$").unwrap();
+		let result = parser.parse_dependency_value("$\\emptyset$")?;
 		assert_eq!(result, Some(Vec::new()));
+		Ok(())
 	}
 
 	#[test]
-	fn test_parse_single_dependency() {
+	fn test_parse_single_dependency() -> Result<(), MarkdownParseError> {
 		let parser = DependencyParser::new();
-		let result = parser.parse_dependency_value("[T1](#t1-title)").unwrap();
+		let result = parser.parse_dependency_value("[T1](#t1-title)")?;
 		assert_eq!(result, Some(vec![TaskId::new(1)]));
+		Ok(())
 	}
 
 	#[test]
-	fn test_parse_multiple_dependencies() {
+	fn test_parse_multiple_dependencies() -> Result<(), MarkdownParseError> {
 		let parser = DependencyParser::new();
-		let result = parser.parse_dependency_value("[T1](#t1-title), [T2](#t2-title)").unwrap();
+		let result = parser.parse_dependency_value("[T1](#t1-title), [T2](#t2-title)")?;
 		assert_eq!(result, Some(vec![TaskId::new(1), TaskId::new(2)]));
+		Ok(())
 	}
 
 	#[test]
-	fn test_parse_dependency_line() {
+	fn test_parse_dependency_line() -> Result<(), MarkdownParseError> {
 		let parser = DependencyParser::new();
 		let line = "- **Depends-on:** [T1](#t1-title), [T2](#t2-title)";
-		let result = parser.parse_dependency_line(line).unwrap();
+		let result = parser.parse_dependency_line(line)?;
 		assert_eq!(result, Some(vec![TaskId::new(1), TaskId::new(2)]));
+		Ok(())
 	}
 
 	#[test]
