@@ -249,4 +249,40 @@ mod error_handling_tests {
 
 		assert!(result.is_err(), "Should fail to fetch nonexistent file");
 	}
+
+	#[tokio::test]
+	async fn test_metadata_collection() -> Result<(), Box<dyn std::error::Error>> {
+		let source = GitHubSource::new();
+		let (github_url, _) = GitHubUrl::parse(OROAD_0_RAW_URL)?;
+
+		// Parse with metadata collection
+		let (builder, metadata) = source.from_github_url_with_metadata(&github_url).await?;
+		let roadline = builder.build()?;
+
+		// Verify we have tasks
+		assert!(!roadline.graph().arena.tasks().is_empty());
+
+		// Verify we have metadata for each task
+		assert_eq!(metadata.fragments().len(), roadline.graph().arena.tasks().len());
+
+		// Check that fragments are properly sanitized
+		for (_task_id, fragment) in metadata.fragments() {
+			// Fragment should be lowercase and use hyphens
+			assert!(fragment
+				.chars()
+				.all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-'));
+			// Fragment should not start or end with hyphens
+			assert!(!fragment.starts_with('-'));
+			assert!(!fragment.ends_with('-'));
+			// Fragment should not have consecutive hyphens
+			assert!(!fragment.contains("--"));
+
+			// Verify we can create a GitHub URL with this fragment
+			let fragment_url = github_url.to_blob_url_with_fragment(fragment);
+			assert!(fragment_url.contains('#'));
+			assert!(fragment_url.ends_with(fragment));
+		}
+
+		Ok(())
+	}
 }

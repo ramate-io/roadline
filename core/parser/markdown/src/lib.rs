@@ -77,19 +77,20 @@ impl RoadlineParser {
 	/// This method parses the entire document, extracting all tasks and their
 	/// subtasks, dependencies, and temporal information.
 	pub fn parse_tasks(&self, content: &str) -> Result<Vec<Task>, MarkdownParseError> {
-		self.parse_tasks_with_instrumentation(content, &NoOpInstrumentation)
+		let mut noop = NoOpInstrumentation;
+		self.parse_tasks_with_instrumentation(content, &mut noop)
 	}
 
 	/// Parse a complete markdown document with instrumentation and return a vector of tasks.
 	///
 	/// This method parses the entire document, extracting all tasks and their
 	/// subtasks, dependencies, and temporal information, while emitting instrumentation events.
-	/// 
+	///
 	/// If you don't need instrumentation, use `parse_tasks` instead.
 	pub fn parse_tasks_with_instrumentation<I: Instrumentation>(
 		&self,
 		content: &str,
-		instrumentation: &I,
+		instrumentation: &mut I,
 	) -> Result<Vec<Task>, MarkdownParseError> {
 		let mut tasks = Vec::new();
 		let mut task_sections = self.extract_task_sections(content)?;
@@ -97,14 +98,12 @@ impl RoadlineParser {
 		// First pass: parse all tasks without dependencies
 		for section in &mut task_sections {
 			let task = self.task_parser.parse_task_section(section)?;
-			
+
 			// Emit instrumentation event
-			let event = TaskParsedEvent {
-				task: *task.id(),
-				title_line_string: section.header.clone(),
-			};
+			let event =
+				TaskParsedEvent { task: *task.id(), title_line_string: section.header.clone() };
 			instrumentation.on_task_parsed(event)?;
-			
+
 			tasks.push(task);
 		}
 
@@ -129,7 +128,7 @@ impl RoadlineParser {
 pub struct NoOpInstrumentation;
 
 impl Instrumentation for NoOpInstrumentation {
-	fn on_task_parsed(&self, _event: TaskParsedEvent) -> Result<(), MarkdownParseError> {
+	fn on_task_parsed(&mut self, _event: TaskParsedEvent) -> Result<(), MarkdownParseError> {
 		Ok(())
 	}
 }
@@ -142,18 +141,19 @@ impl RoadlineParser {
 		&self,
 		content: &str,
 	) -> Result<roadline_representation_core::roadline::Roadline, MarkdownParseError> {
-		self.parse_and_build_with_instrumentation(content, &NoOpInstrumentation)
+		let mut noop = NoOpInstrumentation;
+		self.parse_and_build_with_instrumentation(content, &mut noop)
 	}
 
 	/// Parse a markdown document with instrumentation and build a roadline representation.
 	///
 	/// This is a convenience method that combines parsing and roadline building with instrumentation.
-	/// 
+	///
 	/// If you don't need instrumentation, use `parse_and_build` instead.
 	pub fn parse_and_build_with_instrumentation<I: Instrumentation>(
 		&self,
 		content: &str,
-		instrumentation: &I,
+		instrumentation: &mut I,
 	) -> Result<roadline_representation_core::roadline::Roadline, MarkdownParseError> {
 		let tasks = self.parse_tasks_with_instrumentation(content, instrumentation)?;
 		let mut builder = RoadlineBuilder::new();

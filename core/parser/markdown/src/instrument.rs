@@ -8,5 +8,5 @@ pub struct TaskParsedEvent {
 }
 
 pub trait Instrumentation {
-	fn on_task_parsed(&self, task: TaskParsedEvent) -> Result<(), MarkdownParseError>;
+	fn on_task_parsed(&mut self, task: TaskParsedEvent) -> Result<(), MarkdownParseError>;
 }

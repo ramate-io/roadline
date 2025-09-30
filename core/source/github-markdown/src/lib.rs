@@ -33,6 +33,6 @@ mod tests;
 
 pub use client::GitHubClient;
 pub use error::GitHubSourceError;
-pub use metadata::{GitHubMetadataCollector, MutableGitHubMetadataCollector};
+pub use metadata::GitHubMetadataCollector;
 pub use parser::GitHubSource;
 pub use url::{GitHubUrl, GitHubUrlType};
