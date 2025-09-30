@@ -72,6 +72,7 @@ tonic-reflection = "0.12.3"
 tonic-web = "0.12.3"
 prost = "0.13.3"
 leptos = "0.8.8"
+leptos_router = "0.8.8"
 leptos-use = { version = "0.16", default-features = false, features = [
     "use_raf_fn",
     "use_debounce_fn"
@@ -106,6 +107,7 @@ roadline-util = { path = "util/roadline/roadline" }
 roadline-representation-core = { path = "core/representation" }
 roadline-parser-markdown = { path = "core/parser/markdown" }
 roadline-bevy-renderer = { path = "core/renderer/bevy" }
+roadline-source-github-markdown = { path = "core/source/github-markdown" }
 
 # docs
 clap-markdown-ext = { git = "https://github.com/movementlabsxyz/clap-markdown-ext.git", rev = "8f54fe424504bf37fb01dc69aaed8166e429fe6a"}
