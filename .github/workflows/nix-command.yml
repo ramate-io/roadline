@@ -42,6 +42,7 @@ jobs:
         run: |
           # Write the command to a temporary script file to handle multiline commands
           cat > /tmp/nix_command.sh << 'EOF'
+          export GH_TOKEN="${{ env.GITHUB_TOKEN }}"
           ${{ inputs.command }}
           EOF
           chmod +x /tmp/nix_command.sh

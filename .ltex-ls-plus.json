@@ -1,6 +1,9 @@
 {
   "ltex": {
-    "enabled": ["markdown", "restructuredtext"],
+    "enabled": [
+      "markdown",
+      "restructuredtext"
+    ],
     "language": "en-US",
     "checkFrequency": "save",
     "disabledRules": {
@@ -247,12 +250,21 @@
         "kiwisolver",
         "pyparsing",
         "Dioxus",
-        "Roadline"
+        "Roadline",
+        "toolchain",
+        "Leptos"
       ]
     },
-    "bibtex": { "fields": {} },
-    "latex": { "commands": {}, "environments": {} },
-    "markdown": { "nodes": {} },
+    "bibtex": {
+      "fields": {}
+    },
+    "latex": {
+      "commands": {},
+      "environments": {}
+    },
+    "markdown": {
+      "nodes": {}
+    },
     "configurationTarget": {
       "addToDictionary": "workspaceFolder",
       "disableRule": "workspaceFolder",
