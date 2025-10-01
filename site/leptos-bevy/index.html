@@ -4,9 +4,20 @@
 <head>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-</head>
+<link rel="modulepreload" href="/roadline-site-leptos-bevy-540dc7d4cdef8d38.js" crossorigin="anonymous" integrity="sha384-/aAM0ZnaAaX5aQIGlTZv2iq+OHhW3sLll99P6Jupa8aEUN0i/8L2ahEDh5S6BQU9"><link rel="preload" href="/roadline-site-leptos-bevy-540dc7d4cdef8d38_bg.wasm" crossorigin="anonymous" integrity="sha384-ICs7RUulXJOfdwu3FDzN9PnlvORXUDlCgx5dddB49NsgcKyruLMAZSBK5FPStP0x" as="fetch" type="application/wasm"></head>
 
 <body>
-</body>
+
+<script type="module">
+import init, * as bindings from '/roadline-site-leptos-bevy-540dc7d4cdef8d38.js';
+const wasm = await init({ module_or_path: '/roadline-site-leptos-bevy-540dc7d4cdef8d38_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script></body>
 
 </html>
