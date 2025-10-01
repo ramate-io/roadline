@@ -7,7 +7,7 @@ pub mod systems;
 
 pub mod test_utils;
 
-use bevy::input::mouse::{MouseButton, MouseButtonInput, MouseMotion};
+use bevy::input::mouse::{MouseButton, MouseButtonInput, MouseMotion, MouseWheel};
 use bevy::input::touch::{TouchInput, TouchPhase};
 use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
@@ -105,7 +105,7 @@ impl RoadlinePlugin {
 			.insert_resource(CameraPositioned::default())
 			// Add our custom systems
 			.add_systems(Startup, setup_camera)
-			.add_systems(Update, (camera_control_system, camera_panning_system))
+			.add_systems(Update, (camera_control_system, camera_panning_system, camera_zoom_system))
 			.add_systems(Update, position_camera_on_leftmost_task.run_if(resource_exists::<Roadline>))
 			.add_systems(
 				Update,
@@ -436,6 +436,90 @@ fn camera_panning_system(
 						.entity(window_entity)
 						.insert(CursorIcon::System(SystemCursorIcon::Default));
 				}
+			}
+		}
+	}
+}
+
+/// System to handle camera zooming
+fn camera_zoom_system(
+	mut mouse_wheel_events: EventReader<MouseWheel>,
+	mut touch_events: EventReader<TouchInput>,
+	keyboard_input: Res<ButtonInput<KeyCode>>,
+	mut camera_query: Query<&mut Projection, With<Camera2d>>,
+	mut is_panning: Local<bool>,
+	mut last_touch_pos: Local<Option<Vec2>>,
+) {
+	// Handle keyboard zoom (Q/E keys)
+	if keyboard_input.just_pressed(KeyCode::KeyQ) {
+		// Zoom in
+		for mut projection in camera_query.iter_mut() {
+			if let Projection::Orthographic(ref mut ortho) = *projection {
+				ortho.scale = (ortho.scale * 0.8).max(0.1);
+			}
+		}
+	}
+	
+	if keyboard_input.just_pressed(KeyCode::KeyE) {
+		// Zoom out
+		for mut projection in camera_query.iter_mut() {
+			if let Projection::Orthographic(ref mut ortho) = *projection {
+				ortho.scale = (ortho.scale * 1.25).min(10.0);
+			}
+		}
+	}
+
+	// Handle mouse wheel zoom
+	for event in mouse_wheel_events.read() {
+		match event.unit {
+			bevy::input::mouse::MouseScrollUnit::Line => {
+				let zoom_factor = if event.y > 0.0 { 0.9 } else { 1.1 };
+				for mut projection in camera_query.iter_mut() {
+					if let Projection::Orthographic(ref mut ortho) = *projection {
+						ortho.scale = (ortho.scale * zoom_factor).clamp(0.1, 10.0);
+					}
+				}
+			}
+			bevy::input::mouse::MouseScrollUnit::Pixel => {
+				let zoom_factor = if event.y > 0.0 { 0.95 } else { 1.05 };
+				for mut projection in camera_query.iter_mut() {
+					if let Projection::Orthographic(ref mut ortho) = *projection {
+						ortho.scale = (ortho.scale * zoom_factor).clamp(0.1, 10.0);
+					}
+				}
+			}
+		}
+	}
+
+	// Handle touch events for pinch zoom and scroll-like gestures
+	for event in touch_events.read() {
+		match event.phase {
+			TouchPhase::Started => {
+				*last_touch_pos = Some(event.position);
+			}
+			TouchPhase::Moved => {
+				// Only handle zoom gestures when not panning
+				if !*is_panning {
+					if let Some(last_pos) = *last_touch_pos {
+						// For single touch, treat vertical movement as zoom
+						// This is a simple approximation - real pinch zoom would need multi-touch detection
+						let delta = event.position - last_pos;
+						let zoom_sensitivity = 0.01;
+						let zoom_factor = 1.0 - (delta.y * zoom_sensitivity);
+						
+						if zoom_factor != 1.0 {
+							for mut projection in camera_query.iter_mut() {
+								if let Projection::Orthographic(ref mut ortho) = *projection {
+									ortho.scale = (ortho.scale * zoom_factor).clamp(0.1, 10.0);
+								}
+							}
+						}
+					}
+				}
+				*last_touch_pos = Some(event.position);
+			}
+			TouchPhase::Ended | TouchPhase::Canceled => {
+				*last_touch_pos = None;
 			}
 		}
 	}
