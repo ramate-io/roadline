@@ -19,10 +19,6 @@ on:
         type: string
         default: 'ubuntu-latest'
         description: 'Runner to use for the job'
-      gh_token:
-        required: false
-        type: string
-        description: 'GitHub token for API access'
     secrets:
       NIX_ACCESS_TOKEN:
         required: false
@@ -46,7 +42,7 @@ jobs:
         run: |
           # Write the command to a temporary script file to handle multiline commands
           cat > /tmp/nix_command.sh << 'EOF'
-          export GH_TOKEN="${{ inputs.gh_token }}"
+          export GH_TOKEN="${{ env.GITHUB_TOKEN }}"
           ${{ inputs.command }}
           EOF
           chmod +x /tmp/nix_command.sh
