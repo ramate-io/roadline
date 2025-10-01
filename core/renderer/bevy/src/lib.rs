@@ -16,7 +16,7 @@ use bevy::window::WindowResized;
 use bevy::winit::cursor::CursorIcon;
 use bevy_ui_anchor::AnchorUiPlugin;
 
-use crate::resources::SelectionResource;
+use crate::resources::{Roadline, SelectionResource};
 
 pub use roadline_renderer::RoadlineRenderer;
 
@@ -101,9 +101,12 @@ impl RoadlinePlugin {
 			.insert_resource(systems::task::cursor_interaction::clicks::events::output::task_selected_for_extern::TouchDurationTracker::default())
 			// Add render config resource
 			.insert_resource(RoadlineRenderConfig::default())
+			// Add camera positioning resource
+			.insert_resource(CameraPositioned::default())
 			// Add our custom systems
 			.add_systems(Startup, setup_camera)
 			.add_systems(Update, (camera_control_system, camera_panning_system))
+			.add_systems(Update, position_camera_on_leftmost_task.run_if(resource_exists::<Roadline>))
 			.add_systems(
 				Update,
 				(
@@ -158,6 +161,82 @@ fn setup_camera(mut commands: Commands) {
 		Transform::from_xyz(0.0, 0.0, 0.0),
 		RenderLayers::layer(1),
 	));
+}
+
+/// Resource to track if camera has been positioned
+#[derive(Resource, Default)]
+struct CameraPositioned(bool);
+
+/// Position camera on the leftmost task after roadline is loaded
+fn position_camera_on_leftmost_task(
+	roadline: Res<Roadline>,
+	mut camera_query: Query<&mut Transform, With<Camera2d>>,
+	mut positioned: ResMut<CameraPositioned>,
+) {
+	// Only position once
+	if positioned.0 {
+		return;
+	}
+
+	// Find the leftmost task position
+	let mut leftmost_x = f32::MAX;
+	let mut leftmost_y = 0.0;
+	let mut _leftmost_task_id = None;
+
+	// Get visual bounds for scaling
+	let (max_width, max_height) = roadline.visual_bounds();
+	let max_width_f32 = max_width.value() as f32;
+	let _max_height_f32 = max_height.value() as f32;
+
+	// Calculate offsets (same as task spawning system)
+	let content_width_pixels = max_width_f32 * 75.0; // pixels_per_unit
+	let content_height_pixels = _max_height_f32 * 75.0;
+	let offset_x = -content_width_pixels / 2.0;
+	let offset_y = -content_height_pixels / 2.0;
+
+	// Find the leftmost task
+	for (task_id, start_x, start_y, end_x, _end_y) in roadline.task_rectangles() {
+		let _width = end_x - start_x;
+		let pixel_x = start_x as f32 * 75.0 + offset_x;
+		let pixel_y = start_y as f32 * 75.0 + offset_y;
+		let _sprite_width = _width as f32 * 75.0;
+
+		// Use the left edge of the task (not the center)
+		let left_edge_x = pixel_x;
+
+		if left_edge_x < leftmost_x {
+			leftmost_x = left_edge_x;
+			leftmost_y = pixel_y;
+			_leftmost_task_id = Some(task_id);
+		}
+	}
+
+	// If we found a task, position camera to left-align the node with screen
+	if leftmost_x != f32::MAX {
+		// To left-align the node with the screen, we need to position the camera
+		// so that the node's left edge appears at the left edge of the viewport
+		// Since the camera is at the center of the viewport, we need to offset
+		// by half the viewport width to the right
+		// For now, use a reasonable default viewport width
+		let viewport_width = 1200.0; // Default viewport width
+		let camera_x = leftmost_x + (viewport_width / 2.0);
+		
+		println!(
+			"Left-aligning camera: node at ({:.1}, {:.1}), camera at ({:.1}, {:.1})",
+			leftmost_x, leftmost_y, camera_x, leftmost_y
+		);
+
+		// Update camera position
+		for mut transform in camera_query.iter_mut() {
+			transform.translation.x = camera_x;
+			transform.translation.y = leftmost_y;
+		}
+	} else {
+		println!("No tasks found, keeping camera at origin");
+	}
+	
+	// Mark as positioned
+	positioned.0 = true;
 }
 
 fn camera_control_system(
