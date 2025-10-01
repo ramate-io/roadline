@@ -33,25 +33,28 @@ jobs:
         # Determine deployment type and set variables
         if [ "${{ github.event_name }}" = "pull_request" ]; then
           DEPLOY_TYPE="preview"
-          DEPLOY_PATH="/preview-${{ github.event.number }}"
-          DEPLOY_MESSAGE="Deploy preview for PR #${{ github.event.number }}"
-          DEPLOY_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/preview-${{ github.event.number }}"
+          # Sanitize branch name: replace / with -, remove special chars, limit length
+          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+          SANITIZED_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9._-]/-/g' | sed 's/--*/-/g' | sed 's/^-\|-$//g' | cut -c1-50)
+          DEPLOY_BRANCH="preview-$SANITIZED_BRANCH"
+          DEPLOY_MESSAGE="Deploy preview for PR #${{ github.event.number }} ($BRANCH_NAME)"
+          DEPLOY_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
         elif [ "${{ github.event_name }}" = "pull_request_target" ] && [ "${{ github.event.action }}" = "closed" ]; then
           # Cleanup preview deployment
           echo "Cleaning up preview for PR #${{ github.event.number }}"
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git clone --branch gh-pages --single-branch https://github.com/${{ github.repository }}.git gh-pages
-          rm -rf gh-pages/preview-${{ github.event.number }}
-          cd gh-pages
-          git add .
-          git commit -m "Cleanup preview for PR #${{ github.event.number }}" || true
-          git push origin gh-pages
+          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+          SANITIZED_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9._-]/-/g' | sed 's/--*/-/g' | sed 's/^-\|-$//g' | cut -c1-50)
+          DEPLOY_BRANCH="preview-$SANITIZED_BRANCH"
+          git push origin --delete "$DEPLOY_BRANCH" || {
+            echo "Preview branch doesn't exist, nothing to clean up"
+          }
           echo "Cleaned up preview for PR #${{ github.event.number }}"
           exit 0
         else
           DEPLOY_TYPE="main"
-          DEPLOY_PATH="/"
+          DEPLOY_BRANCH="gh-pages"
           DEPLOY_MESSAGE="Deploy to GitHub Pages from ${{ github.sha }}"
           DEPLOY_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
         fi
@@ -71,33 +74,31 @@ jobs:
         echo "github.com:
           oauth_token: $GH_TOKEN" > ~/.config/gh/hosts.yml
         
-        # Create deployment
-        gh api repos/${{ github.repository }}/pages \
-          --method POST \
-          --field source[branch]=gh-pages \
-          --field source[path]="$DEPLOY_PATH" \
-          --field source[type]=branch || true
-        
-        # Upload to gh-pages branch
+        # Setup git
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
         
-        # Clone gh-pages branch
-        git clone --branch gh-pages --single-branch https://github.com/${{ github.repository }}.git gh-pages
-        
-        # Copy dist to appropriate location
+        # Create deployment branch
         if [ "$DEPLOY_TYPE" = "preview" ]; then
-          mkdir -p gh-pages/preview-${{ github.event.number }}
-          cp -r dist/* gh-pages/preview-${{ github.event.number }}/
+          # Create preview branch from current commit
+          git checkout -b "$DEPLOY_BRANCH" || git checkout "$DEPLOY_BRANCH"
+          # Copy dist to root of preview branch
+          cp -r dist/* .
         else
-          cp -r dist/* gh-pages/
+          # Create or checkout gh-pages branch
+          git checkout -b "$DEPLOY_BRANCH" || git checkout "$DEPLOY_BRANCH" || {
+            echo "Creating gh-pages branch..."
+            git checkout --orphan "$DEPLOY_BRANCH"
+            git rm -rf . || true
+          }
+          # Copy dist to root of gh-pages branch
+          cp -r dist/* .
         fi
         
         # Commit and push
-        cd gh-pages
         git add .
         git commit -m "$DEPLOY_MESSAGE" || true
-        git push origin gh-pages
+        git push origin "$DEPLOY_BRANCH"
         
         echo "Deployed to: $DEPLOY_URL"
       nix_flake_path: '.'
