@@ -447,7 +447,7 @@ fn camera_zoom_system(
 	mut touch_events: EventReader<TouchInput>,
 	keyboard_input: Res<ButtonInput<KeyCode>>,
 	mut camera_query: Query<&mut Projection, With<Camera2d>>,
-	mut is_panning: Local<bool>,
+	is_panning: Local<bool>,
 	mut last_touch_pos: Local<Option<Vec2>>,
 ) {
 	// Handle keyboard zoom (Q/E keys)
