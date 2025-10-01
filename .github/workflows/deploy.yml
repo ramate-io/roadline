@@ -102,5 +102,3 @@ jobs:
         echo "Deployed to: $DEPLOY_URL"
       nix_flake_path: '.'
       runner: 'ubuntu-latest'
-    secrets:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

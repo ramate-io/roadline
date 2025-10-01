@@ -23,9 +23,6 @@ on:
       NIX_ACCESS_TOKEN:
         required: false
         description: 'Nix access token for private flakes'
-      GITHUB_TOKEN:
-        required: false
-        description: 'GitHub token for API access'
 
 jobs:
   run-command:
