@@ -1,0 +1,112 @@
+# Combined deployment workflow for main and preview deployments
+name: Deploy
+
+on:
+  # Main deployment on push to main
+  push:
+    branches: [main]
+  # Preview deployments on PR events (includes new pushes via synchronize)
+  pull_request:
+    types: [opened, synchronize, reopened]
+  # Cleanup when PR is closed/merged
+  pull_request_target:
+    types: [closed]
+  # Manual deployment
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+  pull-requests: write
+
+# Allow only one concurrent deployment per type
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('preview-{0}', github.event.number) || 'pages' }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/nix-command.yml
+    with:
+      command: |
+
+        set -e
+
+        # Determine deployment type and set variables
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          DEPLOY_TYPE="preview"
+          # Sanitize branch name: replace / with -, remove special chars, limit length
+          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+          SANITIZED_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9._-]/-/g' | sed 's/--*/-/g' | sed 's/^-\|-$//g' | cut -c1-50)
+          DEPLOY_BRANCH="preview-$SANITIZED_BRANCH"
+          DEPLOY_MESSAGE="Deploy preview for PR #${{ github.event.number }} ($BRANCH_NAME)"
+          DEPLOY_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+        elif [ "${{ github.event_name }}" = "pull_request_target" ] && [ "${{ github.event.action }}" = "closed" ]; then
+          # Cleanup preview deployment
+          echo "Cleaning up preview for PR #${{ github.event.number }}"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+          SANITIZED_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9._-]/-/g' | sed 's/--*/-/g' | sed 's/^-\|-$//g' | cut -c1-50)
+          DEPLOY_BRANCH="preview-$SANITIZED_BRANCH"
+          git push origin --delete "$DEPLOY_BRANCH" || {
+            echo "Preview branch doesn't exist, nothing to clean up"
+            exit 0
+          }
+          echo "Cleaned up preview for PR #${{ github.event.number }}"
+          exit 0
+        else
+          DEPLOY_TYPE="main"
+          DEPLOY_BRANCH="gh-pages"
+          DEPLOY_MESSAGE="Deploy to GitHub Pages from ${{ github.sha }}"
+          DEPLOY_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+        fi
+        
+        # Run linting for main deployments
+        if [ "$DEPLOY_TYPE" = "main" ]; then
+          cargo clippy --all-targets --all-features -- -D warnings
+          cargo fmt --all -- --check
+        fi
+        
+        # Build with Trunk from site/leptos-bevy
+        cd site/leptos-bevy
+        trunk build --release
+        
+        # Setup GitHub CLI
+        mkdir -p ~/.config/gh
+        echo "github.com:
+          oauth_token: $GH_TOKEN" > ~/.config/gh/hosts.yml
+        
+        # Setup git
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        
+        # Create deployment branch
+        if [ "$DEPLOY_TYPE" = "preview" ]; then
+          # Create preview branch from current commit
+          git checkout -b "$DEPLOY_BRANCH" || git checkout "$DEPLOY_BRANCH"
+          # Copy dist to root of preview branch
+          cp -r dist/* .
+        else
+          # Create or checkout gh-pages branch
+          git checkout -b "$DEPLOY_BRANCH" || git checkout "$DEPLOY_BRANCH" || {
+            echo "Creating gh-pages branch..."
+            git checkout --orphan "$DEPLOY_BRANCH"
+            git rm -rf . || true
+          }
+          # Copy dist to root of gh-pages branch
+          cp -r dist/* .
+        fi
+        
+        # Commit and push
+        git add .
+        git commit -m "$DEPLOY_MESSAGE" || true
+        git push origin "$DEPLOY_BRANCH" || {
+          echo "Failed to push to $DEPLOY_BRANCH"
+          exit 1
+        }
+        
+        echo "Deployed to: $DEPLOY_URL"
+      nix_flake_path: '.'
+      runner: 'ubuntu-latest'
