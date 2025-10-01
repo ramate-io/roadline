@@ -5,9 +5,10 @@ on:
   # Main deployment on push to main
   push:
     branches: [main]
-  # Preview deployments on PR events
+  # Preview deployments on PR events (includes new pushes via synchronize)
   pull_request:
     types: [opened, synchronize, reopened]
+  # Cleanup when PR is closed/merged
   pull_request_target:
     types: [closed]
   # Manual deployment
@@ -26,22 +27,9 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-    
-    # Set environment based on deployment type
-    environment: ${{ github.event_name == 'pull_request' && format('preview-{0}', github.event.number) || 'github-pages' }}
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          # For PRs, checkout the PR head
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
-      
-      - name: Deploy
-        uses: ./.github/workflows/nix-command.yml
-        with:
-          command: |
+    uses: ./.github/workflows/nix-command.yml
+    with:
+      command: |
             # Determine deployment type and set variables
             if [ "${{ github.event_name }}" = "pull_request" ]; then
               DEPLOY_TYPE="preview"
@@ -112,5 +100,5 @@ jobs:
             git push origin gh-pages
             
             echo "Deployed to: $DEPLOY_URL"
-          nix_flake_path: '.'
-          runner: 'ubuntu-latest'
+      nix_flake_path: '.'
+      runner: 'ubuntu-latest'
