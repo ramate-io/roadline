@@ -1,0 +1,73 @@
+name: Release to Github Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write # for committing to gh-pages branch.
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  Github-Pages-Release:
+    timeout-minutes: 10
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4 # repo checkout
+
+      - name: Deploy to GitHub Pages
+        uses: ./.github/workflows/nix-command.yml
+        with:
+          command: |
+            # Run linting
+            cargo clippy --all-targets --all-features -- -D warnings
+            cargo fmt --all -- --check
+            
+            # Build with Trunk
+            trunk build --release --public-url "${GITHUB_REPOSITORY#*/}"
+            
+            # Setup Pages
+            mkdir -p ~/.config/gh
+            echo "github.com:
+              oauth_token: ${{ secrets.GITHUB_TOKEN }}" > ~/.config/gh/hosts.yml
+            
+            # Create deployment
+            gh api repos/${{ github.repository }}/pages \
+              --method POST \
+              --field source[branch]=gh-pages \
+              --field source[path]=/ \
+              --field source[type]=branch || true
+            
+            # Upload to gh-pages branch
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            
+            # Clone gh-pages branch
+            git clone --branch gh-pages --single-branch https://github.com/${{ github.repository }}.git gh-pages
+            
+            # Copy dist to root
+            cp -r dist/* gh-pages/
+            
+            # Commit and push
+            cd gh-pages
+            git add .
+            git commit -m "Deploy to GitHub Pages from ${{ github.sha }}" || true
+            git push origin gh-pages
+            
+            echo "Deployed to: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          nix_flake_path: '.'
+          runner: 'ubuntu-latest'

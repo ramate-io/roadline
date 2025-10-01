@@ -76,6 +76,14 @@ impl RoadlineRenderer {
 		// insert the new roadline resource
 		app.insert_resource(Roadline::new(roadline));
 
+		if let Some(mut event_writer) =
+			app.world_mut().get_resource_mut::<Events<RenderUpdateEvent>>()
+		{
+			event_writer.send(RenderUpdateEvent);
+		} else {
+			return Err(RoadlineRenderError::EventSystemNotInitialized);
+		}
+
 		Ok(app)
 	}
 
