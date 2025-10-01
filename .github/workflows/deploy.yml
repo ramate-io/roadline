@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
   pull-requests: write
@@ -30,6 +30,9 @@ jobs:
     uses: ./.github/workflows/nix-command.yml
     with:
       command: |
+
+        set -e
+
         # Determine deployment type and set variables
         if [ "${{ github.event_name }}" = "pull_request" ]; then
           DEPLOY_TYPE="preview"
@@ -49,6 +52,7 @@ jobs:
           DEPLOY_BRANCH="preview-$SANITIZED_BRANCH"
           git push origin --delete "$DEPLOY_BRANCH" || {
             echo "Preview branch doesn't exist, nothing to clean up"
+            exit 0
           }
           echo "Cleaned up preview for PR #${{ github.event.number }}"
           exit 0
@@ -98,7 +102,10 @@ jobs:
         # Commit and push
         git add .
         git commit -m "$DEPLOY_MESSAGE" || true
-        git push origin "$DEPLOY_BRANCH"
+        git push origin "$DEPLOY_BRANCH" || {
+          echo "Failed to push to $DEPLOY_BRANCH"
+          exit 1
+        }
         
         echo "Deployed to: $DEPLOY_URL"
       nix_flake_path: '.'
