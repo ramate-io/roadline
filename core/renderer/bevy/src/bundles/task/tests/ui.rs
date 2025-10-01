@@ -16,7 +16,7 @@ pub mod tests {
 		let params = TestTasksParams::new().with_basic_task(
 			TaskId::from(1),
 			Vec3::new(100.0, 200.0, 0.0),
-			Vec2::new(200.0, 50.0),
+			Vec2::new(200.0, 75.0),
 			"UI Test Task".to_string(),
 		);
 
@@ -37,7 +37,7 @@ pub mod tests {
 
 		let node = task_nodes[0].1;
 		assert_eq!(node.width, Val::Px(200.0), "Node width should match task size");
-		assert_eq!(node.height, Val::Px(50.0), "Node height should match task size");
+		assert_eq!(node.height, Val::Px(75.0), "Node height should match task size");
 		assert_eq!(node.border, UiRect::all(Val::Px(1.5)), "Node should have 1.5px border");
 		assert_eq!(node.align_items, AlignItems::Center, "Node should center align items");
 		assert_eq!(

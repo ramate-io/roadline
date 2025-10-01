@@ -48,7 +48,7 @@ pub fn task_cursor_interaction_system(
 	let _max_height_f32 = max_height.value() as f32;
 
 	// Scale factor: same as tasks
-	let pixels_per_unit = 50.0;
+	let pixels_per_unit = 75.0;
 
 	// Check for clicks first (higher priority)
 	if mouse_input.just_pressed(MouseButton::Left) {

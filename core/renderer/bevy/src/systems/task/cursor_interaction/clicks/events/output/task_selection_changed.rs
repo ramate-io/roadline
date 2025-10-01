@@ -125,7 +125,7 @@ mod tests {
 		let params = TestTasksParams::new().with_basic_task(
 			TaskId::from(1),
 			bevy::math::Vec3::new(0.0, 0.0, 0.0),
-			bevy::math::Vec2::new(100.0, 50.0),
+			bevy::math::Vec2::new(100.0, 75.0),
 			"Test Task".to_string(),
 		);
 		app.world_mut().run_system_once(params.build())?;
@@ -167,7 +167,7 @@ mod tests {
 		let params = TestTasksParams::new().with_basic_task(
 			TaskId::from(1),
 			bevy::math::Vec3::new(0.0, 0.0, 0.0),
-			bevy::math::Vec2::new(100.0, 50.0),
+			bevy::math::Vec2::new(100.0, 75.0),
 			"Test Task".to_string(),
 		);
 		app.world_mut().run_system_once(params.build())?;
@@ -209,7 +209,7 @@ mod tests {
 		let params = TestTasksParams::new().with_basic_task(
 			TaskId::from(1),
 			bevy::math::Vec3::new(0.0, 0.0, 0.0),
-			bevy::math::Vec2::new(100.0, 50.0),
+			bevy::math::Vec2::new(100.0, 75.0),
 			"Test Task".to_string(),
 		);
 		app.world_mut().run_system_once(params.build())?;

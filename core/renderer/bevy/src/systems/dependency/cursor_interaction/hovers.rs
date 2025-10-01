@@ -240,8 +240,8 @@ mod tests {
 				DependencyCurveData {
 					start: start_pos,
 					end: end_pos,
-					control1: Vec3::new(start_pos.x + 50.0, start_pos.y, 0.0),
-					control2: Vec3::new(end_pos.x - 50.0, end_pos.y, 0.0),
+					control1: Vec3::new(start_pos.x + 75.0, start_pos.y, 0.0),
+					control2: Vec3::new(end_pos.x - 75.0, end_pos.y, 0.0),
 				},
 				Transform::default(),
 				Visibility::Visible,

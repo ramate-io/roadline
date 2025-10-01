@@ -122,7 +122,7 @@ mod tests {
 				completed: 3,
 				total: 7,
 				world_position: Vec3::new(100.0, 200.0, 0.0),
-				task_size: Vec2::new(200.0, 50.0),
+				task_size: Vec2::new(200.0, 75.0),
 			}
 		}
 
@@ -221,7 +221,7 @@ mod tests {
 			completed: 1,
 			total: 3,
 			world_position: Vec3::new(100.0, 200.0, 0.0),
-			task_size: Vec2::new(200.0, 50.0),
+			task_size: Vec2::new(200.0, 75.0),
 		};
 
 		// Spawn the content using the builder
@@ -252,7 +252,7 @@ mod tests {
 			completed: 0,
 			total: 1,
 			world_position: Vec3::new(100.0, 200.0, 0.0),
-			task_size: Vec2::new(200.0, 50.0),
+			task_size: Vec2::new(200.0, 75.0),
 		};
 
 		// Spawn the content using the builder
@@ -294,7 +294,7 @@ mod tests {
 			completed: 2,
 			total: 4,
 			world_position: Vec3::new(100.0, 200.0, 0.0),
-			task_size: Vec2::new(200.0, 50.0),
+			task_size: Vec2::new(200.0, 75.0),
 		};
 
 		// Spawn the content using the builder

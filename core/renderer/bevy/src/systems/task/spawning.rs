@@ -14,7 +14,7 @@ pub struct TaskSpawningSystem {
 
 impl Default for TaskSpawningSystem {
 	fn default() -> Self {
-		Self { pixels_per_unit: 50.0 }
+		Self { pixels_per_unit: 75.0 }
 	}
 }
 

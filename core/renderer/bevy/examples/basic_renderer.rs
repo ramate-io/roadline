@@ -27,8 +27,9 @@ fn main() -> Result<(), anyhow::Error> {
 
 	let renderer = RoadlineRenderer::new().with_config(config);
 
-	// Create and configure the Bevy app
-	let mut app = renderer.create_app();
+	// Create and configure the Bevy app with roadline data
+	let mut app = renderer.create_app_with_roadline(reified)?;
+	println!("🎯 Reified data rendered successfully");
 
 	// Add some additional systems for better visual experience
 	app.add_systems(Update, (keyboard_input_system, info_display_system));
@@ -40,10 +41,6 @@ fn main() -> Result<(), anyhow::Error> {
 		|bytes: &[u8], _path: String| { Font::try_from_bytes(bytes.to_vec()).unwrap() }
 	);*/
 
-	// Render the reified data
-	renderer.render(&mut app, reified)?;
-	println!("🎯 Reified data rendered successfully");
-
 	// Get and display visual bounds
 	if let Some((min_x, max_x, min_y, max_y)) = renderer.get_visual_bounds(&app) {
 		println!(
@@ -52,10 +49,9 @@ fn main() -> Result<(), anyhow::Error> {
 		);
 	}
 
-	// Center and fit camera to content
-	renderer.center_camera(&mut app);
+	// Fit camera to content
 	renderer.fit_camera_to_content(&mut app, 0.2); // 20% padding for better view
-	println!("📷 Camera positioned and fitted to content");
+	println!("📷 Camera fitted to content");
 
 	// Add instructions text
 	app.world_mut().spawn((

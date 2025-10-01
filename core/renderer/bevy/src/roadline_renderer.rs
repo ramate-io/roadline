@@ -126,7 +126,7 @@ impl RoadlineRenderer {
 	pub fn get_visual_bounds(&self, app: &App) -> Option<(f32, f32, f32, f32)> {
 		if let Some(reified) = app.world().get_resource::<Roadline>() {
 			let (max_x, max_y) = reified.visual_bounds();
-			let pixels_per_unit = 50.0; // Same as in systems.rs
+			let pixels_per_unit = 75.0; // Same as in systems.rs
 			let pixel_max_x = max_x.value() as f32 * pixels_per_unit;
 			let pixel_max_y = max_y.value() as f32 * pixels_per_unit;
 
