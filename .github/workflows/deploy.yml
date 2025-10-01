@@ -69,7 +69,7 @@ jobs:
         # Setup GitHub CLI
         mkdir -p ~/.config/gh
         echo "github.com:
-          oauth_token: ${{ secrets.GITHUB_TOKEN }}" > ~/.config/gh/hosts.yml
+          oauth_token: $GH_TOKEN" > ~/.config/gh/hosts.yml
         
         # Create deployment
         gh api repos/${{ github.repository }}/pages \
@@ -102,3 +102,4 @@ jobs:
         echo "Deployed to: $DEPLOY_URL"
       nix_flake_path: '.'
       runner: 'ubuntu-latest'
+      gh_token: ${{ secrets.GITHUB_TOKEN }}
