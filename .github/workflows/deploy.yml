@@ -30,75 +30,77 @@ jobs:
     uses: ./.github/workflows/nix-command.yml
     with:
       command: |
-            # Determine deployment type and set variables
-            if [ "${{ github.event_name }}" = "pull_request" ]; then
-              DEPLOY_TYPE="preview"
-              DEPLOY_PATH="/preview-${{ github.event.number }}"
-              DEPLOY_MESSAGE="Deploy preview for PR #${{ github.event.number }}"
-              DEPLOY_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/preview-${{ github.event.number }}"
-            elif [ "${{ github.event_name }}" = "pull_request_target" ] && [ "${{ github.event.action }}" = "closed" ]; then
-              # Cleanup preview deployment
-              echo "Cleaning up preview for PR #${{ github.event.number }}"
-              git config --global user.name "github-actions[bot]"
-              git config --global user.email "github-actions[bot]@users.noreply.github.com"
-              git clone --branch gh-pages --single-branch https://github.com/${{ github.repository }}.git gh-pages
-              rm -rf gh-pages/preview-${{ github.event.number }}
-              cd gh-pages
-              git add .
-              git commit -m "Cleanup preview for PR #${{ github.event.number }}" || true
-              git push origin gh-pages
-              echo "Cleaned up preview for PR #${{ github.event.number }}"
-              exit 0
-            else
-              DEPLOY_TYPE="main"
-              DEPLOY_PATH="/"
-              DEPLOY_MESSAGE="Deploy to GitHub Pages from ${{ github.sha }}"
-              DEPLOY_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
-            fi
-            
-            # Run linting for main deployments
-            if [ "$DEPLOY_TYPE" = "main" ]; then
-              cargo clippy --all-targets --all-features -- -D warnings
-              cargo fmt --all -- --check
-            fi
-            
-            # Build with Trunk from site/leptos-bevy
-            cd site/leptos-bevy
-            trunk build --release
-            
-            # Setup GitHub CLI
-            mkdir -p ~/.config/gh
-            echo "github.com:
-              oauth_token: ${{ secrets.GITHUB_TOKEN }}" > ~/.config/gh/hosts.yml
-            
-            # Create deployment
-            gh api repos/${{ github.repository }}/pages \
-              --method POST \
-              --field source[branch]=gh-pages \
-              --field source[path]="$DEPLOY_PATH" \
-              --field source[type]=branch || true
-            
-            # Upload to gh-pages branch
-            git config --global user.name "github-actions[bot]"
-            git config --global user.email "github-actions[bot]@users.noreply.github.com"
-            
-            # Clone gh-pages branch
-            git clone --branch gh-pages --single-branch https://github.com/${{ github.repository }}.git gh-pages
-            
-            # Copy dist to appropriate location
-            if [ "$DEPLOY_TYPE" = "preview" ]; then
-              mkdir -p gh-pages/preview-${{ github.event.number }}
-              cp -r dist/* gh-pages/preview-${{ github.event.number }}/
-            else
-              cp -r dist/* gh-pages/
-            fi
-            
-            # Commit and push
-            cd gh-pages
-            git add .
-            git commit -m "$DEPLOY_MESSAGE" || true
-            git push origin gh-pages
-            
-            echo "Deployed to: $DEPLOY_URL"
+        # Determine deployment type and set variables
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          DEPLOY_TYPE="preview"
+          DEPLOY_PATH="/preview-${{ github.event.number }}"
+          DEPLOY_MESSAGE="Deploy preview for PR #${{ github.event.number }}"
+          DEPLOY_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/preview-${{ github.event.number }}"
+        elif [ "${{ github.event_name }}" = "pull_request_target" ] && [ "${{ github.event.action }}" = "closed" ]; then
+          # Cleanup preview deployment
+          echo "Cleaning up preview for PR #${{ github.event.number }}"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git clone --branch gh-pages --single-branch https://github.com/${{ github.repository }}.git gh-pages
+          rm -rf gh-pages/preview-${{ github.event.number }}
+          cd gh-pages
+          git add .
+          git commit -m "Cleanup preview for PR #${{ github.event.number }}" || true
+          git push origin gh-pages
+          echo "Cleaned up preview for PR #${{ github.event.number }}"
+          exit 0
+        else
+          DEPLOY_TYPE="main"
+          DEPLOY_PATH="/"
+          DEPLOY_MESSAGE="Deploy to GitHub Pages from ${{ github.sha }}"
+          DEPLOY_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+        fi
+        
+        # Run linting for main deployments
+        if [ "$DEPLOY_TYPE" = "main" ]; then
+          cargo clippy --all-targets --all-features -- -D warnings
+          cargo fmt --all -- --check
+        fi
+        
+        # Build with Trunk from site/leptos-bevy
+        cd site/leptos-bevy
+        trunk build --release
+        
+        # Setup GitHub CLI
+        mkdir -p ~/.config/gh
+        echo "github.com:
+          oauth_token: ${{ secrets.GITHUB_TOKEN }}" > ~/.config/gh/hosts.yml
+        
+        # Create deployment
+        gh api repos/${{ github.repository }}/pages \
+          --method POST \
+          --field source[branch]=gh-pages \
+          --field source[path]="$DEPLOY_PATH" \
+          --field source[type]=branch || true
+        
+        # Upload to gh-pages branch
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        
+        # Clone gh-pages branch
+        git clone --branch gh-pages --single-branch https://github.com/${{ github.repository }}.git gh-pages
+        
+        # Copy dist to appropriate location
+        if [ "$DEPLOY_TYPE" = "preview" ]; then
+          mkdir -p gh-pages/preview-${{ github.event.number }}
+          cp -r dist/* gh-pages/preview-${{ github.event.number }}/
+        else
+          cp -r dist/* gh-pages/
+        fi
+        
+        # Commit and push
+        cd gh-pages
+        git add .
+        git commit -m "$DEPLOY_MESSAGE" || true
+        git push origin gh-pages
+        
+        echo "Deployed to: $DEPLOY_URL"
       nix_flake_path: '.'
       runner: 'ubuntu-latest'
+    secrets:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
