@@ -226,7 +226,7 @@ impl Default for TaskSelectedForExternEventSystem {
 				InputTrigger::PressAndHold,
 			],
 			emit_events: true,
-			pixels_per_unit: 50.0, // Default value from TaskClickSystem
+			pixels_per_unit: 75.0, // Default value from TaskClickSystem
 		}
 	}
 }
@@ -461,7 +461,7 @@ mod tests {
 		let event_system = TaskSelectedForExternEventSystem {
 			input_triggers: vec![InputTrigger::AnyClick],
 			emit_events: true,
-			pixels_per_unit: 50.0,
+			pixels_per_unit: 75.0,
 		};
 
 		// Spawn a test task at origin
@@ -497,7 +497,7 @@ mod tests {
 		let event_system = TaskSelectedForExternEventSystem {
 			input_triggers: vec![InputTrigger::AnyClick],
 			emit_events: false,
-			pixels_per_unit: 50.0,
+			pixels_per_unit: 75.0,
 		};
 
 		// Spawn a test task at origin
@@ -607,7 +607,7 @@ mod tests {
 
 	#[test]
 	fn test_input_matcher_mouse_input() {
-		let matcher = InputMatcher::new(50.0);
+		let matcher = InputMatcher::new(75.0);
 		let triggers = vec![InputTrigger::RightClick, InputTrigger::ShiftLeftClick];
 
 		// Test right click
@@ -634,7 +634,7 @@ mod tests {
 
 	#[test]
 	fn test_input_trigger_left_click() {
-		let matcher = InputMatcher::new(50.0);
+		let matcher = InputMatcher::new(75.0);
 		let triggers = vec![InputTrigger::LeftClick];
 
 		// Mock mouse button input for left click
@@ -663,7 +663,7 @@ mod tests {
 
 	#[test]
 	fn test_input_trigger_shift_left_click() {
-		let matcher = InputMatcher::new(50.0);
+		let matcher = InputMatcher::new(75.0);
 		let triggers = vec![InputTrigger::ShiftLeftClick];
 
 		// Mock mouse button input for left click
@@ -696,7 +696,7 @@ mod tests {
 
 	#[test]
 	fn test_input_trigger_right_click() {
-		let matcher = InputMatcher::new(50.0);
+		let matcher = InputMatcher::new(75.0);
 		let triggers = vec![InputTrigger::RightClick];
 
 		// Mock mouse button input for right click
@@ -724,7 +724,7 @@ mod tests {
 
 	#[test]
 	fn test_input_trigger_press_and_hold() {
-		let matcher = InputMatcher::new(50.0);
+		let matcher = InputMatcher::new(75.0);
 		let triggers = vec![InputTrigger::PressAndHold];
 
 		// Mock mouse button input for left click (press and hold)
@@ -748,7 +748,7 @@ mod tests {
 
 	#[test]
 	fn test_input_trigger_any_click() {
-		let matcher = InputMatcher::new(50.0);
+		let matcher = InputMatcher::new(75.0);
 		let triggers = vec![InputTrigger::AnyClick];
 
 		// Mock mouse button input for any click

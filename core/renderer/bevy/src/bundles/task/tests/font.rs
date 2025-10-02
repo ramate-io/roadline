@@ -14,7 +14,7 @@ pub mod tests {
 		let params = TestTasksParams::new().with_custom_font_task(
 			TaskId::from(1),
 			Vec3::new(100.0, 200.0, 0.0),
-			Vec2::new(200.0, 50.0),
+			Vec2::new(200.0, 75.0),
 			"Custom Font Size Task".to_string(),
 			16.0,
 		);

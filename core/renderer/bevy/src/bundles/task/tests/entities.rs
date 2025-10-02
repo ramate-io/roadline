@@ -16,7 +16,7 @@ pub mod tests {
 		let params = TestTasksParams::new().with_basic_task(
 			TaskId::from(1),
 			Vec3::new(100.0, 200.0, 0.0),
-			Vec2::new(200.0, 50.0),
+			Vec2::new(200.0, 75.0),
 			"Test Task".to_string(),
 		);
 
@@ -52,7 +52,7 @@ pub mod tests {
 
 		let params = TestTasksParams::new().with_basic_task(
 			TaskId::from(42),
-			Vec3::new(150.0, 250.0, 0.5),
+			Vec3::new(175.0, 275.0, 0.5),
 			Vec2::new(300.0, 75.0),
 			"Specific Task".to_string(),
 		);
@@ -87,7 +87,7 @@ pub mod tests {
 		let transform = transforms[0].1;
 		assert_eq!(
 			transform.translation,
-			Vec3::new(150.0, 250.0, 0.5),
+			Vec3::new(175.0, 275.0, 0.5),
 			"Transform position should match"
 		);
 

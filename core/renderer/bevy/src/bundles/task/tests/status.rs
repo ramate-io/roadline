@@ -16,7 +16,7 @@ pub mod tests {
 				.with_status_task(
 					TaskId::from(1),
 					Vec3::new(100.0, 100.0, 0.0),
-					Vec2::new(200.0, 50.0),
+					Vec2::new(200.0, 75.0),
 					"Not Started Task".to_string(),
 					true,
 					0,
@@ -45,7 +45,7 @@ pub mod tests {
 				.with_status_task(
 					TaskId::from(2),
 					Vec3::new(200.0, 200.0, 0.0),
-					Vec2::new(250.0, 60.0),
+					Vec2::new(275.0, 60.0),
 					"InProgress Task".to_string(),
 					true,
 					1,

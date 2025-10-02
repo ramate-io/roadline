@@ -18,7 +18,7 @@ pub struct DependencySpawningSystem {
 
 impl Default for DependencySpawningSystem {
 	fn default() -> Self {
-		Self { pixels_per_unit: 50.0 }
+		Self { pixels_per_unit: 75.0 }
 	}
 }
 
@@ -329,8 +329,8 @@ mod tests {
 				DependencyCurveData {
 					start: Vec3::new(0.0, 0.0, 0.0),
 					end: Vec3::new(100.0, 100.0, 0.0),
-					control1: Vec3::new(50.0, 0.0, 0.0),
-					control2: Vec3::new(50.0, 100.0, 0.0),
+					control1: Vec3::new(75.0, 0.0, 0.0),
+					control2: Vec3::new(75.0, 100.0, 0.0),
 				},
 				Transform::default(),
 				Visibility::Visible,
