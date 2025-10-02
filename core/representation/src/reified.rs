@@ -277,13 +277,13 @@ mod tests {
 		Date::new(datetime)
 	}
 
-
 	#[test]
 	fn test_reified_basic_functionality() -> Result<(), anyhow::Error> {
 		// Create a simple graph: Task1 -> Task2
 		let mut graph = Graph::new();
 
-		let task1 = Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
+		let task1 =
+			Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
 		let task2 = Task::test_from_id(2)?
 			.after(&task1)
 			.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
@@ -318,7 +318,8 @@ mod tests {
 	fn test_reified_visual_bounds() -> Result<(), anyhow::Error> {
 		let mut graph = Graph::new();
 
-		let task1 = Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
+		let task1 =
+			Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
 		let task2 = Task::test_from_id(2)?
 			.after(&task1)
 			.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
@@ -347,7 +348,8 @@ mod tests {
 	fn test_reified_connection_points() -> Result<(), anyhow::Error> {
 		let mut graph = Graph::new();
 
-		let task1 = Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
+		let task1 =
+			Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
 		let task2 = Task::test_from_id(2)?
 			.after(&task1)
 			.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
@@ -395,7 +397,8 @@ mod tests {
 		let mut graph = Graph::new();
 
 		// Create two tasks so the range algebra works properly
-		let task1 = Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
+		let task1 =
+			Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
 		let task2 = Task::test_from_id(2)?
 			.after(&task1)
 			.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
