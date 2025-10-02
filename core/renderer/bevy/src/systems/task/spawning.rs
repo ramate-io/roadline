@@ -151,6 +151,7 @@ mod tests {
 		let core_roadline = create_test_roadline().expect("Failed to create test roadline");
 		app.insert_resource(Roadline::from(core_roadline));
 		app.insert_resource(RoadlineRenderConfig::default());
+		app.insert_resource(crate::resources::PixelScale::default());
 
 		// Add the RenderUpdateEvent
 		app.add_event::<RenderUpdateEvent>();
@@ -276,6 +277,7 @@ mod tests {
 		// Setup app WITHOUT roadline resource
 		let mut app = setup_task_test_app();
 		app.insert_resource(RoadlineRenderConfig::default());
+		app.insert_resource(crate::resources::PixelScale::default());
 		app.add_event::<RenderUpdateEvent>();
 
 		// Add the spawning system
