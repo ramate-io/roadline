@@ -15,6 +15,7 @@ thiserror = { workspace = true }
 serde = { workspace = true }
 roadline-util = { workspace = true }
 chrono = { workspace = true }
+log = { workspace = true }
 
 [lints]
 workspace = true

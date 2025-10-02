@@ -9,7 +9,7 @@ pub mod tests {
 	fn test_task_spawner_creation() -> Result<(), Box<dyn std::error::Error>> {
 		let task_id = TaskId::from(1);
 		let position = Vec3::new(100.0, 200.0, 0.0);
-		let size = Vec2::new(200.0, 75.0);
+		let size = Vec2::new(200.0, 5.0);
 		let title = "Test Task".to_string();
 
 		let spawner = TaskSpawner::new(task_id, position, size, title.clone(), false, 3, 3);
@@ -29,7 +29,7 @@ pub mod tests {
 	fn test_task_spawner_with_font_size() -> Result<(), Box<dyn std::error::Error>> {
 		let task_id = TaskId::from(1);
 		let position = Vec3::new(100.0, 200.0, 0.0);
-		let size = Vec2::new(200.0, 75.0);
+		let size = Vec2::new(200.0, 5.0);
 		let title = "Test Task".to_string();
 
 		let spawner =

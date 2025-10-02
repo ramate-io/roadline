@@ -237,8 +237,8 @@ impl RoadlineBuilder {
 	/// Use a spacious layout configuration (generous spacing).
 	pub fn spacious(mut self) -> Self {
 		self.config = ReifiedConfig::new(
-			Trim::new(ReifiedUnit::new(20)),           // Large gutter
-			DownLanePadding::new(ReifiedUnit::new(5)), // Large padding
+			Trim::new(ReifiedUnit::new(5)),            // Smaller gutter for new task construction
+			DownLanePadding::new(ReifiedUnit::new(2)), // Smaller padding for new task construction
 		);
 		self
 	}
@@ -574,68 +574,20 @@ impl Roadline {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use roadline_util::duration::Duration;
-	use roadline_util::task::{
-		range::{End, PointOfReference, Start, TargetDate},
-		Task,
-	};
-	use std::collections::BTreeSet;
+	use roadline_util::task::Task;
 	use std::time::Duration as StdDuration;
 
-	fn create_test_task(
-		id: u8,
-		reference_id: u8,
-		offset_days: u64,
-		duration_days: u64,
-	) -> Result<Task, anyhow::Error> {
-		let id = TaskId::new(id);
-		let reference_id = TaskId::new(reference_id);
-
-		let start = Start::from(TargetDate {
-			point_of_reference: PointOfReference::from(reference_id),
-			duration: Duration::from(StdDuration::from_secs(offset_days * 24 * 60 * 60)),
-		});
-
-		let end = End::from(Duration::from(StdDuration::from_secs(duration_days * 24 * 60 * 60)));
-
-		let range = roadline_util::task::Range::new(start, end);
-
-		Ok(Task::new(
-			id,
-			roadline_util::task::Title::new_test(),
-			BTreeSet::new(),
-			BTreeSet::new(),
-			roadline_util::task::Summary::new_test(),
-			range,
-		))
-	}
-
-	fn create_test_task_with_dependencies(
-		id: u8,
-		reference_id: u8,
-		offset_days: u64,
-		duration_days: u64,
-		dependencies: BTreeSet<u8>,
-	) -> Result<Task, anyhow::Error> {
-		let mut task = create_test_task(id, reference_id, offset_days, duration_days)?;
-		task.dependencies_mut()
-			.extend(dependencies.into_iter().map(|id| TaskId::new(id)));
-		Ok(task)
-	}
 
 	#[test]
 	fn test_builder_basic_functionality() -> Result<(), anyhow::Error> {
 		let mut builder = RoadlineBuilder::start_of_epoch()?;
 
-		let task1 =
-			create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::new())?;
-		let task2 = create_test_task_with_dependencies(
-			2,
-			1,
-			5 * 24 * 60 * 60,
-			10 * 24 * 60 * 60,
-			BTreeSet::from_iter([1]),
-		)?;
+		let task1 = Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
+		let task2 = Task::test_from_id(2)?
+			.after(&task1)
+			.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
+			.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60))
+			.with_dependencies([1]);
 
 		builder.add_task(task1)?;
 		builder.add_task(task2)?;
@@ -670,15 +622,12 @@ mod tests {
 
 	#[test]
 	fn test_fluent_api() -> Result<(), anyhow::Error> {
-		let task1 =
-			create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::new())?;
-		let task2 = create_test_task_with_dependencies(
-			2,
-			1,
-			5 * 24 * 60 * 60,
-			10 * 24 * 60 * 60,
-			BTreeSet::from_iter([1]),
-		)?;
+		let task1 = Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
+		let task2 = Task::test_from_id(2)?
+			.after(&task1)
+			.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
+			.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60))
+			.with_dependencies([1]);
 
 		let roadline = RoadlineBuilder::new().compact().task(task1)?.task(task2)?.build()?;
 
@@ -708,15 +657,12 @@ mod tests {
 
 	#[test]
 	fn test_spacing_presets() -> Result<(), anyhow::Error> {
-		let task1 =
-			create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::new())?;
-		let task2 = create_test_task_with_dependencies(
-			2,
-			1,
-			5 * 24 * 60 * 60,
-			10 * 24 * 60 * 60,
-			BTreeSet::from_iter([1]),
-		)?;
+		let task1 = Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
+		let task2 = Task::test_from_id(2)?
+			.after(&task1)
+			.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
+			.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60))
+			.with_dependencies([1]);
 
 		// Test compact
 		let compact_roadline = RoadlineBuilder::new()
@@ -730,8 +676,8 @@ mod tests {
 		// Test spacious
 		let spacious_roadline =
 			RoadlineBuilder::new().spacious().task(task1)?.task(task2)?.build()?;
-		assert_eq!(spacious_roadline.config().connection_trim.value().value(), 20);
-		assert_eq!(spacious_roadline.config().inter_lane_padding.value().value(), 5);
+		assert_eq!(spacious_roadline.config().connection_trim.value().value(), 5);
+		assert_eq!(spacious_roadline.config().inter_lane_padding.value().value(), 2);
 
 		Ok(())
 	}
@@ -752,38 +698,31 @@ mod tests {
 	}
 
 	#[test]
-	fn test_validation() {
+	fn test_validation() -> Result<(), anyhow::Error> {
 		let empty_builder = RoadlineBuilder::new();
 		assert!(matches!(empty_builder.validate(), Err(RoadlineBuilderError::NoTasks)));
 
 		// With tasks, validation should pass
 		let mut builder_with_tasks = RoadlineBuilder::new();
-		let task = create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::new())
-			.unwrap();
-		builder_with_tasks.add_task(task).unwrap();
+		let task = Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
+		builder_with_tasks.add_task(task)?;
 		assert!(builder_with_tasks.validate().is_ok());
+		Ok(())
 	}
 
 	#[test]
 	fn test_error_wrapping_preserves_information() -> Result<(), anyhow::Error> {
-		use std::collections::BTreeSet;
 
 		// Create a cycle: task1 -> task2 -> task1 (circular dependency)
 		let mut builder = RoadlineBuilder::new();
-		let task1 = create_test_task_with_dependencies(
-			1,
-			1,
-			0,
-			10 * 24 * 60 * 60,
-			BTreeSet::from_iter([2]),
-		)?; // Depends on 2
-		let task2 = create_test_task_with_dependencies(
-			2,
-			1,
-			5 * 24 * 60 * 60,
-			10 * 24 * 60 * 60,
-			BTreeSet::from_iter([1]),
-		)?; // Depends on 1 - CYCLE!
+		let task1 = Task::test_from_id(1)?
+			.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60))
+			.with_dependencies([2]); // Depends on 2
+		let task2 = Task::test_from_id(2)?
+			.after(&task1)
+			.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
+			.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60))
+			.with_dependencies([1]); // Depends on 1 - CYCLE!
 
 		builder.add_task(task1)?;
 		builder.add_task(task2)?;
@@ -817,26 +756,23 @@ mod tests {
 	#[test]
 	fn test_builder_custom_config() -> Result<(), anyhow::Error> {
 		let mut builder = RoadlineBuilder::start_of_epoch()?
-			.with_trim(Trim::new(ReifiedUnit::new(20)))
-			.with_padding(DownLanePadding::new(ReifiedUnit::new(5)));
+			.with_trim(Trim::new(ReifiedUnit::new(5)))
+			.with_padding(DownLanePadding::new(ReifiedUnit::new(2)));
 
-		let task1 =
-			create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::new())?;
-		let task2 = create_test_task_with_dependencies(
-			2,
-			1,
-			5 * 24 * 60 * 60,
-			10 * 24 * 60 * 60,
-			BTreeSet::from_iter([1]),
-		)?;
+		let task1 = Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
+		let task2 = Task::test_from_id(2)?
+			.after(&task1)
+			.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
+			.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60))
+			.with_dependencies([1]);
 
 		builder.add_task(task1)?;
 		builder.add_task(task2)?;
 
 		let roadline = builder.build()?;
 
-		assert_eq!(roadline.config().connection_trim.value().value(), 20);
-		assert_eq!(roadline.config().inter_lane_padding.value().value(), 5);
+		assert_eq!(roadline.config().connection_trim.value().value(), 5);
+		assert_eq!(roadline.config().inter_lane_padding.value().value(), 2);
 
 		Ok(())
 	}
@@ -845,15 +781,12 @@ mod tests {
 	fn test_roadline_access_methods() -> Result<(), anyhow::Error> {
 		let mut builder = RoadlineBuilder::start_of_epoch()?;
 
-		let task1 =
-			create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::new())?;
-		let task2 = create_test_task_with_dependencies(
-			2,
-			1,
-			5 * 24 * 60 * 60,
-			10 * 24 * 60 * 60,
-			BTreeSet::from_iter([1]),
-		)?;
+		let task1 = Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
+		let task2 = Task::test_from_id(2)?
+			.after(&task1)
+			.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
+			.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60))
+			.with_dependencies([1]);
 
 		builder.add_task(task1)?;
 		builder.add_task(task2)?;

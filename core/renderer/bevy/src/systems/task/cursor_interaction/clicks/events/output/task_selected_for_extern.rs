@@ -74,12 +74,13 @@ impl TouchDurationTracker {
 
 /// Helper for input matching and task selection
 pub struct InputMatcher {
-	pub pixels_per_unit: f32,
+	pub pixels_per_x_unit: f32,
+	pub pixels_per_y_unit: f32,
 }
 
 impl InputMatcher {
-	pub fn new(pixels_per_unit: f32) -> Self {
-		Self { pixels_per_unit }
+	pub fn new(pixels_per_x_unit: f32, pixels_per_y_unit: f32) -> Self {
+		Self { pixels_per_x_unit, pixels_per_y_unit }
 	}
 
 	/// Check if mouse input matches any of the configured triggers
@@ -201,7 +202,8 @@ impl InputMatcher {
 			task_query,
 			roadline,
 			world_pos,
-			self.pixels_per_unit,
+			self.pixels_per_x_unit,
+			self.pixels_per_y_unit,
 		)
 	}
 }
@@ -213,8 +215,10 @@ pub struct TaskSelectedForExternEventSystem {
 	pub input_triggers: Vec<InputTrigger>,
 	/// Whether to emit events
 	pub emit_events: bool,
-	/// Pixels per unit for bounds checking
-	pub pixels_per_unit: f32,
+	/// Pixels per x unit for bounds checking
+	pub pixels_per_x_unit: f32,
+	/// Pixels per y unit for bounds checking
+	pub pixels_per_y_unit: f32,
 }
 
 impl Default for TaskSelectedForExternEventSystem {
@@ -226,7 +230,8 @@ impl Default for TaskSelectedForExternEventSystem {
 				InputTrigger::PressAndHold,
 			],
 			emit_events: true,
-			pixels_per_unit: 75.0, // Default value from TaskClickSystem
+			pixels_per_x_unit: 10.0,
+			pixels_per_y_unit: 75.0,
 		}
 	}
 }
@@ -312,7 +317,7 @@ impl TaskSelectedForExternEventSystem {
 			return;
 		}
 
-		let matcher = InputMatcher::new(self.pixels_per_unit);
+		let matcher = InputMatcher::new(self.pixels_per_x_unit, self.pixels_per_y_unit);
 		let mut emit_fn = |task_id: TaskId, state: SelectionState| {
 			log::info!("Emitting task selected for extern event: {:?} {:?}", task_id, state);
 			self.emit_task_selected_for_extern(events, task_id, state);
@@ -350,7 +355,7 @@ impl TaskSelectedForExternEventSystem {
 			return;
 		}
 
-		let matcher = InputMatcher::new(self.pixels_per_unit);
+		let matcher = InputMatcher::new(self.pixels_per_x_unit, self.pixels_per_y_unit);
 		let mut emit_fn = |task_id: TaskId, state: SelectionState| {
 			self.emit_task_selected_for_extern(events, task_id, state);
 		};
@@ -461,7 +466,8 @@ mod tests {
 		let event_system = TaskSelectedForExternEventSystem {
 			input_triggers: vec![InputTrigger::AnyClick],
 			emit_events: true,
-			pixels_per_unit: 75.0,
+			pixels_per_x_unit: 10.0,
+			pixels_per_y_unit: 75.0,
 		};
 
 		// Spawn a test task at origin
@@ -497,7 +503,8 @@ mod tests {
 		let event_system = TaskSelectedForExternEventSystem {
 			input_triggers: vec![InputTrigger::AnyClick],
 			emit_events: false,
-			pixels_per_unit: 75.0,
+			pixels_per_x_unit: 10.0,
+			pixels_per_y_unit: 75.0,
 		};
 
 		// Spawn a test task at origin
@@ -607,7 +614,7 @@ mod tests {
 
 	#[test]
 	fn test_input_matcher_mouse_input() {
-		let matcher = InputMatcher::new(75.0);
+		let matcher = InputMatcher::new(5.0, 75.0);
 		let triggers = vec![InputTrigger::RightClick, InputTrigger::ShiftLeftClick];
 
 		// Test right click
@@ -634,7 +641,7 @@ mod tests {
 
 	#[test]
 	fn test_input_trigger_left_click() {
-		let matcher = InputMatcher::new(75.0);
+		let matcher = InputMatcher::new(5.0, 75.0);
 		let triggers = vec![InputTrigger::LeftClick];
 
 		// Mock mouse button input for left click
@@ -663,7 +670,7 @@ mod tests {
 
 	#[test]
 	fn test_input_trigger_shift_left_click() {
-		let matcher = InputMatcher::new(75.0);
+		let matcher = InputMatcher::new(5.0, 75.0);
 		let triggers = vec![InputTrigger::ShiftLeftClick];
 
 		// Mock mouse button input for left click
@@ -696,7 +703,7 @@ mod tests {
 
 	#[test]
 	fn test_input_trigger_right_click() {
-		let matcher = InputMatcher::new(75.0);
+		let matcher = InputMatcher::new(5.0, 75.0);
 		let triggers = vec![InputTrigger::RightClick];
 
 		// Mock mouse button input for right click
@@ -724,7 +731,7 @@ mod tests {
 
 	#[test]
 	fn test_input_trigger_press_and_hold() {
-		let matcher = InputMatcher::new(75.0);
+		let matcher = InputMatcher::new(5.0, 75.0);
 		let triggers = vec![InputTrigger::PressAndHold];
 
 		// Mock mouse button input for left click (press and hold)
@@ -748,7 +755,7 @@ mod tests {
 
 	#[test]
 	fn test_input_trigger_any_click() {
-		let matcher = InputMatcher::new(75.0);
+		let matcher = InputMatcher::new(5.0, 75.0);
 		let triggers = vec![InputTrigger::AnyClick];
 
 		// Mock mouse button input for any click

@@ -25,7 +25,8 @@ pub struct TaskClickSystem {
 	pub descendant_dependency_color: Color,
 	pub unselected_dependency_color: Color,
 	pub selected_dependency_color: Color,
-	pub pixels_per_unit: f32,
+	pub pixels_per_x_unit: f32,
+	pub pixels_per_y_unit: f32,
 	pub extern_event_system: TaskSelectedForExternEventSystem,
 }
 
@@ -40,7 +41,8 @@ impl Default for TaskClickSystem {
 			descendant_dependency_color: Color::oklch(0.5, 0.137, 235.06),
 			unselected_dependency_color: Color::BLACK,
 			selected_dependency_color: Color::oklch(0.5, 0.137, 235.06),
-			pixels_per_unit: 75.0,
+			pixels_per_x_unit: 10.0,
+			pixels_per_y_unit: 75.0,
 			extern_event_system: TaskSelectedForExternEventSystem::default(),
 		}
 	}
@@ -117,7 +119,8 @@ impl TaskClickSystem {
 						&mut selection_resource,
 						&mut ui_query,
 						&roadline,
-						self.pixels_per_unit,
+						self.pixels_per_x_unit,
+						self.pixels_per_y_unit,
 						&mut task_selection_changed_events,
 						&task_selection_event_system,
 						&mut task_extern_events,
@@ -139,7 +142,8 @@ impl TaskClickSystem {
 		selection_resource: &mut ResMut<SelectionResource>,
 		ui_query: &mut Query<&mut BorderColor>,
 		roadline: &Roadline,
-		pixels_per_unit: f32,
+		pixels_per_x_unit: f32,
+		pixels_per_y_unit: f32,
 		task_selection_changed_events: &mut EventWriter<TaskSelectionChangedEvent>,
 		task_selection_event_system: &TaskSelectionChangedEventSystem,
 		task_extern_events: &mut EventWriter<TaskSelectedForExternEvent>,
@@ -163,7 +167,8 @@ impl TaskClickSystem {
 			task_query,
 			roadline,
 			world_pos,
-			pixels_per_unit,
+			pixels_per_x_unit,
+			pixels_per_y_unit,
 		) {
 			self.handle_task_click(
 				task_id,
@@ -427,7 +432,7 @@ mod tests {
 			&mut app,
 			TaskId::from(1),
 			Vec3::new(100.0, 200.0, 0.0),
-			Vec2::new(200.0, 75.0),
+			Vec2::new(200.0, 5.0),
 			"UI Test Task".to_string(),
 		)?;
 
@@ -464,7 +469,8 @@ mod tests {
 				&mut selection_resource,
 				&mut ui_query,
 				&roadline,
-				click_system.pixels_per_unit,
+				click_system.pixels_per_x_unit,
+				click_system.pixels_per_y_unit,
 				&mut task_selection_changed_events,
 				&task_selection_event_system,
 				&mut task_extern_events,

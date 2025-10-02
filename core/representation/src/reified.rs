@@ -41,8 +41,8 @@ impl ReifiedConfig {
 	/// Default configuration with reasonable visual spacing
 	pub fn default_config() -> Self {
 		Self {
-			connection_trim: Trim::new(ReifiedUnit::new(2)), // 2 units of gutter space
-			inter_lane_padding: DownLanePadding::new(ReifiedUnit::new(2)), // 2 units between lanes
+			connection_trim: Trim::new(ReifiedUnit::new(3)), // 3 units of gutter space
+			inter_lane_padding: DownLanePadding::new(ReifiedUnit::new(1)), // 2 units between lanes
 		}
 	}
 
@@ -266,12 +266,7 @@ mod tests {
 	use crate::grid_algebra::PreGridAlgebra;
 	use crate::range_algebra::{Date, PreRangeAlgebra};
 	use chrono::{DateTime, Utc};
-	use roadline_util::duration::Duration;
-	use roadline_util::task::{
-		range::{End, PointOfReference, Start, TargetDate},
-		Task,
-	};
-	use std::collections::BTreeSet;
+	use roadline_util::task::Task;
 	use std::time::Duration as StdDuration;
 
 	/// Creates a test date from an ISO string.
@@ -282,62 +277,18 @@ mod tests {
 		Date::new(datetime)
 	}
 
-	/// Creates a test task with the specified parameters.
-	fn create_test_task(
-		id: u8,
-		reference_id: u8,
-		offset_days: u64,
-		duration_days: u64,
-	) -> Result<Task, anyhow::Error> {
-		let id = TaskId::new(id);
-		let reference_id = TaskId::new(reference_id);
-
-		let start = Start::from(TargetDate {
-			point_of_reference: PointOfReference::from(reference_id),
-			duration: Duration::from(StdDuration::from_secs(offset_days * 24 * 60 * 60)),
-		});
-
-		let end = End::from(Duration::from(StdDuration::from_secs(duration_days * 24 * 60 * 60)));
-
-		let range = roadline_util::task::Range::new(start, end);
-
-		Ok(Task::new(
-			id,
-			roadline_util::task::Title::new_test(),
-			BTreeSet::new(),
-			BTreeSet::new(),
-			roadline_util::task::Summary::new_test(),
-			range,
-		))
-	}
-
-	fn create_test_task_with_dependencies(
-		id: u8,
-		reference_id: u8,
-		offset_days: u64,
-		duration_days: u64,
-		dependencies: BTreeSet<u8>,
-	) -> Result<Task, anyhow::Error> {
-		let mut task = create_test_task(id, reference_id, offset_days, duration_days)?;
-		task.dependencies_mut()
-			.extend(dependencies.into_iter().map(|id| TaskId::new(id)));
-		Ok(task)
-	}
-
 	#[test]
 	fn test_reified_basic_functionality() -> Result<(), anyhow::Error> {
 		// Create a simple graph: Task1 -> Task2
 		let mut graph = Graph::new();
 
 		let task1 =
-			create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::new())?;
-		let task2 = create_test_task_with_dependencies(
-			2,
-			1,
-			5 * 24 * 60 * 60,
-			10 * 24 * 60 * 60,
-			BTreeSet::from_iter([1]),
-		)?;
+			Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
+		let task2 = Task::test_from_id(2)?
+			.after(&task1)
+			.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
+			.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60))
+			.with_dependencies([1]);
 
 		graph.add(task1)?;
 		graph.add(task2)?;
@@ -368,14 +319,12 @@ mod tests {
 		let mut graph = Graph::new();
 
 		let task1 =
-			create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::new())?;
-		let task2 = create_test_task_with_dependencies(
-			2,
-			1,
-			5 * 24 * 60 * 60,
-			15 * 24 * 60 * 60,
-			BTreeSet::from_iter([1]),
-		)?;
+			Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
+		let task2 = Task::test_from_id(2)?
+			.after(&task1)
+			.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
+			.for_standard_duration(StdDuration::from_secs(15 * 24 * 60 * 60))
+			.with_dependencies([1]);
 
 		graph.add(task1)?;
 		graph.add(task2)?;
@@ -400,14 +349,12 @@ mod tests {
 		let mut graph = Graph::new();
 
 		let task1 =
-			create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::new())?;
-		let task2 = create_test_task_with_dependencies(
-			2,
-			1,
-			5 * 24 * 60 * 60,
-			10 * 24 * 60 * 60,
-			BTreeSet::from_iter([1]),
-		)?;
+			Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
+		let task2 = Task::test_from_id(2)?
+			.after(&task1)
+			.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
+			.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60))
+			.with_dependencies([1]);
 
 		graph.add(task1)?;
 		graph.add(task2)?;
@@ -451,14 +398,12 @@ mod tests {
 
 		// Create two tasks so the range algebra works properly
 		let task1 =
-			create_test_task_with_dependencies(1, 1, 0, 10 * 24 * 60 * 60, BTreeSet::new())?;
-		let task2 = create_test_task_with_dependencies(
-			2,
-			1,
-			5 * 24 * 60 * 60,
-			10 * 24 * 60 * 60,
-			BTreeSet::from_iter([1]),
-		)?;
+			Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
+		let task2 = Task::test_from_id(2)?
+			.after(&task1)
+			.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
+			.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60))
+			.with_dependencies([1]);
 
 		graph.add(task1)?;
 		graph.add(task2)?;
@@ -469,15 +414,15 @@ mod tests {
 
 		// Test custom configuration
 		let config = ReifiedConfig::new(
-			Trim::new(ReifiedUnit::new(20)),           // Larger trim
-			DownLanePadding::new(ReifiedUnit::new(5)), // Larger padding
+			Trim::new(ReifiedUnit::new(5)),            // Smaller trim
+			DownLanePadding::new(ReifiedUnit::new(2)), // Smaller padding
 		);
 
 		let reified = PreReified::new_with_config(grid_algebra, config).compute()?;
 
 		assert_eq!(reified.task_count(), 2);
-		assert_eq!(reified.config().connection_trim.value().value(), 20);
-		assert_eq!(reified.config().inter_lane_padding.value().value(), 5);
+		assert_eq!(reified.config().connection_trim.value().value(), 5);
+		assert_eq!(reified.config().inter_lane_padding.value().value(), 2);
 
 		Ok(())
 	}

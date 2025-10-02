@@ -16,7 +16,7 @@ pub mod tests {
 		let params = TestTasksParams::new().with_basic_task(
 			TaskId::from(1),
 			Vec3::new(100.0, 200.0, 0.0),
-			Vec2::new(200.0, 75.0),
+			Vec2::new(200.0, 5.0),
 			"Test Task".to_string(),
 		);
 
@@ -52,8 +52,8 @@ pub mod tests {
 
 		let params = TestTasksParams::new().with_basic_task(
 			TaskId::from(42),
-			Vec3::new(175.0, 275.0, 0.5),
-			Vec2::new(300.0, 75.0),
+			Vec3::new(15.0, 25.0, 0.5),
+			Vec2::new(300.0, 5.0),
 			"Specific Task".to_string(),
 		);
 
@@ -77,7 +77,7 @@ pub mod tests {
 		assert_eq!(task_sizes.len(), 1, "Should have exactly one TaskSize entity");
 
 		let task_size = task_sizes[0];
-		assert_eq!(task_size.size, Vec2::new(300.0, 75.0), "Task size should match");
+		assert_eq!(task_size.size, Vec2::new(300.0, 5.0), "Task size should match");
 
 		// Check Transform component values
 		let mut transform_query = world.query::<(&Task, &Transform)>();
@@ -87,7 +87,7 @@ pub mod tests {
 		let transform = transforms[0].1;
 		assert_eq!(
 			transform.translation,
-			Vec3::new(175.0, 275.0, 0.5),
+			Vec3::new(15.0, 25.0, 0.5),
 			"Transform position should match"
 		);
 

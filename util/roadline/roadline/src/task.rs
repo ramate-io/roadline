@@ -79,10 +79,29 @@ impl Task {
 	}
 
 	/// Constructs a task to start after a certain dependency ends
+	///
+	/// The start date of the task will be based on the end duration of the other task.
 	pub fn after(self, other: &Self) -> Self {
 		let start = Start::from(TargetDate {
 			point_of_reference: other.id.into(),
 			duration: other.range.end.duration().clone(),
+		});
+
+		let range = Range::new(start, self.range.end);
+
+		Self { range, ..self }
+	}
+
+	/// Adds to the existing offset of the start date of the task
+	///
+	/// The start date of the task will be based on the existing offset of the other task.
+	pub fn offset_start_date(self, offset: StdDuration) -> Self {
+		let start = Start::from(TargetDate {
+			point_of_reference: self.range.start.point_of_reference().clone(),
+			duration: std::time::Duration::from(std::time::Duration::from_secs(
+				self.range.start.duration().0.as_secs() + offset.as_secs(),
+			))
+			.into(),
 		});
 
 		let range = Range::new(start, self.range.end);
