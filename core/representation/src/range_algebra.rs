@@ -204,8 +204,8 @@ impl PreRangeAlgebra {
 			.ok_or(RangeAlgebraError::InvalidReference { task_id: *task_id, reference_id })?;
 
 		// Start date = reference task's end date + offset duration
-		let reference_end_date = reference_span.end.inner();
-		Ok(add_duration_to_date(reference_end_date, duration))
+		let reference_start_date = reference_span.start.inner();
+		Ok(add_duration_to_date(reference_start_date, duration))
 	}
 
 	/// Validates that all dependencies of a task end before the task starts.

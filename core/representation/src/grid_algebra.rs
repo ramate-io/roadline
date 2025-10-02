@@ -8,7 +8,6 @@ pub use stretch::{Stretch, StretchRange, StretchUnit};
 
 use crate::graph::Graph;
 use crate::range_algebra::{Date, RangeAlgebra};
-use chrono::{DateTime, Utc};
 use roadline_util::dependency::{Dependency, Id as DependencyId};
 use roadline_util::task::{Id as TaskId, Task};
 use serde::{Deserialize, Serialize};
@@ -815,9 +814,13 @@ mod tests {
 			// Test 1: Simple grid computation
 			let simple_results = {
 				let mut graph = Graph::new();
-				let task1 = create_test_task_with_dependencies(1, 1, 0, 10, BTreeSet::new())?;
-				let task2 =
-					create_test_task_with_dependencies(2, 1, 5, 10, BTreeSet::from_iter([1]))?;
+				let task1 = Task::test_from_id(1)?
+					.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
+				let task2 = Task::test_from_id(2)?
+					.after(&task1)
+					.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
+					.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60))
+					.with_dependencies([1]);
 				graph.add(task1)?;
 				graph.add(task2)?;
 
@@ -839,21 +842,29 @@ mod tests {
 			let parallel_results = {
 				let mut graph = Graph::new();
 				// Root task: T1
-				let task1 = create_test_task_with_dependencies(1, 1, 0, 30, BTreeSet::new())?;
-				graph.add(task1)?;
+				let task1 = Task::test_from_id(1)?
+					.for_standard_duration(StdDuration::from_secs(30 * 24 * 60 * 60));
+				graph.add(task1.clone())?;
 
 				// T2 and T3 both depend on T1 and overlap in time
-				let task2 =
-					create_test_task_with_dependencies(2, 1, 0, 15, BTreeSet::from_iter([1]))?;
+				let task2 = Task::test_from_id(2)?
+					.after(&task1)
+					.for_standard_duration(StdDuration::from_secs(15 * 24 * 60 * 60))
+					.with_dependencies([1]);
 				graph.add(task2)?;
 
-				let task3 =
-					create_test_task_with_dependencies(3, 1, 5, 15, BTreeSet::from_iter([1]))?;
-				graph.add(task3)?;
+				let task3 = Task::test_from_id(3)?
+					.after(&task1)
+					.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
+					.for_standard_duration(StdDuration::from_secs(15 * 24 * 60 * 60))
+					.with_dependencies([1]);
+				graph.add(task3.clone())?;
 
 				// T4 depends on both T2 and T3, starts after both complete
-				let task4 =
-					create_test_task_with_dependencies(4, 3, 0, 10, BTreeSet::from_iter([2, 3]))?;
+				let task4 = Task::test_from_id(4)?
+					.after(&task3)
+					.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60))
+					.with_dependencies([2, 3]);
 				graph.add(task4)?;
 
 				let range_algebra =
@@ -873,9 +884,13 @@ mod tests {
 			// Test 3: Dependency locality
 			let locality_results = {
 				let mut graph = Graph::new();
-				let task1 = create_test_task_with_dependencies(1, 1, 0, 5, BTreeSet::new())?;
-				let task2 =
-					create_test_task_with_dependencies(2, 1, 5, 5, BTreeSet::from_iter([1]))?;
+				let task1 = Task::test_from_id(1)?
+					.for_standard_duration(StdDuration::from_secs(5 * 24 * 60 * 60));
+				let task2 = Task::test_from_id(2)?
+					.after(&task1)
+					.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
+					.for_standard_duration(StdDuration::from_secs(5 * 24 * 60 * 60))
+					.with_dependencies([1]);
 				graph.add(task1)?;
 				graph.add(task2)?;
 
@@ -896,14 +911,23 @@ mod tests {
 			// Test 4: Subtree width-based spacing
 			let subtree_results = {
 				let mut graph = Graph::new();
-				let task1 = create_test_task_with_dependencies(1, 1, 0, 30, BTreeSet::new())?;
-				let task2 =
-					create_test_task_with_dependencies(2, 1, 0, 15, BTreeSet::from_iter([1]))?;
-				let task3 =
-					create_test_task_with_dependencies(3, 1, 5, 15, BTreeSet::from_iter([1]))?;
-				let task4 = create_test_task_with_dependencies(4, 4, 0, 20, BTreeSet::new())?;
-				let task5 =
-					create_test_task_with_dependencies(5, 4, 0, 10, BTreeSet::from_iter([4]))?;
+				let task1 = Task::test_from_id(1)?
+					.for_standard_duration(StdDuration::from_secs(30 * 24 * 60 * 60));
+				let task2 = Task::test_from_id(2)?
+					.after(&task1)
+					.for_standard_duration(StdDuration::from_secs(15 * 24 * 60 * 60))
+					.with_dependencies([1]);
+				let task3 = Task::test_from_id(3)?
+					.after(&task1)
+					.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
+					.for_standard_duration(StdDuration::from_secs(15 * 24 * 60 * 60))
+					.with_dependencies([1]);
+				let task4 = Task::test_from_id(4)?
+					.for_standard_duration(StdDuration::from_secs(20 * 24 * 60 * 60));
+				let task5 = Task::test_from_id(5)?
+					.after(&task4)
+					.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60))
+					.with_dependencies([4]);
 				graph.add(task1)?;
 				graph.add(task2)?;
 				graph.add(task3)?;
