@@ -55,6 +55,9 @@ if [[ "$COMMIT_MSG" =~ ci\(pre-commit:\ build-site-if\): || "$COMMIT_MSG" =~ ci\
     git add dist.zip
     status "dist.zip added to git"
     
+    # Note: dist.zip will be included in the current commit automatically
+    echo "ℹ️  dist.zip will be included in the current commit"
+    
     echo "✅ Site build and packaging completed!"
 else
     echo "⏭️  No build trigger found in commit message, skipping site build"
