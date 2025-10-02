@@ -77,12 +77,6 @@ impl TaskSpawningSystem {
 		let max_width_f32 = max_width.value() as f32;
 		let max_height_f32 = max_height.value() as f32;
 
-		// Calculate offsets to center the content around (0,0)
-		let content_width_pixels = max_width_f32 * self.pixels_per_unit;
-		let content_height_pixels = max_height_f32 * self.pixels_per_unit;
-		let offset_x = -content_width_pixels / 2.0;
-		let offset_y = -content_height_pixels / 2.0;
-
 		// Create new task sprites for each task
 		for (task_id, start_x, start_y, end_x, end_y) in reified.task_rectangles() {
 			println!(
@@ -96,8 +90,8 @@ impl TaskSpawningSystem {
 			let width = end_x - start_x;
 
 			// Convert reified units to pixel coordinates using proper scaling
-			let pixel_x = x as f32 * self.pixels_per_unit + offset_x;
-			let pixel_y = y as f32 * self.pixels_per_unit + offset_y;
+			let pixel_x = x as f32 * self.pixels_per_unit;
+			let pixel_y = y as f32 * self.pixels_per_unit;
 			let sprite_width = width as f32 * self.pixels_per_unit;
 			let sprite_height = height as f32 * self.pixels_per_unit;
 
@@ -388,14 +382,8 @@ mod tests {
 		// Get the roadline to understand the expected bounds and task rectangles
 		let roadline = app.world().resource::<Roadline>();
 		let (max_width, max_height) = roadline.visual_bounds();
-		let max_width_f32 = max_width.value() as f32;
-		let max_height_f32 = max_height.value() as f32;
-
-		// Calculate expected offsets (content should be centered around 0,0)
-		let content_width_pixels = max_width_f32 * custom_pixels_per_unit;
-		let content_height_pixels = max_height_f32 * custom_pixels_per_unit;
-		let expected_offset_x = -content_width_pixels / 2.0;
-		let expected_offset_y = -content_height_pixels / 2.0;
+		let max_width_f32 = max_width.value() as f32 * custom_pixels_per_unit;
+		let max_height_f32 = max_height.value() as f32 * custom_pixels_per_unit;
 
 		// Collect task positions and verify they match expected calculations
 		let mut verified_tasks = 0;
@@ -409,8 +397,8 @@ mod tests {
 				let height = end_y - start_y;
 
 				// Calculate expected position based on the spawning logic
-				let expected_pixel_x = start_x as f32 * custom_pixels_per_unit + expected_offset_x;
-				let expected_pixel_y = start_y as f32 * custom_pixels_per_unit + expected_offset_y;
+				let expected_pixel_x = start_x as f32 * custom_pixels_per_unit;
+				let expected_pixel_y = start_y as f32 * custom_pixels_per_unit;
 				let expected_sprite_width = width as f32 * custom_pixels_per_unit;
 				let _expected_sprite_height = height as f32 * custom_pixels_per_unit;
 
@@ -481,14 +469,16 @@ mod tests {
 		// Tasks should be distributed around the center (0,0)
 		// The exact bounds depend on the test roadline data, but they should be reasonable
 		assert!(
-			min_x < 0.0 && max_x > 0.0,
-			"Tasks should be distributed around X=0, but found range [{:.2}, {:.2}]",
+			min_x >= 0.0 && max_x <= max_width_f32,
+			"Tasks should be distributed from 0 to {:.2}, but found range [{:.2}, {:.2}]",
+			max_width_f32,
 			min_x,
 			max_x
 		);
 		assert!(
-			min_y < 0.0 && max_y > 0.0,
-			"Tasks should be distributed around Y=0, but found range [{:.2}, {:.2}]",
+			min_y >= 0.0 && max_y <= max_height_f32,
+			"Tasks should be distributed from 0 to {:.2}, but found range [{:.2}, {:.2}]",
+			max_height_f32,
 			min_y,
 			max_y
 		);

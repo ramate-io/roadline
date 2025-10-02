@@ -77,14 +77,9 @@ impl DependencySpawningSystem {
 
 		// Get the visual bounds to scale everything properly
 		let (max_width, max_height) = reified.visual_bounds();
+		println!("max_width: {:?}, max_height: {:?}", max_width, max_height);
 		let max_width_f32 = max_width.value() as f32;
 		let max_height_f32 = max_height.value() as f32;
-
-		// Calculate offsets to center the content around (0,0)
-		let content_width_pixels = max_width_f32 * self.pixels_per_unit;
-		let content_height_pixels = max_height_f32 * self.pixels_per_unit;
-		let offset_x = -content_width_pixels / 2.0;
-		let offset_y = -content_height_pixels / 2.0;
 
 		// Create dependency curves for each bezier curve
 		for (dependency_id, start_point, end_point, control1, control2) in reified.bezier_curves() {
@@ -95,23 +90,23 @@ impl DependencySpawningSystem {
 
 			// Convert reified units to pixel coordinates
 			let start_pos = Vec3::new(
-				start_point.x.value() as f32 * self.pixels_per_unit + offset_x,
-				start_point.y.value() as f32 * self.pixels_per_unit + offset_y,
+				start_point.x.value() as f32 * self.pixels_per_unit,
+				start_point.y.value() as f32 * self.pixels_per_unit,
 				0.0,
 			);
 			let end_pos = Vec3::new(
-				end_point.x.value() as f32 * self.pixels_per_unit + offset_x,
-				end_point.y.value() as f32 * self.pixels_per_unit + offset_y,
+				end_point.x.value() as f32 * self.pixels_per_unit,
+				end_point.y.value() as f32 * self.pixels_per_unit,
 				0.0,
 			);
 			let control1_pos = Vec3::new(
-				control1.x.value() as f32 * self.pixels_per_unit + offset_x,
-				control1.y.value() as f32 * self.pixels_per_unit + offset_y,
+				control1.x.value() as f32 * self.pixels_per_unit,
+				control1.y.value() as f32 * self.pixels_per_unit,
 				0.0,
 			);
 			let control2_pos = Vec3::new(
-				control2.x.value() as f32 * self.pixels_per_unit + offset_x,
-				control2.y.value() as f32 * self.pixels_per_unit + offset_y,
+				control2.x.value() as f32 * self.pixels_per_unit,
+				control2.y.value() as f32 * self.pixels_per_unit,
 				0.0,
 			);
 
@@ -515,14 +510,8 @@ mod tests {
 		// Get the roadline to understand the expected bounds and bezier curves
 		let roadline = app.world().resource::<Roadline>();
 		let (max_width, max_height) = roadline.visual_bounds();
-		let max_width_f32 = max_width.value() as f32;
-		let max_height_f32 = max_height.value() as f32;
-
-		// Calculate expected offsets (content should be centered around 0,0)
-		let content_width_pixels = max_width_f32 * custom_pixels_per_unit;
-		let content_height_pixels = max_height_f32 * custom_pixels_per_unit;
-		let expected_offset_x = -content_width_pixels / 2.0;
-		let expected_offset_y = -content_height_pixels / 2.0;
+		let max_width_f32 = max_width.value() as f32 * custom_pixels_per_unit;
+		let max_height_f32 = max_height.value() as f32 * custom_pixels_per_unit;
 
 		// Collect dependency positions and verify they match expected calculations
 		let mut verified_dependencies = 0;
@@ -535,13 +524,13 @@ mod tests {
 			if let Some((_, start_point, end_point, _control1, _control2)) = bezier_curve {
 				// Calculate expected positions based on the spawning logic
 				let expected_start_pos = Vec3::new(
-					start_point.x.value() as f32 * custom_pixels_per_unit + expected_offset_x,
-					start_point.y.value() as f32 * custom_pixels_per_unit + expected_offset_y,
+					start_point.x.value() as f32 * custom_pixels_per_unit,
+					start_point.y.value() as f32 * custom_pixels_per_unit,
 					0.0,
 				);
 				let expected_end_pos = Vec3::new(
-					end_point.x.value() as f32 * custom_pixels_per_unit + expected_offset_x,
-					end_point.y.value() as f32 * custom_pixels_per_unit + expected_offset_y,
+					end_point.x.value() as f32 * custom_pixels_per_unit,
+					end_point.y.value() as f32 * custom_pixels_per_unit,
 					0.0,
 				);
 
@@ -614,13 +603,13 @@ mod tests {
 		// Dependencies should be distributed around the center (0,0)
 		// The exact bounds depend on the test roadline data, but they should be reasonable
 		assert!(
-			min_x < 0.0 && max_x > 0.0,
+			min_x >= 0.0 && max_x <= max_width_f32,
 			"Dependencies should be distributed around X=0, but found range [{:.2}, {:.2}]",
 			min_x,
 			max_x
 		);
 		assert!(
-			min_y < 0.0 && max_y > 0.0,
+			min_y >= 0.0 && max_y <= max_height_f32,
 			"Dependencies should be distributed around Y=0, but found range [{:.2}, {:.2}]",
 			min_y,
 			max_y

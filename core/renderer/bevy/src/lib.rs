@@ -188,17 +188,11 @@ fn position_camera_on_leftmost_task(
 	let max_width_f32 = max_width.value() as f32;
 	let _max_height_f32 = max_height.value() as f32;
 
-	// Calculate offsets (same as task spawning system)
-	let content_width_pixels = max_width_f32 * 75.0; // pixels_per_unit
-	let content_height_pixels = _max_height_f32 * 75.0;
-	let offset_x = -content_width_pixels / 2.0;
-	let offset_y = -content_height_pixels / 2.0;
-
 	// Find the leftmost task
 	for (task_id, start_x, start_y, end_x, _end_y) in roadline.task_rectangles() {
 		let _width = end_x - start_x;
-		let pixel_x = start_x as f32 * 75.0 + offset_x;
-		let pixel_y = start_y as f32 * 75.0 + offset_y;
+		let pixel_x = start_x as f32 * 75.0;
+		let pixel_y = start_y as f32 * 75.0;
 		let _sprite_width = _width as f32 * 75.0;
 
 		// Use the left edge of the task (not the center)
