@@ -82,7 +82,7 @@ impl Task {
 	pub fn after(self, other: &Self) -> Self {
 		let start = Start::from(TargetDate {
 			point_of_reference: other.id.into(),
-			duration: other.range.end.duration().clone(),
+			duration: std::time::Duration::from_secs(0).into(),
 		});
 
 		let range = Range::new(start, self.range.end);

@@ -8,6 +8,7 @@ pub use stretch::{Stretch, StretchRange, StretchUnit};
 
 use crate::graph::Graph;
 use crate::range_algebra::{Date, RangeAlgebra};
+use chrono::{DateTime, Utc};
 use roadline_util::dependency::{Dependency, Id as DependencyId};
 use roadline_util::task::{Id as TaskId, Task};
 use serde::{Deserialize, Serialize};
@@ -135,6 +136,13 @@ impl PreGridAlgebra {
 		for (&task_id, span) in spans {
 			let start_timestamp = span.start.inner().inner().timestamp();
 			let end_timestamp = span.end.inner().inner().timestamp();
+
+			let start_date =
+				DateTime::from_timestamp(start_timestamp as i64, 0).unwrap_or_else(|| Utc::now());
+			let end_date =
+				DateTime::from_timestamp(end_timestamp as i64, 0).unwrap_or_else(|| Utc::now());
+
+			println!("start_date: {:?}, end_date: {:?}", start_date, end_date);
 
 			// Convert to grid units relative to reference time
 			let start_unit = ((start_timestamp - reference_time) / unit_seconds) as u8;
