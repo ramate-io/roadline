@@ -16,7 +16,7 @@ use bevy::window::WindowResized;
 use bevy::winit::cursor::CursorIcon;
 use bevy_ui_anchor::AnchorUiPlugin;
 
-use crate::resources::{Roadline, SelectionResource};
+use crate::resources::{PixelScale, RenderUpdateEvent, Roadline, SelectionResource};
 
 pub use roadline_renderer::RoadlineRenderer;
 
@@ -438,27 +438,24 @@ fn camera_zoom_system(
 	mut mouse_wheel_events: EventReader<MouseWheel>,
 	mut touch_events: EventReader<TouchInput>,
 	keyboard_input: Res<ButtonInput<KeyCode>>,
-	mut camera_query: Query<&mut Projection, With<Camera2d>>,
+	mut pixel_scale: ResMut<PixelScale>,
+	mut render_events: EventWriter<RenderUpdateEvent>,
 	is_panning: Local<bool>,
 	mut last_touch_pos: Local<Option<Vec2>>,
 ) {
 	// Handle keyboard zoom (Q/E keys)
 	if keyboard_input.just_pressed(KeyCode::KeyQ) {
-		// Zoom in
-		for mut projection in camera_query.iter_mut() {
-			if let Projection::Orthographic(ref mut ortho) = *projection {
-				ortho.scale = (ortho.scale * 0.8).max(0.1);
-			}
-		}
+		// Zoom in - increase pixel scale
+		pixel_scale.pixels_per_x_unit = (pixel_scale.pixels_per_x_unit * 1.25).min(50.0);
+		pixel_scale.pixels_per_y_unit = (pixel_scale.pixels_per_y_unit * 1.25).min(375.0);
+		render_events.write(RenderUpdateEvent);
 	}
 	
 	if keyboard_input.just_pressed(KeyCode::KeyE) {
-		// Zoom out
-		for mut projection in camera_query.iter_mut() {
-			if let Projection::Orthographic(ref mut ortho) = *projection {
-				ortho.scale = (ortho.scale * 1.25).min(10.0);
-			}
-		}
+		// Zoom out - decrease pixel scale
+		pixel_scale.pixels_per_x_unit = (pixel_scale.pixels_per_x_unit * 0.8).max(2.0);
+		pixel_scale.pixels_per_y_unit = (pixel_scale.pixels_per_y_unit * 0.8).max(15.0);
+		render_events.write(RenderUpdateEvent);
 	}
 
 	// Handle mouse wheel zoom
@@ -466,19 +463,15 @@ fn camera_zoom_system(
 		match event.unit {
 			bevy::input::mouse::MouseScrollUnit::Line => {
 				let zoom_factor = if event.y > 0.0 { 0.9 } else { 1.1 };
-				for mut projection in camera_query.iter_mut() {
-					if let Projection::Orthographic(ref mut ortho) = *projection {
-						ortho.scale = (ortho.scale * zoom_factor).clamp(0.1, 10.0);
-					}
-				}
+				pixel_scale.pixels_per_x_unit = (pixel_scale.pixels_per_x_unit * zoom_factor).clamp(2.0, 50.0);
+				pixel_scale.pixels_per_y_unit = (pixel_scale.pixels_per_y_unit * zoom_factor).clamp(15.0, 375.0);
+				render_events.write(RenderUpdateEvent);
 			}
 			bevy::input::mouse::MouseScrollUnit::Pixel => {
 				let zoom_factor = if event.y > 0.0 { 0.95 } else { 1.05 };
-				for mut projection in camera_query.iter_mut() {
-					if let Projection::Orthographic(ref mut ortho) = *projection {
-						ortho.scale = (ortho.scale * zoom_factor).clamp(0.1, 10.0);
-					}
-				}
+				pixel_scale.pixels_per_x_unit = (pixel_scale.pixels_per_x_unit * zoom_factor).clamp(2.0, 50.0);
+				pixel_scale.pixels_per_y_unit = (pixel_scale.pixels_per_y_unit * zoom_factor).clamp(15.0, 375.0);
+				render_events.write(RenderUpdateEvent);
 			}
 		}
 	}
@@ -500,11 +493,9 @@ fn camera_zoom_system(
 						let zoom_factor = 1.0 - (delta.y * zoom_sensitivity);
 						
 						if zoom_factor != 1.0 {
-							for mut projection in camera_query.iter_mut() {
-								if let Projection::Orthographic(ref mut ortho) = *projection {
-									ortho.scale = (ortho.scale * zoom_factor).clamp(0.1, 10.0);
-								}
-							}
+							pixel_scale.pixels_per_x_unit = (pixel_scale.pixels_per_x_unit * zoom_factor).clamp(2.0, 50.0);
+							pixel_scale.pixels_per_y_unit = (pixel_scale.pixels_per_y_unit * zoom_factor).clamp(15.0, 375.0);
+							render_events.write(RenderUpdateEvent);
 						}
 					}
 				}
