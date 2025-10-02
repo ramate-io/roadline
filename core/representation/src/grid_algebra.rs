@@ -137,8 +137,7 @@ impl PreGridAlgebra {
 			let end_timestamp = span.end.inner().inner().timestamp();
 			// Convert to grid units relative to reference time
 			let start_unit = ((start_timestamp - reference_time) / unit_seconds) as u8;
-			let end_unit =
-				((end_timestamp - reference_time + unit_seconds - 1) / unit_seconds) as u8; // Ceiling division
+			let end_unit = ((end_timestamp - reference_time) / unit_seconds) as u8; // Ceiling division
 
 			let stretch_range = StretchRange::new(start_unit, end_unit.max(start_unit + 1)); // Ensure minimum 1 unit duration
 			let stretch = Stretch::new(stretch_range, time_unit);
@@ -399,6 +398,10 @@ impl PreGridAlgebra {
 		stretch_range: &StretchRange,
 		occupancy: &[Vec<(TaskId, StretchRange)>],
 	) -> bool {
+		log::info!("Checking temporal overlap for in lane {}", lane_index);
+		log::info!("Stretch range: {:?}", stretch_range);
+		log::info!("Occupancy: {:?}", occupancy);
+
 		if lane_index >= occupancy.len() {
 			return false;
 		}
