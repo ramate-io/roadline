@@ -198,6 +198,7 @@ mod tests {
 			selection_resource: ResMut<SelectionResource>,
 			mut ui_query: Query<&mut BorderColor>,
 			roadline: Res<Roadline>,
+			pixel_scale: Res<PixelScale>,
 		) {
 			// Test with world coordinates that should hit the task
 			// Task is at Vec3(100.0, 200.0, 0.0) with actual bounds min=(75, 175), max=(125, 225)
@@ -260,6 +261,7 @@ mod tests {
 			selection_resource: ResMut<SelectionResource>,
 			mut ui_query: Query<&mut BorderColor>,
 			roadline: Res<Roadline>,
+			pixel_scale: Res<PixelScale>,
 		) {
 			// Test with world coordinates that should NOT hit the task
 			// Task is at Vec3(100.0, 200.0, 0.0) with actual bounds min=(75, 175), max=(125, 225)
@@ -326,6 +328,7 @@ mod tests {
 			selection_resource: ResMut<SelectionResource>,
 			mut ui_query: Query<&mut BorderColor>,
 			roadline: Res<Roadline>,
+			pixel_scale: Res<PixelScale>,
 		) {
 			// Test with world coordinates that should hit the task
 			let world_pos = Vec2::new(100.0, 200.0);
