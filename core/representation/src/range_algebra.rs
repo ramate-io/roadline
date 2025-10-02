@@ -305,12 +305,7 @@ mod tests {
 
 	use crate::graph::Graph;
 	use chrono::{DateTime, Utc};
-	use roadline_util::duration::Duration;
-	use roadline_util::task::{
-		range::{End, PointOfReference, Start, TargetDate},
-		Task,
-	};
-	use std::collections::BTreeSet;
+	use roadline_util::task::Task;
 	use std::time::Duration as StdDuration;
 
 	/// Creates a test date from an ISO string.
@@ -321,58 +316,20 @@ mod tests {
 		Date::new(datetime)
 	}
 
-	/// Creates a test task with the specified parameters.
-	fn create_test_task(
-		id: u8,
-		reference_id: u8,
-		offset_days: u64,
-		duration_days: u64,
-	) -> Result<Task, anyhow::Error> {
-		let id = TaskId::new(id);
-		let reference_id = TaskId::new(reference_id);
-
-		let start = Start::from(TargetDate {
-			point_of_reference: PointOfReference::from(reference_id),
-			duration: Duration::from(StdDuration::from_secs(offset_days * 24 * 60 * 60)),
-		});
-
-		let end = End::from(Duration::from(StdDuration::from_secs(duration_days * 24 * 60 * 60)));
-
-		let range = roadline_util::task::Range::new(start, end);
-
-		Ok(Task::new(
-			id,
-			roadline_util::task::Title::new_test(),
-			BTreeSet::new(),
-			BTreeSet::new(),
-			roadline_util::task::Summary::new_test(),
-			range,
-		))
-	}
-
-	fn create_test_task_with_dependencies(
-		id: u8,
-		reference_id: u8,
-		offset_days: u64,
-		duration_days: u64,
-		dependencies: BTreeSet<u8>,
-	) -> Result<Task, anyhow::Error> {
-		let mut task = create_test_task(id, reference_id, offset_days, duration_days)?;
-		task.dependencies_mut()
-			.extend(dependencies.into_iter().map(|id| TaskId::new(id)));
-		Ok(task)
-	}
-
 	/// Creates a simple test graph with one root task and one dependent task.
 	fn create_simple_valid_test_graph() -> Result<Graph, anyhow::Error> {
 		let mut graph = Graph::new();
 
 		// Root task: T1 starts at itself + 0, duration 30 days
-		let task1 = create_test_task_with_dependencies(1, 1, 0, 30, BTreeSet::new())?;
-		graph.add(task1)?;
+		let task1 =
+			Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(30 * 24 * 60 * 60));
+		graph.add(task1.clone())?;
 
 		// Dependent task: T2 starts at T1 + 0, duration 15 days
-		let task2 = create_test_task_with_dependencies(2, 1, 0, 15, BTreeSet::from_iter([1]))?;
+		let task2 = Task::test_from_id(2)?
+			.after(&task1)
+			.for_standard_duration(StdDuration::from_secs(15 * 24 * 60 * 60))
+			.with_dependencies([1]);
 		graph.add(task2)?;
 
 		Ok(graph)
@@ -383,19 +340,32 @@ mod tests {
 		let mut graph = Graph::new();
 
 		// Root task: T1 starts at itself + 0, duration 30 days
-		let task1 = create_test_task_with_dependencies(1, 1, 0, 30, BTreeSet::new())?;
-		graph.add(task1)?;
+		let task1 =
+			Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(30 * 24 * 60 * 60));
+		graph.add(task1.clone())?;
 
 		// T2 starts at T1 + 10 days, duration 20 days
-		let task2 = create_test_task_with_dependencies(2, 1, 10, 20, BTreeSet::from_iter([1]))?;
-		graph.add(task2)?;
+		let task2 = Task::test_from_id(2)?
+			.after(&task1)
+			.offset_start_date(StdDuration::from_secs(10 * 24 * 60 * 60))
+			.for_standard_duration(StdDuration::from_secs(20 * 24 * 60 * 60))
+			.with_dependencies([1]);
+		graph.add(task2.clone())?;
 
 		// T3 starts at T2 + 5 days, duration 15 days
-		let task3 = create_test_task_with_dependencies(3, 2, 5, 15, BTreeSet::from_iter([2]))?;
+		let task3 = Task::test_from_id(3)?
+			.after(&task2)
+			.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
+			.for_standard_duration(StdDuration::from_secs(15 * 24 * 60 * 60))
+			.with_dependencies([2]);
 		graph.add(task3)?;
 
 		// T4 starts at T1 + 5 days, duration 15 days
-		let task4 = create_test_task_with_dependencies(4, 1, 5, 15, BTreeSet::from_iter([1]))?;
+		let task4 = Task::test_from_id(4)?
+			.after(&task1)
+			.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
+			.for_standard_duration(StdDuration::from_secs(15 * 24 * 60 * 60))
+			.with_dependencies([1]);
 		graph.add(task4)?;
 
 		Ok(graph)
@@ -405,15 +375,23 @@ mod tests {
 		let mut graph = Graph::new();
 
 		// task1 is a root task
-		let task1 = create_test_task_with_dependencies(1, 1, 0, 30, BTreeSet::new())?;
-		graph.add(task1)?;
+		let task1 =
+			Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(30 * 24 * 60 * 60));
+		graph.add(task1.clone())?;
 
 		// task2 depends on task1 and is placed after task1
-		let task2 = create_test_task_with_dependencies(2, 1, 0, 15, BTreeSet::from_iter([1]))?;
-		graph.add(task2)?;
+		let task2 = Task::test_from_id(2)?
+			.after(&task1)
+			.for_standard_duration(StdDuration::from_secs(15 * 24 * 60 * 60))
+			.with_dependencies([1]);
+		graph.add(task2.clone())?;
 
 		// task3 depends on task2 but is place relative to task1, beginning before task2 ends
-		let task3 = create_test_task_with_dependencies(3, 1, 5, 15, BTreeSet::from_iter([2]))?;
+		let task3 = Task::test_from_id(3)?
+			.after(&task1)
+			.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
+			.for_standard_duration(StdDuration::from_secs(15 * 24 * 60 * 60))
+			.with_dependencies([2]);
 		graph.add(task3)?;
 
 		Ok(graph)
@@ -488,19 +466,30 @@ mod tests {
 		let mut graph = Graph::new();
 
 		// Root task: T1 starts at itself + 0, duration 10 days
-		let task1 = create_test_task_with_dependencies(1, 1, 0, 10, BTreeSet::new())?;
-		graph.add(task1)?;
+		let task1 =
+			Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
+		graph.add(task1.clone())?;
 
 		// T2 starts at T1 + 0, duration 5 days
-		let task2 = create_test_task_with_dependencies(2, 1, 0, 5, BTreeSet::from_iter([1]))?;
-		graph.add(task2)?;
+		let task2 = Task::test_from_id(2)?
+			.after(&task1)
+			.for_standard_duration(StdDuration::from_secs(5 * 24 * 60 * 60))
+			.with_dependencies([1]);
+		graph.add(task2.clone())?;
 
 		// T3 starts at T1 + 0, duration 5 days - should conflict with T2 dependency
-		let task3 = create_test_task_with_dependencies(3, 1, 0, 5, BTreeSet::from_iter([2]))?;
+		let task3 = Task::test_from_id(3)?
+			.after(&task1)
+			.for_standard_duration(StdDuration::from_secs(5 * 24 * 60 * 60))
+			.with_dependencies([2]);
 		graph.add(task3)?;
 
 		// T4 starts at T1 + 2, duration 5 days - should also conflict with T2 dependency
-		let task4 = create_test_task_with_dependencies(4, 1, 2, 5, BTreeSet::from_iter([2]))?;
+		let task4 = Task::test_from_id(4)?
+			.after(&task1)
+			.offset_start_date(StdDuration::from_secs(2 * 24 * 60 * 60))
+			.for_standard_duration(StdDuration::from_secs(5 * 24 * 60 * 60))
+			.with_dependencies([2]);
 		graph.add(task4)?;
 
 		let pre_algebra = PreRangeAlgebra::new(graph);
@@ -546,13 +535,28 @@ mod tests {
 
 		// Create two separate cycles:
 		// Cycle 1: T1 -> T2 -> T3 -> T1
-		let task1 = create_test_task_with_dependencies(1, 2, 0, 10, BTreeSet::from_iter([3]))?;
-		let task2 = create_test_task_with_dependencies(2, 3, 0, 10, BTreeSet::from_iter([1]))?;
-		let task3 = create_test_task_with_dependencies(3, 1, 0, 10, BTreeSet::from_iter([2]))?;
+		let task1 = Task::test_from_id(1)?
+			.after(&Task::test_from_id(2)?)
+			.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60))
+			.with_dependencies([3]);
+		let task2 = Task::test_from_id(2)?
+			.after(&Task::test_from_id(3)?)
+			.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60))
+			.with_dependencies([1]);
+		let task3 = Task::test_from_id(3)?
+			.after(&Task::test_from_id(1)?)
+			.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60))
+			.with_dependencies([2]);
 
 		// Cycle 2: T4 -> T5 -> T4
-		let task4 = create_test_task_with_dependencies(4, 5, 0, 10, BTreeSet::from_iter([5]))?;
-		let task5 = create_test_task_with_dependencies(5, 4, 0, 10, BTreeSet::from_iter([4]))?;
+		let task4 = Task::test_from_id(4)?
+			.after(&Task::test_from_id(5)?)
+			.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60))
+			.with_dependencies([5]);
+		let task5 = Task::test_from_id(5)?
+			.after(&Task::test_from_id(4)?)
+			.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60))
+			.with_dependencies([4]);
 
 		graph.add(task1)?;
 		graph.add(task2)?;
