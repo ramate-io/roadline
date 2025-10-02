@@ -136,12 +136,6 @@ impl PreGridAlgebra {
 		for (&task_id, span) in spans {
 			let start_timestamp = span.start.inner().inner().timestamp();
 			let end_timestamp = span.end.inner().inner().timestamp();
-
-			let start_date =
-				DateTime::from_timestamp(start_timestamp as i64, 0).unwrap_or_else(|| Utc::now());
-			let end_date =
-				DateTime::from_timestamp(end_timestamp as i64, 0).unwrap_or_else(|| Utc::now());
-
 			// Convert to grid units relative to reference time
 			let start_unit = ((start_timestamp - reference_time) / unit_seconds) as u8;
 			let end_unit =
