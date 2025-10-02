@@ -427,7 +427,7 @@ mod tests {
 			&mut app,
 			TaskId::from(1),
 			Vec3::new(100.0, 200.0, 0.0),
-			Vec2::new(200.0, 75.0),
+			Vec2::new(200.0, 5.0),
 			"UI Test Task".to_string(),
 		)?;
 

@@ -15,8 +15,8 @@ pub mod tests {
 
 		let params = TestTasksParams::new().with_basic_task(
 			TaskId::from(42),
-			Vec3::new(175.0, 275.0, 0.5),
-			Vec2::new(300.0, 75.0),
+			Vec3::new(15.0, 25.0, 0.5),
+			Vec2::new(300.0, 5.0),
 			"Complete Pipeline Test".to_string(),
 		);
 

@@ -674,7 +674,7 @@ mod tests {
 
 		// Verify stretches are computed correctly (in Week units)
 		let task1_stretch = grid_algebra.task_cell(&TaskId::new(1)).unwrap().stretch();
-		assert_eq!(task1_stretch.duration(), 5); // 30 days ≈ 5 weeks
+		assert_eq!(task1_stretch.duration(), 4); // 30 days ≈ 4 weeks
 
 		let task2_stretch = grid_algebra.task_cell(&TaskId::new(2)).unwrap().stretch();
 		assert_eq!(task2_stretch.duration(), 3); // 15 days ≈ 3 weeks

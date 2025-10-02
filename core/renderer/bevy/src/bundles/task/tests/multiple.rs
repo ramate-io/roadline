@@ -16,13 +16,13 @@ pub mod tests {
 			.with_basic_task(
 				TaskId::from(1),
 				Vec3::new(100.0, 100.0, 0.0),
-				Vec2::new(200.0, 75.0),
+				Vec2::new(200.0, 5.0),
 				"Task 1".to_string(),
 			)
 			.with_basic_task(
 				TaskId::from(2),
 				Vec3::new(200.0, 200.0, 0.0),
-				Vec2::new(275.0, 60.0),
+				Vec2::new(25.0, 60.0),
 				"Task 2".to_string(),
 			)
 			.with_basic_task(

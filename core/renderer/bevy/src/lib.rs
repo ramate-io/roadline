@@ -187,9 +187,9 @@ fn position_camera_on_leftmost_task(
 	// Find the leftmost task
 	for (task_id, start_x, start_y, end_x, _end_y) in roadline.task_rectangles() {
 		let _width = end_x - start_x;
-		let pixel_x = start_x as f32 * 75.0;
-		let pixel_y = start_y as f32 * 75.0;
-		let _sprite_width = _width as f32 * 75.0;
+		let pixel_x = start_x as f32 * 5.0;
+		let pixel_y = start_y as f32 * 5.0;
+		let _sprite_width = _width as f32 * 5.0;
 
 		// Use the left edge of the task (not the center)
 		let left_edge_x = pixel_x;
