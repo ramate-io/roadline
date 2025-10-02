@@ -29,6 +29,7 @@ impl CompletedStatusSpawner {
 		meshes: &mut ResMut<Assets<Mesh>>,
 		materials: &mut ResMut<Assets<ColorMaterial>>,
 		parent: Entity,
+		task_entity: Entity,
 		world_position: Vec3,
 		task_size: Vec2,
 	) {
@@ -52,6 +53,7 @@ impl CompletedStatusSpawner {
 				Text::new(format!("{}/{}", self.completed, self.total)),
 				TextColor(Color::oklch(0.40, 0.08, 149.0)),
 				TextFont { font_size: 12.0, ..Default::default() },
+				Visibility::Hidden, // hide until we have proper status markers
 				BorderRadius::all(Val::Px(16.0)),
 			))
 			.id();
@@ -67,17 +69,17 @@ impl CompletedStatusSpawner {
 				CheckMarkMesh,
 				Mesh2d(mesh_handle),
 				MeshMaterial2d(material_handle),
-				Transform::from_translation(check_mark_position).with_scale(Vec3::splat(20.0)), // Scale up the mesh to match test triangle
-				Visibility::Visible,
+				Transform::from_translation(Vec3::new(0.0, 0.0, 0.1)).with_scale(Vec3::splat(20.0)), // Scale up the mesh to match test triangle
+				// Visibility::Hidden, // hide until we have proper status markers
 				RenderLayers::layer(2),
 			))
 			.id();
 
-		// Attach status to parent
+		// Attach status to UI parent
 		commands.entity(parent).add_child(status_entity);
 
-		// Attach check mark mesh to parent as well so it gets cleaned up
-		commands.entity(parent).add_child(check_mark_entity);
+		// Attach check mark mesh to task entity so it gets cleaned up and has proper world positioning
+		commands.entity(task_entity).add_child(check_mark_entity);
 	}
 
 	/// Creates a stylized check mark mesh

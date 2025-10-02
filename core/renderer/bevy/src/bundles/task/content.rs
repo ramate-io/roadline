@@ -24,6 +24,7 @@ impl ContentSpawner {
 		meshes: &mut ResMut<Assets<Mesh>>,
 		materials: &mut ResMut<Assets<ColorMaterial>>,
 		parent: Entity,
+		task_entity: Entity,
 		world_position: Vec3,
 		task_size: Vec2,
 	) {
@@ -52,6 +53,7 @@ impl ContentSpawner {
 			meshes,
 			materials,
 			content_entity,
+			task_entity,
 			world_position,
 			task_size,
 		);
@@ -139,11 +141,13 @@ mod tests {
 			      mut materials: ResMut<Assets<ColorMaterial>>| {
 				let spawner = ContentSpawner::new(title.clone(), true, completed, total);
 				let parent_entity = commands.spawn_empty().id();
+				let task_entity = commands.spawn_empty().id();
 				spawner.spawn(
 					&mut commands,
 					&mut meshes,
 					&mut materials,
 					parent_entity,
+					task_entity,
 					world_position,
 					task_size,
 				);
