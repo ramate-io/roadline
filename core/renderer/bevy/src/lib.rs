@@ -183,10 +183,6 @@ fn position_camera_on_leftmost_task(
 	let mut leftmost_y = 0.0;
 	let mut _leftmost_task_id = None;
 
-	// Get visual bounds for scaling
-	let (max_width, max_height) = roadline.visual_bounds();
-	let max_width_f32 = max_width.value() as f32;
-	let _max_height_f32 = max_height.value() as f32;
 
 	// Find the leftmost task
 	for (task_id, start_x, start_y, end_x, _end_y) in roadline.task_rectangles() {

@@ -75,12 +75,6 @@ impl DependencySpawningSystem {
 			commands.entity(entity).despawn();
 		}
 
-		// Get the visual bounds to scale everything properly
-		let (max_width, max_height) = reified.visual_bounds();
-		println!("max_width: {:?}, max_height: {:?}", max_width, max_height);
-		let max_width_f32 = max_width.value() as f32;
-		let max_height_f32 = max_height.value() as f32;
-
 		// Create dependency curves for each bezier curve
 		for (dependency_id, start_point, end_point, control1, control2) in reified.bezier_curves() {
 			println!(
