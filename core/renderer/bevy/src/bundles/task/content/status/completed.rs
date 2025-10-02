@@ -60,10 +60,6 @@ impl CompletedStatusSpawner {
 		// Offset by half the task width to get to the right edge
 		let task_width_offset = task_size.x / 2.0;
 		let check_mark_position = world_position + Vec3::new(task_width_offset - 20.0, 0.0, 0.1);
-		println!(
-			"Spawning check mark mesh at world_position: {:?}, final_position: {:?}",
-			world_position, check_mark_position
-		);
 
 		// Spawn the check mark mesh at the same world position as the UI node
 		let _check_mark_entity = commands

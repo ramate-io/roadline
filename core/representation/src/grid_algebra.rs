@@ -142,8 +142,6 @@ impl PreGridAlgebra {
 			let end_date =
 				DateTime::from_timestamp(end_timestamp as i64, 0).unwrap_or_else(|| Utc::now());
 
-			println!("start_date: {:?}, end_date: {:?}", start_date, end_date);
-
 			// Convert to grid units relative to reference time
 			let start_unit = ((start_timestamp - reference_time) / unit_seconds) as u8;
 			let end_unit =

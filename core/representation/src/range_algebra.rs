@@ -146,8 +146,6 @@ impl PreRangeAlgebra {
 			.get(&task_id)
 			.ok_or(RangeAlgebraError::TaskNotFound { task_id })?;
 
-		println!("task: {:?}", task);
-
 		// Extract range components
 		// Start duration
 		let start_target_date = task.range.start.clone().into(); // Convert Start to TargetDate
@@ -157,11 +155,6 @@ impl PreRangeAlgebra {
 		// End duration
 		let end_duration: roadline_util::duration::Duration = task.range.end.clone().into(); // Convert End to Duration
 		let end_duration: std::time::Duration = end_duration.into(); // Convert to std Duration
-
-		println!("task_id: {:?}", task_id);
-		println!("start_target_date: {:?}", start_target_date);
-		println!("start_duration: {:?}", start_duration);
-		println!("end_duration: {:?}", end_duration);
 
 		// Compute start date
 		let start_date = if task.is_root() {
@@ -192,7 +185,6 @@ impl PreRangeAlgebra {
 		target_date: &roadline_util::task::range::TargetDate,
 		task_id: &TaskId,
 	) -> Result<Date, RangeAlgebraError> {
-		println!("target_date: {:?}", target_date);
 		let reference_id: TaskId = target_date.point_of_reference.clone().into();
 		let duration: roadline_util::duration::Duration = target_date.duration.clone().into(); // Convert to Duration
 		let duration: std::time::Duration = duration.into(); // Convert to std::time::Duration
@@ -210,11 +202,6 @@ impl PreRangeAlgebra {
 			.spans
 			.get(&reference_id)
 			.ok_or(RangeAlgebraError::InvalidReference { task_id: *task_id, reference_id })?;
-
-		println!("reference_id: {:?}", reference_id);
-		println!("task_id: {:?}", task_id);
-		println!("reference_span: {:?}", reference_span);
-		println!("duration: {:?}", duration);
 
 		// Start date = reference task's end date + offset duration
 		let reference_end_date = reference_span.end.inner();

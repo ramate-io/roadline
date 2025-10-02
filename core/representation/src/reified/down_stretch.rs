@@ -67,7 +67,6 @@ impl DownStretch {
 		let (start, end) = stretch.scale(unit);
 
 		// subtract the trim from the end
-		println!("start: {}, end: {}, trim: {}", start, end, trim.value().value());
 		let end = end as u16 - trim.value().value();
 
 		let down_stretch =

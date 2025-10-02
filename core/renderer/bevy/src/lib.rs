@@ -211,7 +211,7 @@ fn position_camera_on_leftmost_task(
 		let viewport_width = 1200.0; // Default viewport width
 		let camera_x = leftmost_x + (viewport_width / 2.0);
 		
-		println!(
+		log::info!(
 			"Left-aligning camera: node at ({:.1}, {:.1}), camera at ({:.1}, {:.1})",
 			leftmost_x, leftmost_y, camera_x, leftmost_y
 		);
@@ -222,7 +222,7 @@ fn position_camera_on_leftmost_task(
 			transform.translation.y = leftmost_y;
 		}
 	} else {
-		println!("No tasks found, keeping camera at origin");
+		log::info!("No tasks found, keeping camera at origin");
 	}
 	
 	// Mark as positioned

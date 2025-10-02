@@ -77,9 +77,13 @@ impl DependencySpawningSystem {
 
 		// Create dependency curves for each bezier curve
 		for (dependency_id, start_point, end_point, control1, control2) in reified.bezier_curves() {
-			println!(
+			log::info!(
 				"dependency_id: {:?}, start: {:?}, end: {:?}, control1: {:?}, control2: {:?}",
-				dependency_id, start_point, end_point, control1, control2
+				dependency_id,
+				start_point,
+				end_point,
+				control1,
+				control2
 			);
 
 			// Convert reified units to pixel coordinates

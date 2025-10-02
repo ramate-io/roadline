@@ -79,11 +79,15 @@ impl TaskSpawningSystem {
 
 		// Create new task sprites for each task
 		for (task_id, start_x, start_y, end_x, end_y) in reified.task_rectangles() {
-			println!(
+			log::info!(
 				"task_id: {:?}, start_x: {}, start_y: {}, end_x: {}, end_y: {}",
-				task_id, start_x, start_y, end_x, end_y
+				task_id,
+				start_x,
+				start_y,
+				end_x,
+				end_y
 			);
-			println!("Max bounds: width={}, height={}", max_width_f32, max_height_f32);
+			log::info!("Max bounds: width={}, height={}", max_width_f32, max_height_f32);
 
 			let (x, y) = (start_x, start_y);
 			let height = end_y - start_y;
