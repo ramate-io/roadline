@@ -12,16 +12,22 @@ status() {
     fi
 }
 
-echo "Running commit-msg hook: Checking for site build trigger..."
+echo "Checking for site build trigger in commit message..."
 
-# Get commit message from the file passed as argument
-COMMIT_MSG_FILE="$1"
+# Get the commit message from the current commit being made
+# We need to check if the commit message contains the build trigger
+# Since we're in pre-commit, we can check the commit message file
+COMMIT_MSG_FILE=".git/COMMIT_EDITMSG"
 if [ ! -f "$COMMIT_MSG_FILE" ]; then
-    echo "❌ Commit message file not found: $COMMIT_MSG_FILE"
-    exit 1
+    # If the file doesn't exist, we're probably not in a commit context
+    # Check if we can get the message from git
+    if ! COMMIT_MSG=$(git log -1 --pretty=%B 2>/dev/null); then
+        echo "⏭️  No commit message found, skipping site build check"
+        exit 0
+    fi
+else
+    COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
 fi
-
-COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
 
 # Check if commit message contains the build trigger pattern
 # Acceptable patterns:
@@ -54,9 +60,6 @@ if [[ "$COMMIT_MSG" =~ ci\(pre-commit:\ build-site-if\): || "$COMMIT_MSG" =~ ci\
     echo "📝 Adding dist.zip to git..."
     git add dist.zip
     status "dist.zip added to git"
-    
-    # Note: dist.zip will be included in the current commit automatically
-    echo "ℹ️  dist.zip will be included in the current commit"
     
     echo "✅ Site build and packaging completed!"
 else
