@@ -134,8 +134,9 @@ impl TaskCursorInteractionSystem {
 		let _max_width_f32 = max_width.value() as f32;
 		let _max_height_f32 = max_height.value() as f32;
 
-		// Scale factor: same as tasks
-		let pixels_per_unit = 75.0;
+		// Scale factors: same as tasks
+		let pixels_per_x_unit = 10.0;
+		let pixels_per_y_unit = 75.0;
 
 		// Check for clicks first (higher priority)
 		for ev in mouse_events.read() {
@@ -147,7 +148,8 @@ impl TaskCursorInteractionSystem {
 					&mut selection_resource,
 					&mut ui_query,
 					&roadline,
-					pixels_per_unit,
+					pixels_per_x_unit,
+					pixels_per_y_unit,
 					task_selection_changed_events,
 					event_system,
 					task_extern_events,
@@ -166,7 +168,8 @@ impl TaskCursorInteractionSystem {
 			&mut ui_query,
 			&selection_resource,
 			&roadline,
-			pixels_per_unit,
+			pixels_per_x_unit,
+			pixels_per_y_unit,
 		);
 	}
 }

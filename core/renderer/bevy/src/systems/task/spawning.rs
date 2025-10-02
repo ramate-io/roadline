@@ -9,12 +9,13 @@ use bevy::sprite::ColorMaterial;
 /// Configuration for task spawning systems
 #[derive(Debug, Clone, Resource)]
 pub struct TaskSpawningSystem {
-	pub pixels_per_unit: f32,
+	pub pixels_per_x_unit: f32,
+	pub pixels_per_y_unit: f32,
 }
 
 impl Default for TaskSpawningSystem {
 	fn default() -> Self {
-		Self { pixels_per_unit: 75.0 }
+		Self { pixels_per_x_unit: 10.0, pixels_per_y_unit: 75.0 }
 	}
 }
 
@@ -94,10 +95,10 @@ impl TaskSpawningSystem {
 			let width = end_x - start_x;
 
 			// Convert reified units to pixel coordinates using proper scaling
-			let pixel_x = x as f32 * self.pixels_per_unit;
-			let pixel_y = y as f32 * self.pixels_per_unit;
-			let sprite_width = width as f32 * self.pixels_per_unit;
-			let sprite_height = height as f32 * self.pixels_per_unit;
+			let pixel_x = x as f32 * self.pixels_per_x_unit;
+			let pixel_y = y as f32 * self.pixels_per_y_unit;
+			let sprite_width = width as f32 * self.pixels_per_x_unit;
+			let sprite_height = height as f32 * self.pixels_per_y_unit;
 
 			// Adjust for left justification (Bevy positions by center, so move right by half width)
 			let left_justified_x = pixel_x + (sprite_width / 2.0);
@@ -295,8 +296,12 @@ mod tests {
 
 	#[test]
 	fn test_spawning_system_custom_pixels_per_unit() -> Result<(), Box<dyn std::error::Error>> {
-		let custom_pixels_per_unit = 100.0;
-		let spawning_system = TaskSpawningSystem { pixels_per_unit: custom_pixels_per_unit };
+		let custom_pixels_per_x_unit = 20.0;
+		let custom_pixels_per_y_unit = 100.0;
+		let spawning_system = TaskSpawningSystem {
+			pixels_per_x_unit: custom_pixels_per_x_unit,
+			pixels_per_y_unit: custom_pixels_per_y_unit,
+		};
 
 		// Setup app with all required resources
 		let mut app = setup_spawning_test_app();
@@ -319,7 +324,7 @@ mod tests {
 		// Verify that the scaling was applied correctly by checking task positions
 		// (This is a basic check - in a real scenario you'd want more sophisticated verification)
 		for (_, transform, _) in task_query.iter(app.world()) {
-			// Tasks should be positioned based on the custom pixels_per_unit
+			// Tasks should be positioned based on the custom pixels_per_x_unit and pixels_per_y_unit
 			// The exact values depend on the test roadline data
 			assert!(transform.translation.x.is_finite());
 			assert!(transform.translation.y.is_finite());
@@ -358,8 +363,12 @@ mod tests {
 	#[test]
 	fn test_spawning_system_entity_positions_and_scaling() -> Result<(), Box<dyn std::error::Error>>
 	{
-		let custom_pixels_per_unit = 75.0;
-		let spawning_system = TaskSpawningSystem { pixels_per_unit: custom_pixels_per_unit };
+		let custom_pixels_per_x_unit = 10.0;
+		let custom_pixels_per_y_unit = 75.0;
+		let spawning_system = TaskSpawningSystem {
+			pixels_per_x_unit: custom_pixels_per_x_unit,
+			pixels_per_y_unit: custom_pixels_per_y_unit,
+		};
 
 		// Setup app with all required resources
 		let mut app = setup_spawning_test_app();
@@ -386,8 +395,8 @@ mod tests {
 		// Get the roadline to understand the expected bounds and task rectangles
 		let roadline = app.world().resource::<Roadline>();
 		let (max_width, max_height) = roadline.visual_bounds();
-		let max_width_f32 = max_width.value() as f32 * custom_pixels_per_unit;
-		let max_height_f32 = max_height.value() as f32 * custom_pixels_per_unit;
+		let max_width_f32 = max_width.value() as f32 * custom_pixels_per_x_unit;
+		let max_height_f32 = max_height.value() as f32 * custom_pixels_per_y_unit;
 
 		// Collect task positions and verify they match expected calculations
 		let mut verified_tasks = 0;
@@ -401,10 +410,10 @@ mod tests {
 				let height = end_y - start_y;
 
 				// Calculate expected position based on the spawning logic
-				let expected_pixel_x = start_x as f32 * custom_pixels_per_unit;
-				let expected_pixel_y = start_y as f32 * custom_pixels_per_unit;
-				let expected_sprite_width = width as f32 * custom_pixels_per_unit;
-				let _expected_sprite_height = height as f32 * custom_pixels_per_unit;
+				let expected_pixel_x = start_x as f32 * custom_pixels_per_x_unit;
+				let expected_pixel_y = start_y as f32 * custom_pixels_per_y_unit;
+				let expected_sprite_width = width as f32 * custom_pixels_per_x_unit;
+				let _expected_sprite_height = height as f32 * custom_pixels_per_y_unit;
 
 				// Adjust for left justification (Bevy positions by center, so move right by half width)
 				let expected_left_justified_x = expected_pixel_x + (expected_sprite_width / 2.0);

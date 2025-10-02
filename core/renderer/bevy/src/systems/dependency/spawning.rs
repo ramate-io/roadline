@@ -13,12 +13,13 @@ use crate::systems::dependency::{DependencyCurveData, DependencyHoverable};
 /// Configuration for dependency spawning systems
 #[derive(Debug, Clone, Resource)]
 pub struct DependencySpawningSystem {
-	pub pixels_per_unit: f32,
+	pub pixels_per_x_unit: f32,
+	pub pixels_per_y_unit: f32,
 }
 
 impl Default for DependencySpawningSystem {
 	fn default() -> Self {
-		Self { pixels_per_unit: 75.0 }
+		Self { pixels_per_x_unit: 10.0, pixels_per_y_unit: 75.0 }
 	}
 }
 
@@ -88,23 +89,23 @@ impl DependencySpawningSystem {
 
 			// Convert reified units to pixel coordinates
 			let start_pos = Vec3::new(
-				start_point.x.value() as f32 * self.pixels_per_unit,
-				start_point.y.value() as f32 * self.pixels_per_unit,
+				start_point.x.value() as f32 * self.pixels_per_x_unit,
+				start_point.y.value() as f32 * self.pixels_per_y_unit,
 				0.0,
 			);
 			let end_pos = Vec3::new(
-				end_point.x.value() as f32 * self.pixels_per_unit,
-				end_point.y.value() as f32 * self.pixels_per_unit,
+				end_point.x.value() as f32 * self.pixels_per_x_unit,
+				end_point.y.value() as f32 * self.pixels_per_y_unit,
 				0.0,
 			);
 			let control1_pos = Vec3::new(
-				control1.x.value() as f32 * self.pixels_per_unit,
-				control1.y.value() as f32 * self.pixels_per_unit,
+				control1.x.value() as f32 * self.pixels_per_x_unit,
+				control1.y.value() as f32 * self.pixels_per_y_unit,
 				0.0,
 			);
 			let control2_pos = Vec3::new(
-				control2.x.value() as f32 * self.pixels_per_unit,
-				control2.y.value() as f32 * self.pixels_per_unit,
+				control2.x.value() as f32 * self.pixels_per_x_unit,
+				control2.y.value() as f32 * self.pixels_per_y_unit,
 				0.0,
 			);
 
@@ -414,9 +415,12 @@ mod tests {
 	#[test]
 	fn test_dependency_spawning_system_custom_pixels_per_unit(
 	) -> Result<(), Box<dyn std::error::Error>> {
-		let custom_pixels_per_unit = 100.0;
-		let dependency_system =
-			DependencySpawningSystem { pixels_per_unit: custom_pixels_per_unit };
+		let custom_pixels_per_x_unit = 20.0;
+		let custom_pixels_per_y_unit = 100.0;
+		let dependency_system = DependencySpawningSystem {
+			pixels_per_x_unit: custom_pixels_per_x_unit,
+			pixels_per_y_unit: custom_pixels_per_y_unit,
+		};
 
 		// Setup app with all required resources
 		let mut app = setup_dependency_test_app();
@@ -439,7 +443,7 @@ mod tests {
 		// Verify that the scaling was applied correctly by checking dependency positions
 		// (This is a basic check - in a real scenario you'd want more sophisticated verification)
 		for (_, transform, _) in dependency_query.iter(app.world()) {
-			// Dependencies should be positioned based on the custom pixels_per_unit
+			// Dependencies should be positioned based on the custom pixels_per_x_unit and pixels_per_y_unit
 			// The exact values depend on the test roadline data
 			assert!(transform.translation.x.is_finite());
 			assert!(transform.translation.y.is_finite());
@@ -482,9 +486,12 @@ mod tests {
 	#[test]
 	fn test_dependency_spawning_system_entity_positions_and_scaling(
 	) -> Result<(), Box<dyn std::error::Error>> {
-		let custom_pixels_per_unit = 75.0;
-		let dependency_system =
-			DependencySpawningSystem { pixels_per_unit: custom_pixels_per_unit };
+		let custom_pixels_per_x_unit = 10.0;
+		let custom_pixels_per_y_unit = 75.0;
+		let dependency_system = DependencySpawningSystem {
+			pixels_per_x_unit: custom_pixels_per_x_unit,
+			pixels_per_y_unit: custom_pixels_per_y_unit,
+		};
 
 		// Setup app with all required resources
 		let mut app = setup_dependency_test_app();
@@ -508,8 +515,8 @@ mod tests {
 		// Get the roadline to understand the expected bounds and bezier curves
 		let roadline = app.world().resource::<Roadline>();
 		let (max_width, max_height) = roadline.visual_bounds();
-		let max_width_f32 = max_width.value() as f32 * custom_pixels_per_unit;
-		let max_height_f32 = max_height.value() as f32 * custom_pixels_per_unit;
+		let max_width_f32 = max_width.value() as f32 * custom_pixels_per_x_unit;
+		let max_height_f32 = max_height.value() as f32 * custom_pixels_per_y_unit;
 
 		// Collect dependency positions and verify they match expected calculations
 		let mut verified_dependencies = 0;
@@ -522,13 +529,13 @@ mod tests {
 			if let Some((_, start_point, end_point, _control1, _control2)) = bezier_curve {
 				// Calculate expected positions based on the spawning logic
 				let expected_start_pos = Vec3::new(
-					start_point.x.value() as f32 * custom_pixels_per_unit,
-					start_point.y.value() as f32 * custom_pixels_per_unit,
+					start_point.x.value() as f32 * custom_pixels_per_x_unit,
+					start_point.y.value() as f32 * custom_pixels_per_y_unit,
 					0.0,
 				);
 				let expected_end_pos = Vec3::new(
-					end_point.x.value() as f32 * custom_pixels_per_unit,
-					end_point.y.value() as f32 * custom_pixels_per_unit,
+					end_point.x.value() as f32 * custom_pixels_per_x_unit,
+					end_point.y.value() as f32 * custom_pixels_per_y_unit,
 					0.0,
 				);
 

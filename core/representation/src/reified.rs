@@ -41,8 +41,8 @@ impl ReifiedConfig {
 	/// Default configuration with reasonable visual spacing
 	pub fn default_config() -> Self {
 		Self {
-			connection_trim: Trim::new(ReifiedUnit::new(1)), // 2 units of gutter space
-			inter_lane_padding: DownLanePadding::new(ReifiedUnit::new(2)), // 2 units between lanes
+			connection_trim: Trim::new(ReifiedUnit::new(3)), // 3 units of gutter space
+			inter_lane_padding: DownLanePadding::new(ReifiedUnit::new(1)), // 2 units between lanes
 		}
 	}
 

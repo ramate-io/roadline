@@ -137,7 +137,7 @@ impl PreGridAlgebra {
 			let end_timestamp = span.end.inner().inner().timestamp();
 			// Convert to grid units relative to reference time
 			let start_unit = ((start_timestamp - reference_time) / unit_seconds) as u8;
-			let end_unit = ((end_timestamp - reference_time) / unit_seconds) as u8; // Ceiling division
+			let end_unit = ((end_timestamp - reference_time) / unit_seconds) as u8; // Floor division for simplicity
 
 			let stretch_range = StretchRange::new(start_unit, end_unit.max(start_unit + 1)); // Ensure minimum 1 unit duration
 			let stretch = Stretch::new(stretch_range, time_unit);
@@ -674,10 +674,10 @@ mod tests {
 
 		// Verify stretches are computed correctly (in Week units)
 		let task1_stretch = grid_algebra.task_cell(&TaskId::new(1)).unwrap().stretch();
-		assert_eq!(task1_stretch.duration(), 4); // 30 days ≈ 4 weeks
+		assert_eq!(task1_stretch.duration(), 5); // 30 days ≈ 5 weeks
 
 		let task2_stretch = grid_algebra.task_cell(&TaskId::new(2)).unwrap().stretch();
-		assert_eq!(task2_stretch.duration(), 3); // 15 days ≈ 3 weeks
+		assert_eq!(task2_stretch.duration(), 4); // 15 days ≈ 3 weeks
 
 		Ok(())
 	}

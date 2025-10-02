@@ -12,7 +12,8 @@ impl TaskBoundsChecker {
 		task_query: &Query<(Entity, &Transform, &Task)>,
 		roadline: &Roadline,
 		world_pos: Vec2,
-		pixels_per_unit: f32,
+		pixels_per_x_unit: f32,
+		pixels_per_y_unit: f32,
 	) -> Option<TaskId> {
 		for (_entity, transform, task) in task_query.iter() {
 			if Self::is_position_within_task_bounds(
@@ -20,7 +21,8 @@ impl TaskBoundsChecker {
 				task,
 				roadline,
 				world_pos,
-				pixels_per_unit,
+				pixels_per_x_unit,
+				pixels_per_y_unit,
 			) {
 				return Some(task.task_id);
 			}
@@ -34,7 +36,8 @@ impl TaskBoundsChecker {
 		task: &Task,
 		roadline: &Roadline,
 		world_pos: Vec2,
-		pixels_per_unit: f32,
+		pixels_per_x_unit: f32,
+		pixels_per_y_unit: f32,
 	) -> bool {
 		// Get task position from transform
 		let task_pos = transform.translation.truncate();
@@ -45,8 +48,8 @@ impl TaskBoundsChecker {
 		let height = end_y - start_y;
 
 		// Convert reified units to pixel coordinates using same scaling as task system
-		let sprite_width = width as f32 * pixels_per_unit;
-		let sprite_height = height as f32 * pixels_per_unit;
+		let sprite_width = width as f32 * pixels_per_x_unit;
+		let sprite_height = height as f32 * pixels_per_y_unit;
 
 		let min_x = task_pos.x - sprite_width / 2.0;
 		let max_x = task_pos.x + sprite_width / 2.0;

@@ -212,7 +212,7 @@ impl Stretch {
 
 		// convert the start and end to the new unit
 		let start = start / unit.seconds();
-		let end = end / unit.seconds();
+		let end = (end + unit.seconds() - 1) / unit.seconds();
 
 		(start, end)
 	}
