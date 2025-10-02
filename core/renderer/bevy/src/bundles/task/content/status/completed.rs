@@ -62,7 +62,7 @@ impl CompletedStatusSpawner {
 		let check_mark_position = world_position + Vec3::new(task_width_offset - 20.0, 0.0, 0.1);
 
 		// Spawn the check mark mesh at the same world position as the UI node
-		let _check_mark_entity = commands
+		let check_mark_entity = commands
 			.spawn((
 				CheckMarkMesh,
 				Mesh2d(mesh_handle),
@@ -75,6 +75,9 @@ impl CompletedStatusSpawner {
 
 		// Attach status to parent
 		commands.entity(parent).add_child(status_entity);
+
+		// Attach check mark mesh to parent as well so it gets cleaned up
+		commands.entity(parent).add_child(check_mark_entity);
 	}
 
 	/// Creates a stylized check mark mesh

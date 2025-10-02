@@ -489,10 +489,11 @@ fn camera_zoom_system(
 						// For single touch, treat vertical movement as zoom
 						// This is a simple approximation - real pinch zoom would need multi-touch detection
 						let delta = event.position - last_pos;
-						let zoom_sensitivity = 0.01;
+						let zoom_sensitivity = 0.005; // Reduced sensitivity for smoother zoom
 						let zoom_factor = 1.0 - (delta.y * zoom_sensitivity);
 						
-						if zoom_factor != 1.0 {
+						// Only update if the change is significant enough to avoid jitter
+						if (zoom_factor - 1.0).abs() > 0.01 {
 							pixel_scale.pixels_per_x_unit = (pixel_scale.pixels_per_x_unit * zoom_factor).clamp(2.0, 50.0);
 							pixel_scale.pixels_per_y_unit = (pixel_scale.pixels_per_y_unit * zoom_factor).clamp(15.0, 375.0);
 							render_events.write(RenderUpdateEvent);
