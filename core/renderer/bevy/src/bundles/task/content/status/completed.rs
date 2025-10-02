@@ -30,7 +30,7 @@ impl CompletedStatusSpawner {
 		materials: &mut ResMut<Assets<ColorMaterial>>,
 		parent: Entity,
 		task_entity: Entity,
-		world_position: Vec3,
+		_world_position: Vec3,
 		task_size: Vec2,
 	) {
 		// Create the check mark mesh
@@ -53,7 +53,7 @@ impl CompletedStatusSpawner {
 				Text::new(format!("{}/{}", self.completed, self.total)),
 				TextColor(Color::oklch(0.40, 0.08, 149.0)),
 				TextFont { font_size: 12.0, ..Default::default() },
-				Visibility::Hidden, // hide until we have proper status markers
+				Visibility::Visible, // hide until we have proper status markers
 				BorderRadius::all(Val::Px(16.0)),
 			))
 			.id();
@@ -61,7 +61,7 @@ impl CompletedStatusSpawner {
 		// Position the check mark at the right side of the task box
 		// Offset by half the task width to get to the right edge
 		let task_width_offset = task_size.x / 2.0;
-		let check_mark_position = world_position + Vec3::new(task_width_offset - 20.0, 0.0, 0.1);
+		let check_mark_position = Vec3::ZERO + Vec3::new(task_width_offset - 20.0, 0.0, 0.1);
 
 		// Spawn the check mark mesh at the same world position as the UI node
 		let check_mark_entity = commands
@@ -69,8 +69,9 @@ impl CompletedStatusSpawner {
 				CheckMarkMesh,
 				Mesh2d(mesh_handle),
 				MeshMaterial2d(material_handle),
-				Transform::from_translation(Vec3::new(0.0, 0.0, 0.1)).with_scale(Vec3::splat(20.0)), // Scale up the mesh to match test triangle
-				// Visibility::Hidden, // hide until we have proper status markers
+				Transform::from_translation(Vec3::from(check_mark_position))
+					.with_scale(Vec3::splat(20.0)), // Scale up the mesh to match test triangle
+				Visibility::Visible, // hide until we have proper status markers
 				RenderLayers::layer(2),
 			))
 			.id();
