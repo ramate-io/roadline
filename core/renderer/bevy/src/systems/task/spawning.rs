@@ -1,5 +1,6 @@
 use crate::bundles::task::TaskSpawner;
 use crate::components::Task;
+use crate::resources::PixelScale;
 use crate::resources::{RenderUpdateEvent, Roadline};
 use crate::RoadlineRenderConfig;
 use bevy::prelude::*;
@@ -8,14 +9,11 @@ use bevy::sprite::ColorMaterial;
 
 /// Configuration for task spawning systems
 #[derive(Debug, Clone, Resource)]
-pub struct TaskSpawningSystem {
-	pub pixels_per_x_unit: f32,
-	pub pixels_per_y_unit: f32,
-}
+pub struct TaskSpawningSystem;
 
 impl Default for TaskSpawningSystem {
 	fn default() -> Self {
-		Self { pixels_per_x_unit: 10.0, pixels_per_y_unit: 75.0 }
+		Self
 	}
 }
 
@@ -28,6 +26,7 @@ impl TaskSpawningSystem {
 		EventReader<RenderUpdateEvent>,
 		Option<Res<Roadline>>,
 		Res<RoadlineRenderConfig>,
+		Res<PixelScale>,
 		Query<Entity, With<Task>>,
 		ResMut<Assets<Mesh>>,
 		ResMut<Assets<ColorMaterial>>,
@@ -36,6 +35,7 @@ impl TaskSpawningSystem {
 		      render_events: EventReader<RenderUpdateEvent>,
 		      reified_opt: Option<Res<Roadline>>,
 		      _config: Res<RoadlineRenderConfig>,
+		      pixel_scale: Res<PixelScale>,
 		      existing_tasks: Query<Entity, With<Task>>,
 		      mut meshes: ResMut<Assets<Mesh>>,
 		      mut materials: ResMut<Assets<ColorMaterial>>| {
@@ -43,6 +43,7 @@ impl TaskSpawningSystem {
 				&mut commands,
 				&render_events,
 				&reified_opt,
+				&pixel_scale,
 				&existing_tasks,
 				&mut meshes,
 				&mut materials,
@@ -56,6 +57,7 @@ impl TaskSpawningSystem {
 		commands: &mut Commands,
 		render_events: &EventReader<RenderUpdateEvent>,
 		reified_opt: &Option<Res<Roadline>>,
+		pixel_scale: &Res<PixelScale>,
 		existing_tasks: &Query<Entity, With<Task>>,
 		meshes: &mut ResMut<Assets<Mesh>>,
 		materials: &mut ResMut<Assets<ColorMaterial>>,
@@ -95,10 +97,10 @@ impl TaskSpawningSystem {
 			let width = end_x - start_x;
 
 			// Convert reified units to pixel coordinates using proper scaling
-			let pixel_x = x as f32 * self.pixels_per_x_unit;
-			let pixel_y = y as f32 * self.pixels_per_y_unit;
-			let sprite_width = width as f32 * self.pixels_per_x_unit;
-			let sprite_height = height as f32 * self.pixels_per_y_unit;
+			let pixel_x = pixel_scale.scale_x(x as f32);
+			let pixel_y = pixel_scale.scale_y(y as f32);
+			let sprite_width = pixel_scale.scale_x(width as f32);
+			let sprite_height = pixel_scale.scale_y(height as f32);
 
 			// Adjust for left justification (Bevy positions by center, so move right by half width)
 			let left_justified_x = pixel_x + (sprite_width / 2.0);
@@ -298,15 +300,13 @@ mod tests {
 	fn test_spawning_system_custom_pixels_per_unit() -> Result<(), Box<dyn std::error::Error>> {
 		let custom_pixels_per_x_unit = 20.0;
 		let custom_pixels_per_y_unit = 100.0;
-		let spawning_system = TaskSpawningSystem {
-			pixels_per_x_unit: custom_pixels_per_x_unit,
-			pixels_per_y_unit: custom_pixels_per_y_unit,
-		};
+		let spawning_system = TaskSpawningSystem::default();
 
 		// Setup app with all required resources
 		let mut app = setup_spawning_test_app();
 
-		// Add the spawning system
+		// Add the spawning system and custom pixel scale
+		app.insert_resource(PixelScale::new(custom_pixels_per_x_unit, custom_pixels_per_y_unit));
 		app.add_systems(Update, spawning_system.build());
 
 		// Send a render update event
@@ -365,15 +365,13 @@ mod tests {
 	{
 		let custom_pixels_per_x_unit = 10.0;
 		let custom_pixels_per_y_unit = 75.0;
-		let spawning_system = TaskSpawningSystem {
-			pixels_per_x_unit: custom_pixels_per_x_unit,
-			pixels_per_y_unit: custom_pixels_per_y_unit,
-		};
+		let spawning_system = TaskSpawningSystem::default();
 
 		// Setup app with all required resources
 		let mut app = setup_spawning_test_app();
 
-		// Add the spawning system
+		// Add the spawning system and custom pixel scale
+		app.insert_resource(PixelScale::new(custom_pixels_per_x_unit, custom_pixels_per_y_unit));
 		app.add_systems(Update, spawning_system.build());
 
 		// Send a render update event

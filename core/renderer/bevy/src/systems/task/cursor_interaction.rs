@@ -7,7 +7,7 @@ pub use hovers::TaskHoverSystem;
 
 use crate::components::Task;
 use crate::events::interactions::TaskSelectionChangedEvent;
-use crate::resources::{Roadline, SelectionResource};
+use crate::resources::{PixelScale, Roadline, SelectionResource};
 use bevy::input::mouse::{MouseButton, MouseButtonInput};
 use bevy::input::ButtonInput;
 use bevy::prelude::*;
@@ -36,6 +36,7 @@ impl TaskCursorInteractionSystem {
 		Query<&mut BorderColor>,
 		ResMut<SelectionResource>,
 		Option<Res<Roadline>>,
+		Res<PixelScale>,
 		EventWriter<TaskSelectionChangedEvent>,
 		Res<crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem>,
 		EventWriter<crate::events::interactions::output::task::TaskSelectedForExternEvent>,
@@ -54,6 +55,7 @@ impl TaskCursorInteractionSystem {
 		      ui_query: Query<&mut BorderColor>,
 		      selection_resource: ResMut<SelectionResource>,
 		      roadline: Option<Res<Roadline>>,
+		      pixel_scale: Res<PixelScale>,
 		      mut task_selection_changed_events: EventWriter<TaskSelectionChangedEvent>,
 		      event_system: Res<crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem>,
 		      mut task_extern_events: EventWriter<crate::events::interactions::output::task::TaskSelectedForExternEvent>,
@@ -69,6 +71,7 @@ impl TaskCursorInteractionSystem {
 				ui_query,
 				selection_resource,
 				roadline,
+				pixel_scale,
 				&mut task_selection_changed_events,
 				&event_system,
 				&mut task_extern_events,
@@ -93,6 +96,7 @@ impl TaskCursorInteractionSystem {
 		mut ui_query: Query<&mut BorderColor>,
 		mut selection_resource: ResMut<SelectionResource>,
 		roadline: Option<Res<Roadline>>,
+		pixel_scale: Res<PixelScale>,
 		task_selection_changed_events: &mut EventWriter<TaskSelectionChangedEvent>,
 		event_system: &crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem,
 		task_extern_events: &mut EventWriter<
@@ -134,9 +138,7 @@ impl TaskCursorInteractionSystem {
 		let _max_width_f32 = max_width.value() as f32;
 		let _max_height_f32 = max_height.value() as f32;
 
-		// Scale factors: same as tasks
-		let pixels_per_x_unit = 10.0;
-		let pixels_per_y_unit = 75.0;
+		// Use the pixel scale resource
 
 		// Check for clicks first (higher priority)
 		for ev in mouse_events.read() {
@@ -148,8 +150,7 @@ impl TaskCursorInteractionSystem {
 					&mut selection_resource,
 					&mut ui_query,
 					&roadline,
-					pixels_per_x_unit,
-					pixels_per_y_unit,
+					&pixel_scale,
 					task_selection_changed_events,
 					event_system,
 					task_extern_events,
@@ -168,8 +169,7 @@ impl TaskCursorInteractionSystem {
 			&mut ui_query,
 			&selection_resource,
 			&roadline,
-			pixels_per_x_unit,
-			pixels_per_y_unit,
+			&pixel_scale,
 		);
 	}
 }

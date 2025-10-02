@@ -1,5 +1,5 @@
 use crate::components::Dependency;
-use crate::resources::{RenderUpdateEvent, Roadline};
+use crate::resources::{PixelScale, RenderUpdateEvent, Roadline};
 use crate::RoadlineRenderConfig;
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;
@@ -12,14 +12,11 @@ use crate::systems::dependency::{DependencyCurveData, DependencyHoverable};
 
 /// Configuration for dependency spawning systems
 #[derive(Debug, Clone, Resource)]
-pub struct DependencySpawningSystem {
-	pub pixels_per_x_unit: f32,
-	pub pixels_per_y_unit: f32,
-}
+pub struct DependencySpawningSystem;
 
 impl Default for DependencySpawningSystem {
 	fn default() -> Self {
-		Self { pixels_per_x_unit: 10.0, pixels_per_y_unit: 75.0 }
+		Self
 	}
 }
 
@@ -32,6 +29,7 @@ impl DependencySpawningSystem {
 		EventReader<RenderUpdateEvent>,
 		Option<Res<Roadline>>,
 		Res<RoadlineRenderConfig>,
+		Res<PixelScale>,
 		Query<Entity, With<Dependency>>,
 		ResMut<Assets<Mesh>>,
 		ResMut<Assets<ColorMaterial>>,
@@ -40,6 +38,7 @@ impl DependencySpawningSystem {
 		      render_events: EventReader<RenderUpdateEvent>,
 		      reified_opt: Option<Res<Roadline>>,
 		      _config: Res<RoadlineRenderConfig>,
+		      pixel_scale: Res<PixelScale>,
 		      existing_dependencies: Query<Entity, With<Dependency>>,
 		      mut meshes: ResMut<Assets<Mesh>>,
 		      mut materials: ResMut<Assets<ColorMaterial>>| {
@@ -47,6 +46,7 @@ impl DependencySpawningSystem {
 				&mut commands,
 				&render_events,
 				&reified_opt,
+				&pixel_scale,
 				&existing_dependencies,
 				&mut meshes,
 				&mut materials,
@@ -60,6 +60,7 @@ impl DependencySpawningSystem {
 		commands: &mut Commands,
 		render_events: &EventReader<RenderUpdateEvent>,
 		reified_opt: &Option<Res<Roadline>>,
+		pixel_scale: &Res<PixelScale>,
 		existing_dependencies: &Query<Entity, With<Dependency>>,
 		meshes: &mut ResMut<Assets<Mesh>>,
 		materials: &mut ResMut<Assets<ColorMaterial>>,
@@ -88,26 +89,26 @@ impl DependencySpawningSystem {
 			);
 
 			// Convert reified units to pixel coordinates
-			let start_pos = Vec3::new(
-				start_point.x.value() as f32 * self.pixels_per_x_unit,
-				start_point.y.value() as f32 * self.pixels_per_y_unit,
+			let start_pos = pixel_scale.scale_vec3(Vec3::new(
+				start_point.x.value() as f32,
+				start_point.y.value() as f32,
 				0.0,
-			);
-			let end_pos = Vec3::new(
-				end_point.x.value() as f32 * self.pixels_per_x_unit,
-				end_point.y.value() as f32 * self.pixels_per_y_unit,
+			));
+			let end_pos = pixel_scale.scale_vec3(Vec3::new(
+				end_point.x.value() as f32,
+				end_point.y.value() as f32,
 				0.0,
-			);
-			let control1_pos = Vec3::new(
-				control1.x.value() as f32 * self.pixels_per_x_unit,
-				control1.y.value() as f32 * self.pixels_per_y_unit,
+			));
+			let control1_pos = pixel_scale.scale_vec3(Vec3::new(
+				control1.x.value() as f32,
+				control1.y.value() as f32,
 				0.0,
-			);
-			let control2_pos = Vec3::new(
-				control2.x.value() as f32 * self.pixels_per_x_unit,
-				control2.y.value() as f32 * self.pixels_per_y_unit,
+			));
+			let control2_pos = pixel_scale.scale_vec3(Vec3::new(
+				control2.x.value() as f32,
+				control2.y.value() as f32,
 				0.0,
-			);
+			));
 
 			println!(
 				"start_pos: {:?}, end_pos: {:?}, control1_pos: {:?}, control2_pos: {:?}",
@@ -417,15 +418,13 @@ mod tests {
 	) -> Result<(), Box<dyn std::error::Error>> {
 		let custom_pixels_per_x_unit = 20.0;
 		let custom_pixels_per_y_unit = 100.0;
-		let dependency_system = DependencySpawningSystem {
-			pixels_per_x_unit: custom_pixels_per_x_unit,
-			pixels_per_y_unit: custom_pixels_per_y_unit,
-		};
+		let dependency_system = DependencySpawningSystem::default();
 
 		// Setup app with all required resources
 		let mut app = setup_dependency_test_app();
 
-		// Add the dependency spawning system
+		// Add the dependency spawning system and custom pixel scale
+		app.insert_resource(PixelScale::new(custom_pixels_per_x_unit, custom_pixels_per_y_unit));
 		app.add_systems(Update, dependency_system.build());
 
 		// Send a render update event
@@ -488,15 +487,13 @@ mod tests {
 	) -> Result<(), Box<dyn std::error::Error>> {
 		let custom_pixels_per_x_unit = 10.0;
 		let custom_pixels_per_y_unit = 75.0;
-		let dependency_system = DependencySpawningSystem {
-			pixels_per_x_unit: custom_pixels_per_x_unit,
-			pixels_per_y_unit: custom_pixels_per_y_unit,
-		};
+		let dependency_system = DependencySpawningSystem::default();
 
 		// Setup app with all required resources
 		let mut app = setup_dependency_test_app();
 
-		// Add the dependency spawning system
+		// Add the dependency spawning system and custom pixel scale
+		app.insert_resource(PixelScale::new(custom_pixels_per_x_unit, custom_pixels_per_y_unit));
 		app.add_systems(Update, dependency_system.build());
 
 		// Send a render update event

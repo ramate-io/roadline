@@ -1,7 +1,7 @@
 pub mod test_utils;
 
 use crate::components::{SelectionState, Task};
-use crate::resources::{Roadline, SelectionResource};
+use crate::resources::{PixelScale, Roadline, SelectionResource};
 use bevy::prelude::*;
 use bevy::ui::BorderColor;
 
@@ -9,8 +9,6 @@ use bevy::ui::BorderColor;
 pub struct TaskHoverSystem {
 	pub task_hover_border_color: Color,
 	pub unselected_task_border_color: Color,
-	pub pixels_per_x_unit: f32,
-	pub pixels_per_y_unit: f32,
 }
 
 impl Default for TaskHoverSystem {
@@ -18,8 +16,6 @@ impl Default for TaskHoverSystem {
 		Self {
 			task_hover_border_color: Color::oklch(0.5, 0.137, 235.06),
 			unselected_task_border_color: Color::BLACK,
-			pixels_per_x_unit: 10.0,
-			pixels_per_y_unit: 75.0,
 		}
 	}
 }
@@ -33,6 +29,7 @@ impl TaskHoverSystem {
 		ResMut<SelectionResource>,
 		Query<&mut BorderColor>,
 		Res<Roadline>,
+		Res<PixelScale>,
 		Query<(&Camera, &GlobalTransform), (With<Camera2d>, Without<bevy::ui::IsDefaultUiCamera>)>,
 		Query<&Window>,
 	) {
@@ -40,6 +37,7 @@ impl TaskHoverSystem {
 		      selection_resource: ResMut<SelectionResource>,
 		      mut ui_query: Query<&mut BorderColor>,
 		      roadline: Res<Roadline>,
+		      pixel_scale: Res<PixelScale>,
 		      camera_query: Query<
 			(&Camera, &GlobalTransform),
 			(With<Camera2d>, Without<bevy::ui::IsDefaultUiCamera>),
@@ -77,8 +75,7 @@ impl TaskHoverSystem {
 				&mut ui_query,
 				&selection_resource,
 				&roadline,
-				self.pixels_per_x_unit,
-				self.pixels_per_y_unit,
+				&pixel_scale,
 			);
 		}
 	}
@@ -91,8 +88,7 @@ impl TaskHoverSystem {
 		ui_query: &mut Query<&mut BorderColor>,
 		selection_resource: &SelectionResource,
 		roadline: &Roadline,
-		pixels_per_x_unit: f32,
-		pixels_per_y_unit: f32,
+		pixel_scale: &PixelScale,
 	) {
 		for (_entity, transform, task) in task_query.iter() {
 			let selection_state = selection_resource.get_task_state(&task.task_id);
@@ -114,8 +110,8 @@ impl TaskHoverSystem {
 			let height = end_y - start_y;
 
 			// Convert reified units to pixel coordinates using same scaling as task system
-			let sprite_width = width as f32 * pixels_per_x_unit;
-			let sprite_height = height as f32 * pixels_per_y_unit;
+			let sprite_width = pixel_scale.scale_x(width as f32);
+			let sprite_height = pixel_scale.scale_y(height as f32);
 
 			let min_x = task_pos.x - sprite_width / 2.0;
 			let max_x = task_pos.x + sprite_width / 2.0;
@@ -214,8 +210,7 @@ mod tests {
 				&mut ui_query,
 				&selection_resource,
 				&roadline,
-				hover_system.pixels_per_x_unit,
-				hover_system.pixels_per_y_unit,
+				&pixel_scale,
 			);
 		}
 
@@ -277,8 +272,7 @@ mod tests {
 				&mut ui_query,
 				&selection_resource,
 				&roadline,
-				hover_system.pixels_per_x_unit,
-				hover_system.pixels_per_y_unit,
+				&pixel_scale,
 			);
 		}
 
@@ -342,8 +336,7 @@ mod tests {
 				&mut ui_query,
 				&selection_resource,
 				&roadline,
-				hover_system.pixels_per_x_unit,
-				hover_system.pixels_per_y_unit,
+				&pixel_scale,
 			);
 		}
 
