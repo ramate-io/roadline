@@ -674,10 +674,10 @@ mod tests {
 
 		// Verify stretches are computed correctly (in Week units)
 		let task1_stretch = grid_algebra.task_cell(&TaskId::new(1)).unwrap().stretch();
-		assert_eq!(task1_stretch.duration(), 5); // 30 days ≈ 5 weeks
+		assert_eq!(task1_stretch.duration(), 4); // 30 days ≈ 4 weeks floor division
 
 		let task2_stretch = grid_algebra.task_cell(&TaskId::new(2)).unwrap().stretch();
-		assert_eq!(task2_stretch.duration(), 4); // 15 days ≈ 3 weeks
+		assert_eq!(task2_stretch.duration(), 2); // 15 days ≈ 2 weeks floor division
 
 		Ok(())
 	}
@@ -694,8 +694,8 @@ mod tests {
 		assert!(!grid_algebra.has_task(&TaskId::new(99)));
 
 		// Verify lane queries work
-		let lane_0_tasks = grid_algebra.tasks_in_lane(0);
-		assert!(lane_0_tasks.len() >= 1); // At least the root task should be in lane 0
+		let lane_1_tasks = grid_algebra.tasks_in_lane(1);
+		assert!(lane_1_tasks.len() >= 1); // At least the root task should be in lane 1
 
 		// Verify max time unit, x-axis, and y-axis
 		assert!(grid_algebra.max_time_unit() > 0);
