@@ -24,7 +24,10 @@ fi
 COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
 
 # Check if commit message contains the build trigger pattern
-if [[ "$COMMIT_MSG" =~ ci\(pre-commit:\ build-site-if\): ]]; then
+# Acceptable patterns:
+# - ci(pre-commit: build-site-if): <message>
+# - ci(buildem): <message>
+if [[ "$COMMIT_MSG" =~ ci\(pre-commit:\ build-site-if\): || "$COMMIT_MSG" =~ ci\(buildem\): ]]; then
     echo "🔨 Commit message contains build trigger, building site..."
     
     # Change to site directory
