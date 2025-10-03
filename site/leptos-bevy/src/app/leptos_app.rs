@@ -98,16 +98,15 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 
 	let (event_str, set_event_str) = signal(String::new());
 
-	Effect::new(move || {
-		log::info!("Processing effect for task selected for extern receiver");
-		if let Some(event) = task_selected_for_extern_receiver.get() {
-			log::info!("Event received: {:#?}", event);
-			set_event_str.set(format!("{:#?}", event));
-			log::info!("Setting popup visibility to true");
+	Effect::watch(
+		move || task_selected_for_extern_receiver.get(),
+		move |event, prev_event, _| {
+			leptos::logging::log!("Event: {:?}; Prev: {:?}", event, prev_event);
 			set_show_task_popup.set(true);
 			log::info!("Popup visibility set to: {}", show_task_popup.get());
-		}
-	});
+		},
+		false,
+	);
 
 	let task_selected_for_extern_sender_clone = task_selected_for_extern_sender.clone();
 
@@ -144,7 +143,6 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 							width="100%"
 							style="outline: none;"
 						/>
-						<EventDisplay event_str />
 					}.into_any()
 				} else {
 					view! {

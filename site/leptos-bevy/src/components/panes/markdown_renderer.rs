@@ -50,7 +50,10 @@ pub fn MarkdownPopupPane(
 					style:display="flex"
 					style:align-items="center"
 					style:justify-content="center"
-					on:click=move |_| set_visible.set(false)
+					on:click=move |_| {
+						log::info!("Closing markdown popup");
+						set_visible.set(false)
+					}
 				>
 					<svg
 						style:width="24px"
