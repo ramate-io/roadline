@@ -1,3 +1,4 @@
+use crate::components::sections::markdown::MarkdownSection;
 use leptos::prelude::*;
 
 /// A programmable markdown popup pane that can overlay most of the screen
@@ -7,20 +8,58 @@ pub fn MarkdownPopupPane(
 	#[prop(into)] set_visible: WriteSignal<bool>,
 	#[prop(into)] content: String,
 	#[prop(optional)] title: Option<String>,
-	#[prop(optional)] class: Option<&'static str>,
 ) -> impl IntoView {
 	view! {
 		<div
-			class="markdown-popup-overlay"
 			style:display=move || if is_visible.get() { "flex" } else { "none" }
+			style:position="fixed"
+			style:top="0"
+			style:left="0"
+			style:right="0"
+			style:bottom="0"
+			style:z-index="1000"
+			style:align-items="center"
+			style:justify-content="center"
+			style:background-color="rgba(0, 0, 0, 0.7)"
+			style:backdrop-filter="blur(3px)"
 		>
-			<div class="markdown-popup-content">
+			<div
+				style:position="relative"
+				style:background-color="#ffffff"
+				style:border-radius="12px"
+				style:box-shadow="0 25px 50px -12px rgba(0, 0, 0, 0.4)"
+				style:max-width="60rem"
+				style:max-height="90vh"
+				style:width="90vw"
+				style:overflow="hidden"
+				style:border="2px solid #000000"
+			>
 				// Close button
 				<button
-					class="markdown-popup-close-button"
+					style:position="absolute"
+					style:top="1rem"
+					style:right="1rem"
+					style:z-index="10"
+					style:background-color="transparent"
+					style:border="none"
+					style:border-radius="50%"
+					style:padding="8px"
+					style:cursor="pointer"
+					style:color="#000000"
+					style:display="flex"
+					style:align-items="center"
+					style:justify-content="center"
+					style:hover:background-color="rgba(0, 0, 0, 0.1)"
 					on:click=move |_| set_visible.set(false)
 				>
-					<svg class="markdown-popup-close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<svg
+						style:width="24px"
+						style:height="24px"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2.5"
+					>
 						<line x1="18" y1="6" x2="6" y2="18"></line>
 						<line x1="6" y1="6" x2="18" y2="18"></line>
 					</svg>
@@ -28,22 +67,27 @@ pub fn MarkdownPopupPane(
 
 				// Header with title (if provided)
 				{title.map(|title_text| view! {
-					<div class="markdown-popup-header">
-						<h2 class="markdown-popup-title">
+					<div
+						style:border-bottom="2px solid #000000"
+						style:padding="1.5rem 1.5rem 1rem 1.5rem"
+					>
+						<h2
+							style:font-size="1.25rem"
+							style:font-weight="600"
+							style:color="#000000"
+							style:margin="0"
+						>
 							{title_text}
 						</h2>
 					</div>
 				})}
 
 				// Content area
-				<div class="markdown-popup-body">
-					<section
-						class=format!(
-							"markdown-body markdown-popup-content-body {}",
-							class.unwrap_or("")
-						)
-						inner_html=content
-					/>
+				<div
+					style:overflow-y="auto"
+					style:max-height="calc(90vh - 6rem)"
+				>
+					<MarkdownSection content=content />
 				</div>
 			</div>
 		</div>

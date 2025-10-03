@@ -62,7 +62,6 @@ This content can be displayed both as a section and in a popup overlay.
 				set_visible=set_show_popup
 				content=sample_markdown
 				title="Example Popup".to_string()
-				class="custom-popup"
 			/>
 		</div>
 	}
