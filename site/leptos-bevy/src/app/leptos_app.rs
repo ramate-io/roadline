@@ -80,9 +80,10 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 
 		spawn_local(async move {
 			match load_roadline_and_content_from_github(&current_path).await {
-				Ok((roadline, _content)) => {
+				Ok((roadline, content)) => {
 					set_roadline.set(Some(Arc::new(RwLock::new(roadline))));
 					set_loading.set(false);
+					set_selected_task_content.set(Some(content));
 				}
 				Err(e) => {
 					set_error.set(Some(format!("Failed to load roadline: {}", e)));
@@ -102,15 +103,7 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 		if let Some(event) = task_selected_for_extern_receiver.get() {
 			log::info!("Event received: {:#?}", event);
 			set_event_str.set(format!("{:#?}", event));
-
-			// Show task popup with basic information
-			let task_info = format!(
-				"# Task Selected\n\n**Task ID:** `{:?}`\n\n**Selection State:** `{:?}`\n\nTask content extraction will be implemented later.",
-				event.selected_task,
-				event.renderer_selection_state
-			);
 			log::info!("Setting popup visibility to true");
-			set_selected_task_content.set(Some(task_info));
 			set_show_task_popup.set(true);
 			log::info!("Popup visibility set to: {}", show_task_popup.get());
 		}

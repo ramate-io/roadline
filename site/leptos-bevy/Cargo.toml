@@ -27,6 +27,7 @@ tokio = { workspace = true, features = ["rt", "macros", "time", "sync"] }
 console_error_panic_hook = { workspace = true }
 log = { workspace = true }
 console_log = { workspace = true }
+markdown = { workspace = true }
 
 [lints]
 workspace = true
