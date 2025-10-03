@@ -1,3 +1,4 @@
+use comrak::{markdown_to_html, ComrakOptions};
 use leptos::prelude::*;
 
 /// A section component that renders markdown content
@@ -6,7 +7,7 @@ pub fn MarkdownSection(
 	#[prop(into)] content: String,
 	#[prop(optional)] class: Option<&'static str>,
 ) -> impl IntoView {
-	let content = markdown::to_html(&content);
+	let content = markdown_to_html(&content, &ComrakOptions::default());
 
 	view! {
 		<section

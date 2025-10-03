@@ -92,6 +92,38 @@ pub fn MarkdownPopupPane(
 					style:overflow-y="auto"
 					style:padding="1.5rem"
 					style:flex="1"
+					/*node_ref=move |el: NodeRef<HtmlElement>| {
+						// Store reference for anchor scrolling
+						let el_copy = el.clone();
+						let anchor_copy = anchor.clone();
+
+						// Effect to scroll to anchor when popup becomes visible
+						Effect::new(move || {
+							let is_visible_val = is_visible.get();
+
+							if is_visible_val {
+								if let Some(anchor_id) = anchor_copy.as_ref() {
+									log::info!("Looking for anchor: {}", anchor_id);
+
+									// Try different anchor selectors
+									let queries = vec![
+										format!("#{}", anchor_id),
+										format!("[id='{}']", anchor_id),
+										format!(r#"[name="{}"]"#, anchor_id),
+									];
+
+									for query in queries {
+										if let Ok(Some(target_el)) = el_copy.query_selector(&query) {
+											log::info!("Found anchor element with query: {}", query);
+											// Use the standard scrollIntoView method
+											target_el.scroll_into_view();
+											break;
+										}
+									}
+								}
+							}
+						}),
+					}*/
 				>
 					<MarkdownSection content=content />
 				</div>
