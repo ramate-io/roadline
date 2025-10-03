@@ -1,10 +1,11 @@
 use crate::components::sections::markdown::MarkdownSection;
+use leptos::ev::MouseEvent;
 use leptos::prelude::*;
 
 /// A programmable markdown popup pane that can overlay most of the screen
 #[component]
 pub fn MarkdownPopupPane(
-	#[prop(into)] mut on_close: impl FnMut() + 'static,
+	mut on_close: impl FnMut(MouseEvent) + 'static,
 	#[prop(into)] content: String,
 	#[prop(optional)] title: Option<String>,
 ) -> impl IntoView {
@@ -49,9 +50,9 @@ pub fn MarkdownPopupPane(
 					style:display="flex"
 					style:align-items="center"
 					style:justify-content="center"
-					on:click=move |_| {
+					on:click=move |ev| {
 						log::info!("Closing markdown popup");
-						on_close()
+						on_close(ev)
 					}
 				>
 					<svg
