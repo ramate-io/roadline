@@ -184,6 +184,17 @@ impl GitHubSource {
 		let content = self.client.fetch_content(github_url).await?;
 		self.parse_content_with_metadata(&content)
 	}
+
+	/// Fetch markdown content and parse it with metadata collection.
+	pub async fn from_github_url_with_metadata_and_content(
+		&self,
+		github_url: &GitHubUrl,
+	) -> std::result::Result<(RoadlineBuilder, GitHubMetadataCollector, String), GitHubSourceError>
+	{
+		let content = self.client.fetch_content(github_url).await?;
+		let (builder, metadata) = self.parse_content_with_metadata(&content)?;
+		Ok((builder, metadata, content))
+	}
 }
 
 impl Default for GitHubSource {

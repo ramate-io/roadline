@@ -1,3 +1,5 @@
+pub mod markdown_renderer;
+
 use crate::app::bevy_app::{init_bevy_app, TaskSelectedForExternEvent};
 use leptos::prelude::Set;
 use leptos::prelude::*;
