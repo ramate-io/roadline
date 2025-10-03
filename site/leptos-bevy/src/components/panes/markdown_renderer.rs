@@ -8,6 +8,7 @@ pub fn MarkdownPopupPane(
 	#[prop(into)] set_visible: WriteSignal<bool>,
 	#[prop(into)] content: String,
 	#[prop(optional)] title: Option<String>,
+	#[prop(into)] anchor: Option<String>,
 ) -> impl IntoView {
 	view! {
 		<div

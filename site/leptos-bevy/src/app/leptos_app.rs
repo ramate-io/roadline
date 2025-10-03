@@ -10,11 +10,27 @@ use leptos_router::components::*;
 use leptos_router::hooks::use_params_map;
 use leptos_router::path;
 use roadline_representation_core::roadline::Roadline;
-use roadline_source_github_markdown::{GitHubSource, GitHubUrl};
+use roadline_source_github_markdown::{GitHubMetadataCollector, GitHubSource, GitHubUrl};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-// Task content extraction will be implemented later
+#[derive(Debug, Clone)]
+pub struct MarkdownState {
+	/// The markdown content to display
+	pub content: String,
+	/// The metadata of the markdown content
+	pub metadata: Arc<GitHubMetadataCollector>,
+}
+
+impl MarkdownState {
+	pub fn new(content: String, metadata: GitHubMetadataCollector) -> Self {
+		Self { content, metadata: Arc::new(metadata) }
+	}
+
+	pub fn get_anchor_for_event(&self, event: &TaskSelectedForExternEvent) -> Option<String> {
+		self.metadata.get_fragment(&event.selected_task).cloned()
+	}
+}
 
 #[derive(Copy, Clone)]
 pub enum EventDirection {
@@ -60,13 +76,14 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 	let path = move || params.with(|params| params.get("path").unwrap_or_default());
 
 	let (roadline, set_roadline) = signal::<Option<Arc<RwLock<Roadline>>>>(None);
-	let (_markdown_content, _set_markdown_content) = signal::<Option<String>>(None);
+	let (markdown_state, set_markdown_state) = signal::<Option<MarkdownState>>(None);
+	let (anchor, set_anchor) = signal::<Option<String>>(None);
+
 	let (loading, set_loading) = signal(true);
 	let (error, set_error) = signal::<Option<String>>(None);
 
 	// Task popup state management
 	let (show_task_popup, set_show_task_popup) = signal(false);
-	let (selected_task_content, set_selected_task_content) = signal::<Option<String>>(None);
 
 	// Load roadline when path changes
 	Effect::new(move || {
@@ -80,10 +97,10 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 
 		spawn_local(async move {
 			match load_roadline_and_content_from_github(&current_path).await {
-				Ok((roadline, content)) => {
+				Ok((roadline, metadata, content)) => {
 					set_roadline.set(Some(Arc::new(RwLock::new(roadline))));
 					set_loading.set(false);
-					set_selected_task_content.set(Some(content));
+					set_markdown_state.set(Some(MarkdownState::new(content, metadata)));
 				}
 				Err(e) => {
 					set_error.set(Some(format!("Failed to load roadline: {}", e)));
@@ -96,14 +113,16 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 	let (task_selected_for_extern_receiver, task_selected_for_extern_sender) =
 		event_b2l::<TaskSelectedForExternEvent>();
 
-	let (event_str, set_event_str) = signal(String::new());
-
 	Effect::watch(
 		move || task_selected_for_extern_receiver.get(),
-		move |event, prev_event, _| {
-			leptos::logging::log!("Event: {:?}; Prev: {:?}", event, prev_event);
-			set_show_task_popup.set(true);
-			log::info!("Popup visibility set to: {}", show_task_popup.get());
+		move |event, _prev_event, _| {
+			if let Some(event) = event {
+				let anchor =
+					markdown_state.get().and_then(|state| state.get_anchor_for_event(&event));
+				set_anchor.set(anchor);
+				set_show_task_popup.set(true);
+				log::info!("Popup visibility set to: {}", show_task_popup.get());
+			}
 		},
 		false,
 	);
@@ -155,13 +174,15 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 
 			// Task markdown popup - overlays over everything
 			{move || {
-				if let Some(content) = selected_task_content.get() {
+				if let Some(state) = markdown_state.get() {
+					let anchor = anchor.get();
 					view! {
 						<MarkdownPopupPane
 							is_visible=show_task_popup
 							set_visible=set_show_task_popup
-							content=content
+							content=state.content
 							title="Task Details".to_string()
+							anchor=anchor
 						/>
 					}.into_any()
 				} else {
@@ -189,7 +210,7 @@ pub fn Frame(class: &'static str, children: Children) -> impl IntoView {
 /// Load a roadline and content from GitHub using the GitHub source
 async fn load_roadline_and_content_from_github(
 	path: &str,
-) -> Result<(Roadline, String), anyhow::Error> {
+) -> Result<(Roadline, GitHubMetadataCollector, String), anyhow::Error> {
 	log::info!("Loading roadline from GitHub path: {}", path);
 
 	// Parse the path: /gh/org/repo/path/to/file.md
@@ -213,7 +234,7 @@ async fn load_roadline_and_content_from_github(
 
 	log::info!("Fetching from repository path: {}", repository_path);
 
-	let (builder, _metadata, content) = source
+	let (builder, metadata, content) = source
 		.from_github_url_with_metadata_and_content(&GitHubUrl::parse(&repository_path)?.0)
 		.await?;
 	let roadline = builder.build()?;
@@ -221,5 +242,5 @@ async fn load_roadline_and_content_from_github(
 	log::info!("Roadline: {:#?}", roadline);
 	log::info!("Successfully loaded roadline with {} tasks", roadline.graph().arena.tasks().len());
 
-	Ok((roadline, content))
+	Ok((roadline, metadata, content))
 }
