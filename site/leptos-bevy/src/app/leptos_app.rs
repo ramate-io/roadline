@@ -77,13 +77,9 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 
 	let (roadline, set_roadline) = signal::<Option<Arc<RwLock<Roadline>>>>(None);
 	let (markdown_state, set_markdown_state) = signal::<Option<MarkdownState>>(None);
-	let (anchor, set_anchor) = signal::<Option<String>>(None);
 
 	let (loading, set_loading) = signal(true);
 	let (error, set_error) = signal::<Option<String>>(None);
-
-	// Task popup state management
-	let (show_task_popup, set_show_task_popup) = signal(false);
 
 	// Load roadline when path changes
 	Effect::new(move || {
@@ -117,11 +113,22 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 		move || task_selected_for_extern_receiver.get(),
 		move |event, _prev_event, _| {
 			if let Some(event) = event {
-				let anchor =
-					markdown_state.get().and_then(|state| state.get_anchor_for_event(&event));
-				set_anchor.set(anchor);
-				set_show_task_popup.set(true);
-				log::info!("Popup visibility set to: {}", show_task_popup.get());
+				if let Some(state) = markdown_state.get() {
+					if let Some(anchor_str) = state.get_anchor_for_event(&event) {
+						let current_url = window().location().href().unwrap_or_default();
+						let base_url = if current_url.contains('#') {
+							current_url.split('#').next().unwrap_or(&current_url).to_string()
+						} else {
+							current_url
+						};
+						let new_url = format!("{}#{}", base_url, anchor_str);
+
+						log::info!("Navigating to: {}", new_url);
+						window().location().set_href(&new_url).unwrap_or_else(|e| {
+							log::error!("Failed to navigate to URL: {:?}", e);
+						});
+					}
+				}
 			}
 		},
 		false,
@@ -175,16 +182,27 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 			// Task markdown popup - overlays over everything
 			{move || {
 				if let Some(state) = markdown_state.get() {
-					let anchor = anchor.get();
-					view! {
-						<MarkdownPopupPane
-							is_visible=show_task_popup
-							set_visible=set_show_task_popup
-							content=state.content
-							title="Task Details".to_string()
-							anchor=anchor
-						/>
-					}.into_any()
+					let has_hash = !window().location().hash().unwrap_or_default().is_empty();
+
+					let close_popup = move || {
+						// Clear the hash when closing popup
+						window().location().set_hash("").unwrap_or_else(|e| {
+							log::error!("Failed to clear hash: {:?}", e);
+						});
+					};
+
+					if has_hash {
+
+						view! {
+							<MarkdownPopupPane
+								on_close=close_popup
+								content=state.content.clone()
+								title="Task Details".to_string()
+							/>
+						}.into_any()
+					} else {
+						view! { <></> }.into_any()
+					}
 				} else {
 					view! { <></> }.into_any()
 				}

@@ -4,15 +4,13 @@ use leptos::prelude::*;
 /// A programmable markdown popup pane that can overlay most of the screen
 #[component]
 pub fn MarkdownPopupPane(
-	#[prop(into)] is_visible: ReadSignal<bool>,
-	#[prop(into)] set_visible: WriteSignal<bool>,
+	#[prop(into)] mut on_close: impl FnMut() + 'static,
 	#[prop(into)] content: String,
 	#[prop(optional)] title: Option<String>,
-	#[prop(into)] anchor: Option<String>,
 ) -> impl IntoView {
 	view! {
 		<div
-			style:display=move || if is_visible.get() { "flex" } else { "none" }
+			style:display="flex"
 			style:position="fixed"
 			style:top="0"
 			style:left="0"
@@ -53,7 +51,7 @@ pub fn MarkdownPopupPane(
 					style:justify-content="center"
 					on:click=move |_| {
 						log::info!("Closing markdown popup");
-						set_visible.set(false)
+						on_close()
 					}
 				>
 					<svg
@@ -92,38 +90,6 @@ pub fn MarkdownPopupPane(
 					style:overflow-y="auto"
 					style:padding="1.5rem"
 					style:flex="1"
-					/*node_ref=move |el: NodeRef<HtmlElement>| {
-						// Store reference for anchor scrolling
-						let el_copy = el.clone();
-						let anchor_copy = anchor.clone();
-
-						// Effect to scroll to anchor when popup becomes visible
-						Effect::new(move || {
-							let is_visible_val = is_visible.get();
-
-							if is_visible_val {
-								if let Some(anchor_id) = anchor_copy.as_ref() {
-									log::info!("Looking for anchor: {}", anchor_id);
-
-									// Try different anchor selectors
-									let queries = vec![
-										format!("#{}", anchor_id),
-										format!("[id='{}']", anchor_id),
-										format!(r#"[name="{}"]"#, anchor_id),
-									];
-
-									for query in queries {
-										if let Ok(Some(target_el)) = el_copy.query_selector(&query) {
-											log::info!("Found anchor element with query: {}", query);
-											// Use the standard scrollIntoView method
-											target_el.scroll_into_view();
-											break;
-										}
-									}
-								}
-							}
-						}),
-					}*/
 				>
 					<MarkdownSection content=content />
 				</div>
