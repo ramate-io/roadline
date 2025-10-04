@@ -91,6 +91,8 @@ js-sys = "0.3"
 log = "0.4"
 console_log = "1"
 lychee-lib = { git = "https://github.com/lycheeverse/lychee", rev = "d6c2bbe6f1e7b9e83889fc1e7fc675a38a7dd75f" }
+comrak = { version = "0.43.0" }
+pulldown-cmark = "0.13.0"
 
 # kestrel 
 kestrel = { git = "https://github.com/movementlabsxyz/kestrel.git", rev = "85e2f681ae3e54b29bb18d4ed7ca750116173321" }
