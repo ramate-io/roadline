@@ -12,29 +12,11 @@ status() {
     fi
 }
 
-echo "Checking for site build trigger in commit message..."
+echo "Checking for site build trigger in environment..."
 
-# Get the commit message from the current commit being made
-# We need to check if the commit message contains the build trigger
-# Since we're in pre-commit, we can check the commit message file
-COMMIT_MSG_FILE=".git/COMMIT_EDITMSG"
-if [ ! -f "$COMMIT_MSG_FILE" ]; then
-    # If the file doesn't exist, we're probably not in a commit context
-    # Check if we can get the message from git
-    if ! COMMIT_MSG=$(git log -1 --pretty=%B 2>/dev/null); then
-        echo "⏭️  No commit message found, skipping site build check"
-        exit 0
-    fi
-else
-    COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
-fi
-
-# Check if commit message contains the build trigger pattern
-# Acceptable patterns:
-# - ci(pre-commit: build-site-if): <message>
-# - ci(buildem): <message>
-if [[ "$COMMIT_MSG" =~ ci\(pre-commit:\ build-site-if\): || "$COMMIT_MSG" =~ ci\(buildem\): ]]; then
-    echo "🔨 Commit message contains build trigger, building site..."
+# Check if BUILD_SITE environment variable is set to true
+if [[ "$BUILD_SITE" == "true" ]]; then
+    echo "🔨 BUILD_SITE=true detected, building site..."
     
     # Change to site directory
     cd site/leptos-bevy
@@ -63,5 +45,5 @@ if [[ "$COMMIT_MSG" =~ ci\(pre-commit:\ build-site-if\): || "$COMMIT_MSG" =~ ci\
     
     echo "✅ Site build and packaging completed!"
 else
-    echo "⏭️  No build trigger found in commit message, skipping site build"
+    echo "⏭️  BUILD_SITE not set to true, skipping site build"
 fi
