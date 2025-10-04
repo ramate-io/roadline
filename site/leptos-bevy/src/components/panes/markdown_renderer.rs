@@ -7,8 +7,32 @@ use leptos::prelude::*;
 pub fn MarkdownPopupPane(
 	mut on_close: impl FnMut(MouseEvent) + 'static,
 	#[prop(into)] content: String,
-	#[prop(optional)] title: Option<String>,
+	#[prop(into)] anchor: ReadSignal<Option<String>>,
 ) -> impl IntoView {
+	// NodeRef for the scrollable content container
+	let content_ref = NodeRef::new();
+
+	let (tick, set_tick) = signal(0 as u32);
+
+	// Effect to scroll to anchor after content is rendered
+	Effect::new(move || {
+		if let Some(anchor_id) = anchor.get() {
+			// Use spawn_local with a small delay to ensure DOM is updated
+			let anchor_id_clone = anchor_id.clone();
+			// Find the anchor element within the content container
+			if let Some(_content_element) = content_ref.get() {
+				let document = document();
+				let target_element = document.get_element_by_id(&anchor_id_clone);
+				if let Some(target_element) = target_element {
+					log::info!("Scrolling to element: {}", anchor_id_clone);
+					target_element.scroll_into_view();
+				} else {
+					set_tick.set(tick.get() + 1);
+				}
+			}
+		}
+	});
+
 	view! {
 		<div
 			style:display="flex"
@@ -34,6 +58,7 @@ pub fn MarkdownPopupPane(
 				style:border="2px solid #000000"
 				style:display="flex"
 				style:flex-direction="column"
+				style:padding="1.5rem"
 			>
 				// Close button
 				<button
@@ -68,29 +93,12 @@ pub fn MarkdownPopupPane(
 					</svg>
 				</button>
 
-				// Header with title (if provided)
-				{title.map(|title_text| view! {
-					<div
-						style:border-bottom="2px solid #000000"
-						style:padding="1.5rem 1.5rem 1rem 1.5rem"
-						style:flex-shrink="0"
-					>
-						<h2
-							style:font-size="1.25rem"
-							style:font-weight="600"
-							style:color="#000000"
-							style:margin="0"
-						>
-							{title_text}
-						</h2>
-					</div>
-				})}
-
 				// Content area - scrollable
 				<div
 					style:overflow-y="auto"
 					style:padding="1.5rem"
 					style:flex="1"
+					node_ref=content_ref
 				>
 					<MarkdownSection content=content />
 				</div>

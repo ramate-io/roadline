@@ -4,9 +4,6 @@ use crate::app::bevy_app::{init_bevy_app, TaskSelectedForExternEvent};
 use crate::components::panes::markdown_renderer::MarkdownPopupPane;
 use leptos::prelude::Set;
 use leptos::task::spawn_local;
-use leptos::wasm_bindgen::prelude::*;
-use leptos::wasm_bindgen::JsCast;
-use leptos::web_sys::{EventTarget, Window};
 use leptos::{ev, prelude::*};
 use leptos_bevy_canvas::prelude::*;
 use leptos_router::components::*;
@@ -86,10 +83,12 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 
 	// Popup visibility based on URL hash
 	let (show_popup, set_show_popup) = signal(false);
+	let (current_anchor, set_current_anchor) = signal::<Option<String>>(None);
 
 	window_event_listener(ev::hashchange, move |_| {
 		let hash = location_hash().unwrap_or_default();
 		set_show_popup.set(!hash.is_empty());
+		set_current_anchor.set(if hash.is_empty() { None } else { Some(hash) });
 	});
 
 	// Load roadline when path changes
@@ -194,7 +193,7 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 			{move || {
 				if let Some(state) = markdown_state.get() {
 					if show_popup.get() {
-						let mut close_popup = move |_| {
+						let close_popup = move |_| {
 							// Clear the hash when closing popup
 							window().location().set_hash("").unwrap_or_else(|e| {
 								log::error!("Failed to clear hash: {:?}", e);
@@ -205,7 +204,7 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 							<MarkdownPopupPane
 								on_close=close_popup
 								content=state.content.clone()
-								title="Task Details".to_string()
+								anchor=current_anchor
 							/>
 						}.into_any()
 					} else {

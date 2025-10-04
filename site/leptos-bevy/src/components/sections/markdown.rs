@@ -1,9 +1,4 @@
-use comrak::{
-	adapters::{HeadingAdapter, HeadingMeta},
-	markdown_to_html_with_plugins,
-	nodes::Sourcepos,
-	ComrakOptions, Plugins,
-};
+use comrak::{markdown_to_html_with_plugins, ComrakOptions, Plugins};
 use leptos::prelude::*;
 
 /*pub struct HeadingAdapterImpl;
