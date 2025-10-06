@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy::ui::{GridTrack, Node, Val};
+use roadline_util::task::Id as TaskId;
 
 pub mod status;
 pub use status::StatusSpawner;
@@ -7,6 +8,7 @@ pub mod title;
 pub use title::TitleSpawner;
 
 pub struct ContentSpawner {
+	pub task_id: TaskId,
 	pub title: String,
 	pub in_future: bool,
 	pub completed: u32,
@@ -14,8 +16,14 @@ pub struct ContentSpawner {
 }
 
 impl ContentSpawner {
-	pub fn new(title: String, in_future: bool, completed: u32, total: u32) -> Self {
-		Self { title, in_future, completed, total }
+	pub fn new(
+		task_id: TaskId,
+		title: String,
+		in_future: bool,
+		completed: u32,
+		total: u32,
+	) -> Self {
+		Self { task_id, title, in_future, completed, total }
 	}
 
 	pub fn spawn(
@@ -43,8 +51,10 @@ impl ContentSpawner {
 			})
 			.id();
 
-		// Spawn title
-		TitleSpawner::new(self.title).spawn(commands, content_entity);
+		// Spawn title - allocate about half the width for the title
+		let title_width = task_size.x * 0.5; // Half the box width for title
+		TitleSpawner::new(self.task_id.clone(), self.title.clone(), title_width)
+			.spawn(commands, content_entity);
 
 		// Spawn status
 		StatusSpawner::new(self.in_future, self.completed, self.total).spawn(
@@ -97,7 +107,7 @@ mod tests {
 		let completed = 2;
 		let total = 5;
 
-		let spawner = ContentSpawner::new(title.clone(), true, completed, total);
+		let spawner = ContentSpawner::new(TaskId::new(1), title.clone(), true, completed, total);
 
 		assert_eq!(spawner.title, title);
 		assert_eq!(spawner.completed, completed);
@@ -137,7 +147,8 @@ mod tests {
 			move |mut commands: Commands,
 			      mut meshes: ResMut<Assets<Mesh>>,
 			      mut materials: ResMut<Assets<ColorMaterial>>| {
-				let spawner = ContentSpawner::new(title.clone(), true, completed, total);
+				let spawner =
+					ContentSpawner::new(TaskId::new(1), title.clone(), true, completed, total);
 				let parent_entity = commands.spawn_empty().id();
 				spawner.spawn(
 					&mut commands,

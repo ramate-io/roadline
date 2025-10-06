@@ -110,6 +110,7 @@ impl TaskSpawner {
 
 		// Spawn content using the new imperative spawner
 		ContentSpawner::new(
+			self.data.task_id,
 			self.data.title,
 			self.data.in_future,
 			self.data.completed,

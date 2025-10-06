@@ -1,19 +1,54 @@
 use bevy::prelude::*;
 use bevy::ui::Node;
+use roadline_util::task::Id as TaskId;
 
 #[derive(Component)]
 pub struct TitleMarker;
 
 pub struct TitleSpawner {
+	/// The id of the task.
+	pub task_id: TaskId,
+	/// The title of the task.
 	pub title: String,
+	/// The size of of the task.
+	pub size: Vec2,
 }
 
 impl TitleSpawner {
-	pub fn new(title: String) -> Self {
-		Self { title }
+	pub fn new(task_id: TaskId, title: String, available_width: f32) -> Self {
+		Self { task_id, title, size: Vec2::new(available_width, 0.0) }
+	}
+
+	pub fn elided_title(&self) -> String {
+		let base_title = format!("T{}: {}", self.task_id.value(), self.title);
+
+		// Estimate character width based on font size (12px) and typical character width
+		// Assuming roughly 0.6 * font_size for average character width
+		const FONT_SIZE: f32 = 12.0;
+		const CHAR_WIDTH_RATIO: f32 = 0.6;
+		const ELLIPSIS_WIDTH: f32 = 3.0 * FONT_SIZE * CHAR_WIDTH_RATIO; // Width of "..."
+
+		let available_width = self.size.x;
+		let char_width = FONT_SIZE * CHAR_WIDTH_RATIO;
+
+		// Calculate how many characters we can fit
+		let max_chars = ((available_width - ELLIPSIS_WIDTH) / char_width) as usize;
+
+		if base_title.len() <= max_chars {
+			base_title
+		} else {
+			let truncated_len = max_chars.saturating_sub(3); // Leave room for "..."
+			if truncated_len > 0 {
+				format!("{}...", &base_title[..truncated_len])
+			} else {
+				"...".to_string()
+			}
+		}
 	}
 
 	pub fn spawn(self, commands: &mut Commands, parent: Entity) {
+		let elided_title = self.elided_title();
+
 		let title_entity = commands
 			.spawn((
 				TitleMarker,
@@ -23,9 +58,10 @@ impl TitleSpawner {
 					align_content: AlignContent::Center,
 					justify_content: JustifyContent::Start, // Left-align the text
 					align_self: AlignSelf::Center,
+					overflow: Overflow::hidden(),
 					..default()
 				},
-				Text::new(self.title),
+				Text::new(elided_title),
 				TextColor(Color::BLACK),
 				TextFont { font_size: 12.0, ..Default::default() },
 			))
@@ -45,7 +81,11 @@ mod tests {
 	fn test_title_spawner_creation() -> Result<(), Box<dyn std::error::Error>> {
 		let title = "Test Title".to_string();
 
-		let spawner = TitleSpawner::new(title.clone());
+		let spawner = TitleSpawner::new(
+			TaskId::new(1),
+			title.clone(),
+			100.0, // 100px width for testing
+		);
 
 		assert_eq!(spawner.title, title);
 
@@ -86,7 +126,11 @@ mod tests {
 		fn build(&self) -> impl FnMut(Commands) {
 			let title_text = self.title_text.clone();
 			move |mut commands: Commands| {
-				let spawner = TitleSpawner::new(title_text.clone());
+				let spawner = TitleSpawner::new(
+					TaskId::new(1),
+					title_text.clone(),
+					100.0, // 100px width for testing
+				);
 				let parent_entity = commands.spawn_empty().id();
 				spawner.spawn(&mut commands, parent_entity);
 			}
