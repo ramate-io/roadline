@@ -121,6 +121,7 @@ impl TaskSpawner {
 			meshes,
 			materials,
 			parent_entity,
+			task_entity,        // Pass the task entity
 			self.data.position, // Pass the world position
 			self.data.size,     // Pass the task size
 		);

@@ -209,6 +209,7 @@ mod tests {
 		app.insert_resource(Roadline::from(core_roadline));
 		app.insert_resource(RoadlineRenderConfig::default());
 		app.insert_resource(SelectionResource::default());
+		app.insert_resource(crate::resources::PixelScale::default());
 
 		// Add the RenderUpdateEvent
 		app.add_event::<RenderUpdateEvent>();

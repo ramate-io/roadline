@@ -5,7 +5,7 @@ pub mod utils;
 use crate::components::{SelectionState, Task};
 use crate::events::interactions::output::task::TaskSelectedForExternEvent;
 use crate::events::interactions::TaskSelectionChangedEvent;
-use crate::resources::{Roadline, SelectionResource};
+use crate::resources::{PixelScale, Roadline, SelectionResource};
 use crate::systems::task::cursor_interaction::clicks::events::output::task_selected_for_extern::TouchDurationTracker;
 use crate::systems::task::cursor_interaction::clicks::events::output::TaskSelectedForExternEventSystem;
 use crate::systems::task::cursor_interaction::clicks::events::TaskSelectionChangedEventSystem;
@@ -25,8 +25,6 @@ pub struct TaskClickSystem {
 	pub descendant_dependency_color: Color,
 	pub unselected_dependency_color: Color,
 	pub selected_dependency_color: Color,
-	pub pixels_per_x_unit: f32,
-	pub pixels_per_y_unit: f32,
 	pub extern_event_system: TaskSelectedForExternEventSystem,
 }
 
@@ -41,8 +39,6 @@ impl Default for TaskClickSystem {
 			descendant_dependency_color: Color::oklch(0.5, 0.137, 235.06),
 			unselected_dependency_color: Color::BLACK,
 			selected_dependency_color: Color::oklch(0.5, 0.137, 235.06),
-			pixels_per_x_unit: 10.0,
-			pixels_per_y_unit: 75.0,
 			extern_event_system: TaskSelectedForExternEventSystem::default(),
 		}
 	}
@@ -57,6 +53,7 @@ impl TaskClickSystem {
 		ResMut<SelectionResource>,
 		Query<&mut BorderColor>,
 		Res<Roadline>,
+		Res<PixelScale>,
 		EventReader<MouseButtonInput>,
 		Query<(&Camera, &GlobalTransform), (With<Camera2d>, Without<bevy::ui::IsDefaultUiCamera>)>,
 		Query<&Window>,
@@ -71,6 +68,7 @@ impl TaskClickSystem {
 		      mut selection_resource: ResMut<SelectionResource>,
 		      mut ui_query: Query<&mut BorderColor>,
 		      roadline: Res<Roadline>,
+		      pixel_scale: Res<PixelScale>,
 		      mut mouse_events: EventReader<MouseButtonInput>,
 		      camera_query: Query<
 			(&Camera, &GlobalTransform),
@@ -119,8 +117,7 @@ impl TaskClickSystem {
 						&mut selection_resource,
 						&mut ui_query,
 						&roadline,
-						self.pixels_per_x_unit,
-						self.pixels_per_y_unit,
+						&pixel_scale,
 						&mut task_selection_changed_events,
 						&task_selection_event_system,
 						&mut task_extern_events,
@@ -142,8 +139,7 @@ impl TaskClickSystem {
 		selection_resource: &mut ResMut<SelectionResource>,
 		ui_query: &mut Query<&mut BorderColor>,
 		roadline: &Roadline,
-		pixels_per_x_unit: f32,
-		pixels_per_y_unit: f32,
+		pixel_scale: &PixelScale,
 		task_selection_changed_events: &mut EventWriter<TaskSelectionChangedEvent>,
 		task_selection_event_system: &TaskSelectionChangedEventSystem,
 		task_extern_events: &mut EventWriter<TaskSelectedForExternEvent>,
@@ -159,6 +155,7 @@ impl TaskClickSystem {
 			task_query,
 			&keyboard_input,
 			&roadline,
+			&pixel_scale,
 			task_extern_events,
 		);
 
@@ -167,8 +164,8 @@ impl TaskClickSystem {
 			task_query,
 			roadline,
 			world_pos,
-			pixels_per_x_unit,
-			pixels_per_y_unit,
+			pixel_scale.pixels_per_x_unit,
+			pixel_scale.pixels_per_y_unit,
 		) {
 			self.handle_task_click(
 				task_id,
@@ -411,7 +408,7 @@ impl TaskClickSystem {
 mod tests {
 	use super::*;
 	use crate::components::SelectionState;
-	use crate::resources::{Roadline, SelectionResource};
+	use crate::resources::{PixelScale, Roadline, SelectionResource};
 	use crate::systems::task::cursor_interaction::clicks::test_utils::{
 		setup_cursor_interaction_test_app, spawn_test_task,
 	};
@@ -443,6 +440,7 @@ mod tests {
 			mut selection_resource: ResMut<SelectionResource>,
 			mut ui_query: Query<&mut BorderColor>,
 			roadline: Res<Roadline>,
+			pixel_scale: Res<PixelScale>,
 			mut task_selection_changed_events: EventWriter<TaskSelectionChangedEvent>,
 			task_selection_event_system: Res<TaskSelectionChangedEventSystem>,
 			mut task_extern_events: EventWriter<TaskSelectedForExternEvent>,
@@ -469,8 +467,7 @@ mod tests {
 				&mut selection_resource,
 				&mut ui_query,
 				&roadline,
-				click_system.pixels_per_x_unit,
-				click_system.pixels_per_y_unit,
+				&pixel_scale,
 				&mut task_selection_changed_events,
 				&task_selection_event_system,
 				&mut task_extern_events,

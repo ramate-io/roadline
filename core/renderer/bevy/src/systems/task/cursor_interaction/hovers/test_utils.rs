@@ -21,6 +21,7 @@ pub fn setup_cursor_interaction_test_app() -> App {
 
 	// Add required resources
 	app.insert_resource(SelectionResource::default());
+	app.insert_resource(crate::resources::PixelScale::default());
 	app.insert_resource(bevy::input::ButtonInput::<bevy::input::mouse::MouseButton>::default());
 
 	// Add event system resources
