@@ -19,8 +19,57 @@ impl TitleSpawner {
 		Self { task_id, title, size: Vec2::new(available_width, 0.0) }
 	}
 
+	pub fn clean_title_markdown(&self) -> String {
+		let mut cleaned = self.title.clone();
+
+		// Remove code blocks first: ```text``` -> text (but preserve content)
+		cleaned = regex::Regex::new(r"```([^`]*)```")
+			.unwrap()
+			.replace_all(&cleaned, "$1")
+			.to_string();
+
+		// Remove markdown links: [text](url) -> text
+		cleaned = regex::Regex::new(r"\[([^\]]+)\]\([^)]+\)")
+			.unwrap()
+			.replace_all(&cleaned, "$1")
+			.to_string();
+
+		// Remove reference-style links: [text][ref] -> text
+		cleaned = regex::Regex::new(r"\[([^\]]+)\]\[[^\]]*\]")
+			.unwrap()
+			.replace_all(&cleaned, "$1")
+			.to_string();
+
+		// Remove autolinks: <url> -> url (only for URLs, not HTML tags)
+		cleaned = regex::Regex::new(r"<(https?://[^>]+)>")
+			.unwrap()
+			.replace_all(&cleaned, "$1")
+			.to_string();
+
+		// Remove HTML tags: <tag>text</tag> -> text
+		cleaned = regex::Regex::new(r"<[^>]+>").unwrap().replace_all(&cleaned, "").to_string();
+
+		// Remove bold formatting: **text** -> text
+		cleaned = cleaned.replace("**", "");
+
+		// Remove italic formatting: *text* -> text
+		cleaned = cleaned.replace("*", "");
+
+		// Remove strikethrough: ~~text~~ -> text
+		cleaned = cleaned.replace("~~", "");
+
+		// Remove inline code: `text` -> text
+		cleaned = cleaned.replace("`", "");
+
+		// Clean up extra whitespace
+		cleaned = regex::Regex::new(r"\s+").unwrap().replace_all(&cleaned.trim(), " ").to_string();
+
+		cleaned
+	}
+
 	pub fn elided_title(&self) -> String {
-		let base_title = format!("T{}: {}", self.task_id.value(), self.title);
+		let cleaned_title = self.clean_title_markdown();
+		let base_title = format!("T{}: {}", self.task_id.value(), cleaned_title);
 
 		// Estimate character width based on font size (12px) and typical character width
 		// Assuming roughly 0.6 * font_size for average character width
@@ -84,7 +133,7 @@ mod tests {
 		let spawner = TitleSpawner::new(
 			TaskId::new(1),
 			title.clone(),
-			100.0, // 100px width for testing
+			1000.0, // 1000px width for testing to avoid truncation
 		);
 
 		assert_eq!(spawner.title, title);
@@ -129,7 +178,7 @@ mod tests {
 				let spawner = TitleSpawner::new(
 					TaskId::new(1),
 					title_text.clone(),
-					100.0, // 100px width for testing
+					1000.0, // 1000px width for testing to avoid truncation
 				);
 				let parent_entity = commands.spawn_empty().id();
 				spawner.spawn(&mut commands, parent_entity);
@@ -156,7 +205,8 @@ mod tests {
 		assert_eq!(texts.len(), 1, "Should spawn exactly one Text entity");
 
 		let text = texts[0];
-		assert_eq!(text.0, params.title_text, "Text content should match title");
+		let expected_text = format!("T1: {}", params.title_text);
+		assert_eq!(text.0, expected_text, "Text content should match elided title");
 
 		Ok(())
 	}
@@ -275,9 +325,83 @@ mod tests {
 		let mut text_query = world.query::<&Text>();
 		let texts: Vec<_> = text_query.iter(world).collect();
 		assert_eq!(texts.len(), 1, "Should spawn Text entity even with empty title");
-		assert_eq!(texts[0].0, "", "Text content should be empty");
+		assert_eq!(texts[0].0, "T1: ", "Text content should be T1: with empty title");
 
 		Ok(())
+	}
+
+	#[test]
+	fn test_clean_title_markdown() {
+		// Test basic bold formatting
+		let spawner = TitleSpawner::new(TaskId::new(1), "**Bold Title**".to_string(), 100.0);
+		assert_eq!(spawner.clean_title_markdown(), "Bold Title");
+
+		// Test italic formatting
+		let spawner = TitleSpawner::new(TaskId::new(1), "*Italic Title*".to_string(), 100.0);
+		assert_eq!(spawner.clean_title_markdown(), "Italic Title");
+
+		// Test markdown links
+		let spawner = TitleSpawner::new(
+			TaskId::new(1),
+			"Continued Validation and [`fuste`](https://github.com/ramate-io/fuste) MVP"
+				.to_string(),
+			100.0,
+		);
+		assert_eq!(spawner.clean_title_markdown(), "Continued Validation and fuste MVP");
+
+		// Test inline code
+		let spawner =
+			TitleSpawner::new(TaskId::new(1), "Begin `gwrdfa` implementation".to_string(), 100.0);
+		assert_eq!(spawner.clean_title_markdown(), "Begin gwrdfa implementation");
+
+		// Test code blocks
+		let spawner = TitleSpawner::new(
+			TaskId::new(1),
+			"Title with ```code block``` content".to_string(),
+			100.0,
+		);
+		assert_eq!(spawner.clean_title_markdown(), "Title with code block content");
+
+		// Test strikethrough
+		let spawner =
+			TitleSpawner::new(TaskId::new(1), "~~Strikethrough~~ Title".to_string(), 100.0);
+		assert_eq!(spawner.clean_title_markdown(), "Strikethrough Title");
+
+		// Test HTML tags
+		let spawner =
+			TitleSpawner::new(TaskId::new(1), "Title with <em>emphasis</em>".to_string(), 100.0);
+		assert_eq!(spawner.clean_title_markdown(), "Title with emphasis");
+
+		// Test reference-style links
+		let spawner =
+			TitleSpawner::new(TaskId::new(1), "Title with [link][ref]".to_string(), 100.0);
+		assert_eq!(spawner.clean_title_markdown(), "Title with link");
+
+		// Test autolinks
+		let spawner =
+			TitleSpawner::new(TaskId::new(1), "Visit <https://example.com>".to_string(), 100.0);
+		assert_eq!(spawner.clean_title_markdown(), "Visit https://example.com");
+
+		// Test complex combination
+		let spawner = TitleSpawner::new(
+			TaskId::new(1),
+			"**Bold** and *italic* with [`link`](url) and `code`".to_string(),
+			100.0,
+		);
+		assert_eq!(spawner.clean_title_markdown(), "Bold and italic with link and code");
+
+		// Test extra whitespace cleanup
+		let spawner =
+			TitleSpawner::new(TaskId::new(1), "Title   with    extra   spaces".to_string(), 100.0);
+		assert_eq!(spawner.clean_title_markdown(), "Title with extra spaces");
+
+		// Test empty title
+		let spawner = TitleSpawner::new(TaskId::new(1), "".to_string(), 100.0);
+		assert_eq!(spawner.clean_title_markdown(), "");
+
+		// Test title with only markdown
+		let spawner = TitleSpawner::new(TaskId::new(1), "**".to_string(), 100.0);
+		assert_eq!(spawner.clean_title_markdown(), "");
 	}
 
 	#[test]
@@ -304,7 +428,11 @@ mod tests {
 		let mut text_query = world.query::<&Text>();
 		let texts: Vec<_> = text_query.iter(world).collect();
 		assert_eq!(texts.len(), 1, "Should spawn Text entity for long title");
-		assert_eq!(texts[0].0, params.title_text, "Text content should match long title");
+		assert_eq!(
+			texts[0].0,
+			format!("T1: {}", params.title_text),
+			"Text content should match long title"
+		);
 
 		Ok(())
 	}

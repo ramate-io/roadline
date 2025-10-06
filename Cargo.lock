@@ -5245,6 +5245,7 @@ dependencies = [
  "chrono",
  "js-sys",
  "log",
+ "regex",
  "roadline-representation-core",
  "roadline-util",
  "serde",
