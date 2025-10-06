@@ -29,6 +29,14 @@ log = { workspace = true }
 console_log = { workspace = true }
 comrak = { workspace = true }
 leptos-resizable-split = { workspace = true }
+web-sys = { workspace = true, features = [
+  "Document",
+  "Window",
+  "Event",
+  "EventTarget",
+  "DomRect",
+  "Element",
+] }
 
 [lints]
 workspace = true
