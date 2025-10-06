@@ -22,6 +22,9 @@ log = { workspace = true }
 bevy = { workspace = true }
 bevy-ui-anchor = { workspace = true }
 
+# For markdown cleaning
+regex = "1.0"
+
 # For web integration with Dioxus (optional for now)
 wasm-bindgen = { workspace = true, optional = true }
 web-sys = { workspace = true, optional = true }
