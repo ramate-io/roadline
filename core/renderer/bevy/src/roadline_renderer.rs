@@ -1,7 +1,7 @@
 use crate::test_utils::create_test_roadline;
 use crate::RoadlinePlugin;
 use crate::{
-	resources::{RenderUpdateEvent, Roadline},
+	resources::{PixelScale, RenderUpdateEvent, Roadline},
 	RoadlineRenderConfig,
 };
 use bevy::prelude::*;
@@ -126,10 +126,10 @@ impl RoadlineRenderer {
 	pub fn get_visual_bounds(&self, app: &App) -> Option<(f32, f32, f32, f32)> {
 		if let Some(reified) = app.world().get_resource::<Roadline>() {
 			let (max_x, max_y) = reified.visual_bounds();
-			let pixels_per_x_unit = 10.0;
-			let pixels_per_y_unit = 75.0; // Same as in systems.rs
-			let pixel_max_x = max_x.value() as f32 * pixels_per_x_unit;
-			let pixel_max_y = max_y.value() as f32 * pixels_per_y_unit;
+			let default_scale = PixelScale::default();
+			let pixel_scale = app.world().get_resource::<PixelScale>().unwrap_or(&default_scale);
+			let pixel_max_x = pixel_scale.scale_x(max_x.value() as f32);
+			let pixel_max_y = pixel_scale.scale_y(max_y.value() as f32);
 
 			// Return (min_x, max_x, min_y, max_y)
 			Some((0.0, pixel_max_x, 0.0, pixel_max_y))
