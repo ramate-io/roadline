@@ -28,6 +28,7 @@ console_error_panic_hook = { workspace = true }
 log = { workspace = true }
 console_log = { workspace = true }
 comrak = { workspace = true }
+leptos-resizable-split = { workspace = true }
 
 [lints]
 workspace = true

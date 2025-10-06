@@ -6,6 +6,7 @@ use leptos::prelude::Set;
 use leptos::task::spawn_local;
 use leptos::{ev, prelude::*};
 use leptos_bevy_canvas::prelude::*;
+use leptos_resizable_split::{ResizableSplit, SplitDirection};
 use leptos_router::components::*;
 use leptos_router::hooks::use_params_map;
 use leptos_router::path;
@@ -145,89 +146,81 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 	);
 
 	let task_selected_for_extern_sender_clone = task_selected_for_extern_sender.clone();
+	let percentages = RwSignal::new(vec![20.0]);
 
 	view! {
-		<div style="height: 100vh; width: 100vw;">
-			{move || {
-				if loading.get() {
-					view! {
-						<div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif;">
-							<div>"Loading roadline from GitHub..."</div>
-						</div>
-					}.into_any()
-				} else if let Some(err) = error.get() {
-					view! {
-						<div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif; color: red;">
-							<div>
-								<h2>"Error"</h2>
-								<p>{err}</p>
-								<p>"Path: " {path()}</p>
-							</div>
-						</div>
-					}.into_any()
-				} else if let Some(roadline_arc) = roadline.get() {
-					let roadline_clone = roadline_arc.clone();
-					let sender_clone = task_selected_for_extern_sender_clone.clone();
-					view! {
-						<BevyCanvas
-							init=move || {
-								let roadline = roadline_clone.blocking_read();
-								init_bevy_app(sender_clone, roadline.clone()).unwrap()
+			<div style="height: 100vh; width: 100vw;">
+				<ResizableSplit percentages=percentages direction=SplitDirection::Column>
+					<div style="border: 1px solid red;">
+							{move || {
+								if loading.get() {
+									view! {
+										<div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif;">
+											<div>"Loading roadline from GitHub..."</div>
+										</div>
+									}.into_any()
+								} else if let Some(err) = error.get() {
+									view! {
+										<div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif; color: red;">
+											<div>
+												<h2>"Error"</h2>
+												<p>{err}</p>
+												<p>"Path: " {path()}</p>
+											</div>
+										</div>
+									}.into_any()
+								} else if let Some(roadline_arc) = roadline.get() {
+									let roadline_clone = roadline_arc.clone();
+									let sender_clone = task_selected_for_extern_sender_clone.clone();
+									view! {
+										<BevyCanvas
+											init=move || {
+												let roadline = roadline_clone.blocking_read();
+												init_bevy_app(sender_clone, roadline.clone()).unwrap()
+											}
+											{..}
+											height="100vw"
+											width="100vh"
+											style="outline: none;"
+										/>
+									}.into_any()
+								} else {
+									view! {
+										<div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif;">
+											<div>"No roadline loaded"</div>
+										</div>
+									}.into_any()
+								}
+							}}
+					</div>
+					<div>
+						// Task markdown drawer - slides up from bottom
+						{move || {
+							if let Some(state) = markdown_state.get() {
+
+								let close_popup = move |_| {
+									// Clear the hash when closing drawer
+									window().location().set_hash("").unwrap_or_else(|e| {
+										log::error!("Failed to clear hash: {:?}", e);
+									});
+								};
+
+								view! {
+									<MarkdownDrawerPane
+										on_close=close_popup
+										content=state.content.clone()
+										anchor=current_anchor
+									/>
+								}.into_any()
+
+							} else {
+								view! { <></> }.into_any()
 							}
-							{..}
-							height="100%"
-							width="100%"
-							style="outline: none;"
-						/>
-					}.into_any()
-				} else {
-					view! {
-						<div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif;">
-							<div>"No roadline loaded"</div>
-						</div>
-					}.into_any()
-				}
-			}}
-
-			// Task markdown drawer - slides up from bottom
-			{move || {
-				if let Some(state) = markdown_state.get() {
-
-					let close_popup = move |_| {
-						// Clear the hash when closing drawer
-						window().location().set_hash("").unwrap_or_else(|e| {
-							log::error!("Failed to clear hash: {:?}", e);
-						});
-					};
-
-					view! {
-						<MarkdownDrawerPane
-							on_close=close_popup
-							content=state.content.clone()
-							anchor=current_anchor
-						/>
-					}.into_any()
-
-				} else {
-					view! { <></> }.into_any()
-				}
-			}}
+						}}
+					</div>
+				</ResizableSplit>
 		</div>
 	}
-}
-
-#[component]
-pub fn EventDisplay(event_str: ReadSignal<String>) -> impl IntoView {
-	view! {
-		<div class="flex-1 px-5 relative">
-			<pre>{event_str}</pre>
-		</div>
-	}
-}
-
-#[component]
-pub fn Frame(class: &'static str, children: Children) -> impl IntoView {
-	view! { <div class=format!("border-2 border-solid {class} rounded-lg p-5")>{children()}</div> }
 }
 
 /// Load a roadline and content from GitHub using the GitHub source

@@ -42,7 +42,7 @@ pub fn ResizableDrawer(
 	};
 
 	// Global mouse move handler
-	let _handle_mouse_move = move |ev: web_sys::MouseEvent| {
+	let handle_mouse_move = move |ev: web_sys::MouseEvent| {
 		if !is_resizing.get() {
 			return;
 		}
@@ -53,7 +53,7 @@ pub fn ResizableDrawer(
 	};
 
 	// Global mouse up handler
-	let _handle_mouse_up = move |_: web_sys::MouseEvent| {
+	let handle_mouse_up = move |_: web_sys::MouseEvent| {
 		set_is_resizing.set(false);
 
 		// Restore text selection
@@ -63,13 +63,13 @@ pub fn ResizableDrawer(
 	};
 
 	// Add global event listeners when resizing starts
-	Effect::new(move || {
+	/*Effect::new(move || {
 		if is_resizing.get() {
 			// For now, just set a reasonable height when resizing starts
 			// This can be enhanced later with proper mouse tracking
 			set_drawer_height.set("50vh".to_string());
 		}
-	});
+	});*/
 
 	view! {
 		<div
@@ -96,6 +96,8 @@ pub fn ResizableDrawer(
 				style:align-items="center"
 				style:justify-content="center"
 				on:mousedown=handle_mouse_down
+				on:mousemove=handle_mouse_move
+				on:mouseup=handle_mouse_up
 			>
 				// Small black ball in center
 				<div

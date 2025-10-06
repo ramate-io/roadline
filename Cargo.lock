@@ -3648,6 +3648,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "leptos-resizable-split"
+version = "0.0.1"
+dependencies = [
+ "leptos",
+ "serde_json",
+ "web-sys",
+]
+
+[[package]]
 name = "leptos-use"
 version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5290,6 +5299,7 @@ dependencies = [
  "console_log",
  "leptos",
  "leptos-bevy-canvas",
+ "leptos-resizable-split",
  "leptos-use",
  "leptos_router",
  "log",

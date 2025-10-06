@@ -35,17 +35,11 @@ pub fn MarkdownDrawerPane(
 	});
 
 	view! {
-		<ResizableDrawer
-			initial_height="10vh".to_string()
-			min_height=100.0
-			_on_close=Box::new(on_close)
+		<div
+			style:padding="20px"
+			node_ref=content_ref
 		>
-			<div
-				style:padding="1.5rem"
-				node_ref=content_ref
-			>
-				<MarkdownSection content=content />
-			</div>
-		</ResizableDrawer>
+			<MarkdownSection content=content />
+		</div>
 	}
 }
