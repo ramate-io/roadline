@@ -18,7 +18,8 @@ pub enum SplitDirection {
 ///
 /// # Example:
 /// ```
-/// use leptos_resize::ResizableSplit;
+/// use leptos::prelude::*;
+/// use leptos_resizable_split::ResizableSplit;
 ///
 /// #[component]
 /// fn MyComponent() -> impl IntoView {
