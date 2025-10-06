@@ -1,7 +1,7 @@
 pub mod markdown_renderer;
 
 use crate::app::bevy_app::{init_bevy_app, TaskSelectedForExternEvent};
-use crate::components::panes::markdown_renderer::MarkdownPopupPane;
+use crate::components::panes::markdown_renderer::MarkdownDrawerPane;
 use leptos::prelude::Set;
 use leptos::task::spawn_local;
 use leptos::{ev, prelude::*};
@@ -189,27 +189,25 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 				}
 			}}
 
-			// Task markdown popup - overlays over everything
+			// Task markdown drawer - slides up from bottom
 			{move || {
 				if let Some(state) = markdown_state.get() {
-					if show_popup.get() {
-						let close_popup = move |_| {
-							// Clear the hash when closing popup
-							window().location().set_hash("").unwrap_or_else(|e| {
-								log::error!("Failed to clear hash: {:?}", e);
-							});
-						};
 
-						view! {
-							<MarkdownPopupPane
-								on_close=close_popup
-								content=state.content.clone()
-								anchor=current_anchor
-							/>
-						}.into_any()
-					} else {
-						view! { <></> }.into_any()
-					}
+					let close_popup = move |_| {
+						// Clear the hash when closing drawer
+						window().location().set_hash("").unwrap_or_else(|e| {
+							log::error!("Failed to clear hash: {:?}", e);
+						});
+					};
+
+					view! {
+						<MarkdownDrawerPane
+							on_close=close_popup
+							content=state.content.clone()
+							anchor=current_anchor
+						/>
+					}.into_any()
+
 				} else {
 					view! { <></> }.into_any()
 				}
