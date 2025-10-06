@@ -12,13 +12,11 @@ status() {
     fi
 }
 
-echo "Checking for site build trigger in commit message..."
+echo "Checking for site build trigger in environment..."
 
-# Check if commit message contains the build trigger pattern
-# Acceptable patterns:
-# - BUILD_SITE=true in environment variables
-if [ "$BUILD_SITE" = "true" ]; then
-    echo "🔨 Commit message contains build trigger, building site..."
+# Check if BUILD_SITE environment variable is set to true
+if [[ "$BUILD_SITE" == "true" ]]; then
+    echo "🔨 BUILD_SITE=true detected, building site..."
     
     # Change to site directory
     cd site/leptos-bevy
@@ -47,5 +45,5 @@ if [ "$BUILD_SITE" = "true" ]; then
     
     echo "✅ Site build and packaging completed!"
 else
-    echo "⏭️  No build trigger found in commit message, skipping site build"
+    echo "⏭️  BUILD_SITE not set to true, skipping site build"
 fi

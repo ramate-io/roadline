@@ -1,5 +1,7 @@
 //! Metadata collection for GitHub source instrumentation.
+pub mod fragment;
 
+use fragment::extract_markdown_fragments;
 use roadline_parser_markdown::error::MarkdownParseError;
 use roadline_parser_markdown::{Instrumentation, TaskParsedEvent};
 use roadline_util::task::Id as TaskId;
@@ -19,9 +21,14 @@ impl GitHubMetadataCollector {
 	}
 
 	/// Record a task with its header line.
-	pub fn record_task(&mut self, task_id: TaskId, header_line: &str) {
-		let fragment = Self::sanitize_header_to_fragment(header_line);
+	pub fn record_task(
+		&mut self,
+		task_id: TaskId,
+		header_line: &str,
+	) -> Result<(), MarkdownParseError> {
+		let fragment = Self::sanitize_header_to_fragment(header_line)?;
 		self.task_fragments.insert(task_id, fragment);
+		Ok(())
 	}
 
 	/// Get the fragment for a task ID.
@@ -48,39 +55,12 @@ impl GitHubMetadataCollector {
 	/// 6. Strip leading/trailing hyphens
 	///
 	/// Based on: https://github.com/lycheeverse/lychee/blob/d6c2bbe6f1e7b9e83889fc1e7fc675a38a7dd75f/lychee-lib/src/extract/markdown.rs#L177
-	fn sanitize_header_to_fragment(header: &str) -> String {
-		// Remove markdown header markers (###, ##, #)
-		let cleaned = header.trim_start_matches('#').trim();
-
-		// GitHub's sanitization:
-		// - Convert to lowercase
-		// - Keep only alphanumeric, spaces, and hyphens
-		// - Replace spaces with hyphens
-		// - Remove punctuation except hyphens
-		let mut result = String::new();
-		let mut prev_was_hyphen = false;
-
-		for c in cleaned.chars() {
-			match c {
-				'a'..='z' | 'A'..='Z' | '0'..='9' => {
-					result.push(c.to_ascii_lowercase());
-					prev_was_hyphen = false;
-				}
-				' ' | '-' | '_' => {
-					if !prev_was_hyphen && !result.is_empty() {
-						result.push('-');
-						prev_was_hyphen = true;
-					}
-				}
-				_ => {
-					// Punctuation and special characters are dropped
-					// This includes colons, periods, commas, etc.
-				}
-			}
-		}
-
-		// Remove trailing hyphen if present
-		result.trim_end_matches('-').to_string()
+	fn sanitize_header_to_fragment(header: &str) -> Result<String, MarkdownParseError> {
+		extract_markdown_fragments(header)
+			.iter()
+			.next()
+			.cloned()
+			.ok_or(MarkdownParseError::InvalidTaskId { header: header.to_string() })
 	}
 }
 
@@ -92,7 +72,7 @@ impl Default for GitHubMetadataCollector {
 
 impl Instrumentation for GitHubMetadataCollector {
 	fn on_task_parsed(&mut self, event: TaskParsedEvent) -> Result<(), MarkdownParseError> {
-		self.record_task(event.task, &event.title_line_string);
+		self.record_task(event.task, &event.title_line_string)?;
 		Ok(())
 	}
 }
@@ -102,40 +82,53 @@ mod tests {
 	use super::*;
 
 	#[test]
-	fn test_sanitize_header_to_fragment() {
+	fn test_sanitize_header_to_fragment() -> Result<(), MarkdownParseError> {
 		assert_eq!(
-			GitHubMetadataCollector::sanitize_header_to_fragment("### T1: Push Towards Validation"),
+			GitHubMetadataCollector::sanitize_header_to_fragment(
+				"### T1: Push Towards Validation"
+			)?,
 			"t1-push-towards-validation"
 		);
 
 		assert_eq!(
 			GitHubMetadataCollector::sanitize_header_to_fragment(
 				"## T2: Validation and Accepting Contributions"
-			),
+			)?,
 			"t2-validation-and-accepting-contributions"
 		);
 
 		assert_eq!(
-			GitHubMetadataCollector::sanitize_header_to_fragment("# T9: An Interlude"),
+			GitHubMetadataCollector::sanitize_header_to_fragment("# T9: An Interlude")?,
 			"t9-an-interlude"
 		);
 
 		assert_eq!(
 			GitHubMetadataCollector::sanitize_header_to_fragment(
 				"### T1.1: Complete draft of OART-1: BFA"
-			),
+			)?,
 			"t11-complete-draft-of-oart-1-bfa"
 		);
+
+		assert_eq!(
+			GitHubMetadataCollector::sanitize_header_to_fragment(
+				"### T3: Continued Validation and [`fuste`](https://github.com/ramate-io/fuste) MVP"
+			)?,
+			"t3-continued-validation-and-fuste-mvp"
+		);
+
+		Ok(())
 	}
 
 	#[test]
-	fn test_metadata_collector() {
+	fn test_metadata_collector() -> Result<(), MarkdownParseError> {
 		let mut collector = GitHubMetadataCollector::new();
 		let task_id = TaskId::new(1);
 
-		collector.record_task(task_id, "### T1: Push Towards Validation");
+		collector.record_task(task_id, "### T1: Push Towards Validation")?;
 
 		let fragment = collector.get_fragment(&task_id);
 		assert_eq!(fragment, Some(&"t1-push-towards-validation".to_string()));
+
+		Ok(())
 	}
 }
