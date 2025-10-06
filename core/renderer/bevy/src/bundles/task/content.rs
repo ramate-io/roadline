@@ -53,7 +53,7 @@ impl ContentSpawner {
 			.id();
 
 		// Spawn title - allocate about half the width for the title
-		let title_width = task_size.x * 0.5; // Half the box width for title
+		let title_width = task_size.x * 0.67; // 2/3 the box width for title
 		TitleSpawner::new(self.task_id.clone(), self.title.clone(), title_width)
 			.spawn(commands, content_entity);
 

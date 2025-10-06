@@ -39,7 +39,7 @@ impl TitleSpawner {
 		} else {
 			let truncated_len = max_chars.saturating_sub(3); // Leave room for "..."
 			if truncated_len > 0 {
-				format!("{}...", &base_title[..truncated_len])
+				format!("{}...", &base_title[..truncated_len].trim())
 			} else {
 				"...".to_string()
 			}
