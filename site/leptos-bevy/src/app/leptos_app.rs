@@ -1,7 +1,7 @@
 pub mod markdown_renderer;
 
 use crate::app::bevy_app::{init_bevy_app, TaskSelectedForExternEvent};
-use crate::components::panes::markdown_renderer::MarkdownPopupPane;
+use crate::components::panes::markdown_renderer::{HeaderInfo, MarkdownDrawerPane};
 use leptos::prelude::Set;
 use leptos::task::spawn_local;
 use leptos::{ev, prelude::*};
@@ -81,13 +81,13 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 	let (loading, set_loading) = signal(true);
 	let (error, set_error) = signal::<Option<String>>(None);
 
+	let (header_info, set_header_info) = signal::<Option<HeaderInfo>>(None);
+
 	// Popup visibility based on URL hash
-	let (show_popup, set_show_popup) = signal(false);
 	let (current_anchor, set_current_anchor) = signal::<Option<String>>(None);
 
 	window_event_listener(ev::hashchange, move |_| {
 		let hash = location_hash().unwrap_or_default();
-		set_show_popup.set(!hash.is_empty());
 		set_current_anchor.set(if hash.is_empty() { None } else { Some(hash) });
 	});
 
@@ -137,6 +137,11 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 						window().location().set_href(&new_url).unwrap_or_else(|e| {
 							log::error!("Failed to navigate to URL: {:?}", e);
 						});
+
+						set_header_info.set(Some(HeaderInfo {
+							id: event.selected_task.clone(),
+							fragment: anchor_str,
+						}));
 					}
 				}
 			}
@@ -189,27 +194,18 @@ pub fn GitHubRoadlinePage() -> impl IntoView {
 				}
 			}}
 
-			// Task markdown popup - overlays over everything
+			// Task markdown drawer - slides up from bottom
 			{move || {
 				if let Some(state) = markdown_state.get() {
-					if show_popup.get() {
-						let close_popup = move |_| {
-							// Clear the hash when closing popup
-							window().location().set_hash("").unwrap_or_else(|e| {
-								log::error!("Failed to clear hash: {:?}", e);
-							});
-						};
 
-						view! {
-							<MarkdownPopupPane
-								on_close=close_popup
-								content=state.content.clone()
-								anchor=current_anchor
-							/>
-						}.into_any()
-					} else {
-						view! { <></> }.into_any()
-					}
+
+					view! {
+						<MarkdownDrawerPane
+							content=state.content.clone()
+							anchor=current_anchor
+							header_info=header_info.clone()
+						/>
+					}.into_any()
 				} else {
 					view! { <></> }.into_any()
 				}

@@ -7,6 +7,7 @@ members = [
   # util
   "util/roadline/*",
   "util/bevy/*",
+  "util/leptos/*",
 
   # core
   "core/representation",
@@ -115,6 +116,7 @@ roadline-source-github-markdown = { path = "core/source/github-markdown" }
 clap-markdown-ext = { git = "https://github.com/movementlabsxyz/clap-markdown-ext.git", rev = "8f54fe424504bf37fb01dc69aaed8166e429fe6a"}
 
 bevy-ui-anchor = { path = "util/bevy/ui-anchor" }
+leptos-resizable-split = { path = "util/leptos/resizable-split" }
 
 [workspace.lints.clippy]
 debug_assert_with_mut_call = "deny"
