@@ -1625,6 +1625,32 @@ name = "camino"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e1de8bc0aa9e9385ceb3bf0c152e3a9b9544f6c4a912c8ae504e80c1f0368603"
+dependencies = [
+ "serde_core",
+]
+
+[[package]]
+name = "cargo-platform"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e35af189006b9c0f00a064685c727031e3ed2d8020f7ba284d78cc2671bd36ea"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "cargo_metadata"
+version = "0.19.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd5eb614ed4c27c5d706420e4320fbe3216ab31fa1c33cd8246ac36dae4479ba"
+dependencies = [
+ "camino",
+ "cargo-platform",
+ "semver",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.16",
+]
 
 [[package]]
 name = "caseless"
@@ -1707,6 +1733,25 @@ checksum = "e2134bb3ea021b78629caa971416385309e0131b351b25e01dc16fb54e1b5fae"
 dependencies = [
  "clap_builder",
  "clap_derive",
+]
+
+[[package]]
+name = "clap-markdown"
+version = "0.1.4"
+source = "git+https://github.com/ConnorGray/clap-markdown.git?rev=1e1ae469444604d5b9ee650232abc2d3a0fa723b#1e1ae469444604d5b9ee650232abc2d3a0fa723b"
+dependencies = [
+ "clap",
+]
+
+[[package]]
+name = "clap-markdown-ext"
+version = "0.0.1"
+source = "git+https://github.com/movementlabsxyz/clap-markdown-ext.git?rev=8f54fe424504bf37fb01dc69aaed8166e429fe6a#8f54fe424504bf37fb01dc69aaed8166e429fe6a"
+dependencies = [
+ "anyhow",
+ "cargo_metadata",
+ "clap",
+ "clap-markdown",
 ]
 
 [[package]]
@@ -5245,6 +5290,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "roadline"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "clap",
+ "clap-markdown-ext",
+ "thiserror 1.0.69",
+ "tokio",
+]
+
+[[package]]
 name = "roadline-bevy-renderer"
 version = "0.0.1"
 dependencies = [
@@ -5567,6 +5623,10 @@ name = "semver"
 version = "1.0.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d767eb0aabc880b29956c35734170f26ed551a859dbd361d140cdbeca61ab1e2"
+dependencies = [
+ "serde",
+ "serde_core",
+]
 
 [[package]]
 name = "send_wrapper"
