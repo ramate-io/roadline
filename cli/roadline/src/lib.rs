@@ -1,4 +1,5 @@
 pub mod render;
+pub mod validate;
 
 use clap::Parser;
 use clap_markdown_ext::Markdown;
@@ -9,6 +10,8 @@ pub enum RoadlineError {
 	MarkdownError(#[from] anyhow::Error),
 	#[error("Encountered an error while running the program: {0}")]
 	RenderError(#[from] render::RenderError),
+	#[error("Encountered an error while validating the roadline: {0}")]
+	ValidationError(#[from] validate::ValidationError),
 }
 
 #[derive(Parser)]
@@ -17,9 +20,11 @@ pub enum Roadline {
 	/// Generate CLI documentation
 	#[clap(subcommand)]
 	Markdown(Markdown),
-	/// Run a RISC-V program in the box
+	/// Render the roadline
 	#[clap(subcommand)]
 	Render(render::Render),
+	/// Validate the roadline
+	Validate(validate::Validate),
 }
 
 impl Roadline {
@@ -30,6 +35,9 @@ impl Roadline {
 			}
 			Roadline::Render(render) => {
 				render.execute().await?;
+			}
+			Roadline::Validate(validate) => {
+				validate.execute().await?;
 			}
 		}
 
