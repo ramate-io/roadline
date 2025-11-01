@@ -107,7 +107,7 @@ impl StretchUnit {
 
 	/// Finds the closest unit that is at most the average duration, then moves to the next smallest.
 	/// This ensures the grid has good granularity and readability.
-	pub fn canonical_from_average_seconds(average_seconds: u64) -> Self {
+	pub fn canonical_from_min_secs(average_seconds: u64) -> Self {
 		let all_units = [
 			Self::Days,
 			Self::Weeks,

@@ -102,17 +102,17 @@ impl PreGridAlgebra {
 		}
 
 		// Calculate average task duration in seconds
-		let total_duration_seconds: u64 = spans
+		let min_duration: u64 = spans
 			.values()
 			.map(|span| {
 				let start = span.start.inner().inner().timestamp();
 				let end = span.end.inner().inner().timestamp();
 				(end - start) as u64
 			})
-			.sum();
+			.min()
+			.ok_or(GridAlgebraError::NoTasks)?;
 
-		let average_duration = total_duration_seconds / spans.len() as u64;
-		Ok(StretchUnit::canonical_from_average_seconds(average_duration))
+		Ok(StretchUnit::canonical_from_min_secs(min_duration))
 	}
 
 	/// Calculates time boundaries and converts them to stretches.

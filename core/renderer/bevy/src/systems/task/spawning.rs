@@ -83,7 +83,7 @@ impl TaskSpawningSystem {
 		// Create new task sprites for each task
 		for (task_id, start_x, start_y, end_x, end_y) in reified.task_rectangles() {
 			log::info!(
-				"task_id: {:?}, start_x: {}, start_y: {}, end_x: {}, end_y: {}",
+				"renderer spawning task_id: {:?}, start_x: {}, start_y: {}, end_x: {}, end_y: {}",
 				task_id,
 				start_x,
 				start_y,

@@ -63,14 +63,17 @@ impl DownStretch {
 	}
 
 	pub fn canonical_from_stretch(stretch: Stretch, trim: Trim) -> Self {
-		let unit = stretch.unit().down(1);
+		println!("stretch: {:#?}", stretch);
+		let unit = stretch.unit().down(0);
 		let (start, end) = stretch.scale(unit);
 
 		// subtract the trim from the end
-		let end = end as u16 - trim.value().value();
+		let end = (end as u16).saturating_sub(trim.value().value());
 
 		let down_stretch =
 			DownStretchRange::new(ReifiedUnit::new(start as u16), ReifiedUnit::new(end as u16));
+
+		println!("down_stretch: {:#?}", down_stretch);
 
 		Self::new(stretch, trim, down_stretch)
 	}
