@@ -132,6 +132,24 @@ impl TaskParser {
 			}
 		}
 
+		// Return an error for all missing fields
+		// Collect all missing fields into a vector
+		let mut missing_fields = Vec::new();
+		if metadata.starts.is_none() {
+			missing_fields.push("Starts".to_string());
+		}
+		if metadata.depends_on.is_none() {
+			missing_fields.push("Depends-on".to_string());
+		}
+		if metadata.ends.is_none() {
+			missing_fields.push("Ends".to_string());
+		}
+		if !missing_fields.is_empty() {
+			return Err(MarkdownParseError::MissingMultipleRequiredFields {
+				fields: missing_fields,
+			});
+		}
+
 		Ok(metadata)
 	}
 

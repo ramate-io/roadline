@@ -102,17 +102,17 @@ impl PreGridAlgebra {
 		}
 
 		// Calculate average task duration in seconds
-		let total_duration_seconds: u64 = spans
+		let min_duration: u64 = spans
 			.values()
 			.map(|span| {
 				let start = span.start.inner().inner().timestamp();
 				let end = span.end.inner().inner().timestamp();
 				(end - start) as u64
 			})
-			.sum();
+			.min()
+			.ok_or(GridAlgebraError::NoTasks)?;
 
-		let average_duration = total_duration_seconds / spans.len() as u64;
-		Ok(StretchUnit::canonical_from_average_seconds(average_duration))
+		Ok(StretchUnit::canonical_from_min_secs(min_duration))
 	}
 
 	/// Calculates time boundaries and converts them to stretches.
@@ -135,9 +135,10 @@ impl PreGridAlgebra {
 		for (&task_id, span) in spans {
 			let start_timestamp = span.start.inner().inner().timestamp();
 			let end_timestamp = span.end.inner().inner().timestamp();
+
 			// Convert to grid units relative to reference time
-			let start_unit = ((start_timestamp - reference_time) / unit_seconds) as u8;
-			let end_unit = ((end_timestamp - reference_time) / unit_seconds) as u8; // Floor division for simplicity
+			let start_unit = ((start_timestamp - reference_time) / unit_seconds) as u16;
+			let end_unit = ((end_timestamp - reference_time) / unit_seconds) as u16; // Floor division for simplicity
 
 			let stretch_range = StretchRange::new(start_unit, end_unit.max(start_unit + 1)); // Ensure minimum 1 unit duration
 			let stretch = Stretch::new(stretch_range, time_unit);
@@ -261,7 +262,7 @@ impl PreGridAlgebra {
 		sorted_tasks.sort_by_key(|(_, stretch)| stretch.start());
 
 		// Use a greedy algorithm to count minimum lanes needed
-		let mut lane_end_times: Vec<u8> = Vec::new();
+		let mut lane_end_times: Vec<u16> = Vec::new();
 
 		for (_, stretch) in sorted_tasks {
 			let start_time = stretch.start();
@@ -420,7 +421,7 @@ pub struct GridAlgebra {
 	time_unit: StretchUnit,
 	tasks: HashMap<TaskId, Cell>,
 	total_lanes: usize,
-	max_x_axis: u8,
+	max_x_axis: u16,
 	max_y_axis: u8,
 }
 
@@ -487,14 +488,14 @@ impl GridAlgebra {
 
 	/// Get the maximum time unit used across all tasks.
 	/// This is precomputed during grid construction for efficiency.
-	pub fn max_time_unit(&self) -> u8 {
+	pub fn max_time_unit(&self) -> u16 {
 		self.max_x_axis
 	}
 
 	/// Get the maximum x-axis value (farthest end point of any stretch).
 	/// This represents the rightmost edge of the grid.
 	/// This is precomputed during grid construction for efficiency.
-	pub fn max_x_axis(&self) -> u8 {
+	pub fn max_x_axis(&self) -> u16 {
 		self.max_x_axis
 	}
 
@@ -595,8 +596,8 @@ mod tests {
 		assert!(grid_algebra.has_task(&TaskId::new(2)));
 		assert!(grid_algebra.has_task(&TaskId::new(3)));
 
-		// Verify time unit was determined (should be Weeks with canonical method)
-		assert_eq!(grid_algebra.time_unit(), StretchUnit::Weeks);
+		// Verify time unit was determined (should be days with canonical method)
+		assert_eq!(grid_algebra.time_unit(), StretchUnit::Days);
 
 		Ok(())
 	}
@@ -670,14 +671,14 @@ mod tests {
 
 		// With tasks of 30, 15, and 10 days, average duration is ~18.3 days
 		// Canonical method: largest unit ≤ average is BiWeeks, then move to next smallest = Weeks
-		assert_eq!(grid_algebra.time_unit(), StretchUnit::Weeks);
+		assert_eq!(grid_algebra.time_unit(), StretchUnit::Days);
 
 		// Verify stretches are computed correctly (in Week units)
 		let task1_stretch = grid_algebra.task_cell(&TaskId::new(1)).unwrap().stretch();
-		assert_eq!(task1_stretch.duration(), 4); // 30 days ≈ 4 weeks floor division
+		assert_eq!(task1_stretch.duration(), 30); // 30 days
 
 		let task2_stretch = grid_algebra.task_cell(&TaskId::new(2)).unwrap().stretch();
-		assert_eq!(task2_stretch.duration(), 2); // 15 days ≈ 2 weeks floor division
+		assert_eq!(task2_stretch.duration(), 15); // 15 days
 
 		Ok(())
 	}

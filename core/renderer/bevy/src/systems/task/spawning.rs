@@ -83,7 +83,7 @@ impl TaskSpawningSystem {
 		// Create new task sprites for each task
 		for (task_id, start_x, start_y, end_x, end_y) in reified.task_rectangles() {
 			log::info!(
-				"task_id: {:?}, start_x: {}, start_y: {}, end_x: {}, end_y: {}",
+				"renderer spawning task_id: {:?}, start_x: {}, start_y: {}, end_x: {}, end_y: {}",
 				task_id,
 				start_x,
 				start_y,
@@ -93,8 +93,8 @@ impl TaskSpawningSystem {
 			log::info!("Max bounds: width={}, height={}", max_width_f32, max_height_f32);
 
 			let (x, y) = (start_x, start_y);
-			let height = end_y - start_y;
-			let width = end_x - start_x;
+			let height = end_y.saturating_sub(start_y);
+			let width = end_x.saturating_sub(start_x);
 
 			// Convert reified units to pixel coordinates using proper scaling
 			let pixel_x = pixel_scale.scale_x(x as f32);
@@ -406,8 +406,8 @@ mod tests {
 			let task_rect = task_rectangles.find(|(task_id, _, _, _, _)| **task_id == task.task_id);
 
 			if let Some((_, start_x, start_y, end_x, end_y)) = task_rect {
-				let width = end_x - start_x;
-				let height = end_y - start_y;
+				let width = end_x.saturating_sub(start_x);
+				let height = end_y.saturating_sub(start_y);
 
 				// Calculate expected position based on the spawning logic
 				let expected_pixel_x = start_x as f32 * custom_pixels_per_x_unit;

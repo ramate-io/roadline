@@ -9,29 +9,29 @@ use serde::{Deserialize, Serialize};
 /// The start is inclusive and the end is exclusive.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct StretchRange {
-	start: u8,
-	end: u8,
+	start: u16,
+	end: u16,
 }
 
 impl StretchRange {
-	pub fn new(start: u8, end: u8) -> Self {
+	pub fn new(start: u16, end: u16) -> Self {
 		assert!(start <= end, "StretchRange start must be <= end");
 		Self { start, end }
 	}
 
-	pub fn start(&self) -> u8 {
+	pub fn start(&self) -> u16 {
 		self.start
 	}
 
-	pub fn end(&self) -> u8 {
+	pub fn end(&self) -> u16 {
 		self.end
 	}
 
-	pub fn duration(&self) -> u8 {
+	pub fn duration(&self) -> u16 {
 		self.end - self.start
 	}
 
-	pub fn contains(&self, index: u8) -> bool {
+	pub fn contains(&self, index: u16) -> bool {
 		index >= self.start && index < self.end
 	}
 
@@ -107,7 +107,7 @@ impl StretchUnit {
 
 	/// Finds the closest unit that is at most the average duration, then moves to the next smallest.
 	/// This ensures the grid has good granularity and readability.
-	pub fn canonical_from_average_seconds(average_seconds: u64) -> Self {
+	pub fn canonical_from_min_secs(min_seconds: u64) -> Self {
 		let all_units = [
 			Self::Days,
 			Self::Weeks,
@@ -124,7 +124,7 @@ impl StretchUnit {
 		let mut canonical_unit = Self::Days; // Default fallback
 
 		for &unit in &all_units {
-			if unit.seconds() <= average_seconds {
+			if unit.seconds() <= min_seconds {
 				canonical_unit = unit;
 			} else {
 				break; // Units are ordered, so we can stop here
@@ -185,15 +185,15 @@ impl Stretch {
 		self.unit
 	}
 
-	pub fn start(&self) -> u8 {
+	pub fn start(&self) -> u16 {
 		self.range.start()
 	}
 
-	pub fn end(&self) -> u8 {
+	pub fn end(&self) -> u16 {
 		self.range.end()
 	}
 
-	pub fn duration(&self) -> u8 {
+	pub fn duration(&self) -> u16 {
 		self.range.duration()
 	}
 

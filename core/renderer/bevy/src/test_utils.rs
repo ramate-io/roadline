@@ -46,7 +46,7 @@ pub fn create_test_roadline() -> Result<CoreRoadline, anyhow::Error> {
 			StdDuration::from_secs(7 * 24 * 60 * 60),
 		);
 
-	let rodline = RoadlineBuilder::new()
+	let roadline = RoadlineBuilder::new()
 		.task(task1)?
 		.task(task2)?
 		.task(task3)?
@@ -54,5 +54,5 @@ pub fn create_test_roadline() -> Result<CoreRoadline, anyhow::Error> {
 		.task(task5)?
 		.build()?;
 
-	Ok(rodline)
+	Ok(roadline)
 }

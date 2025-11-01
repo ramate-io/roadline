@@ -237,7 +237,7 @@ impl RoadlineBuilder {
 	/// Use a spacious layout configuration (generous spacing).
 	pub fn spacious(mut self) -> Self {
 		self.config = ReifiedConfig::new(
-			Trim::new(ReifiedUnit::new(5)),            // Smaller gutter for new task construction
+			Trim::new(ReifiedUnit::new(5)), // Smaller gutter for new task construction
 			DownLanePadding::new(ReifiedUnit::new(2)), // Smaller padding for new task construction
 		);
 		self
@@ -577,12 +577,12 @@ mod tests {
 	use roadline_util::task::Task;
 	use std::time::Duration as StdDuration;
 
-
 	#[test]
 	fn test_builder_basic_functionality() -> Result<(), anyhow::Error> {
 		let mut builder = RoadlineBuilder::start_of_epoch()?;
 
-		let task1 = Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
+		let task1 =
+			Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
 		let task2 = Task::test_from_id(2)?
 			.after(&task1)
 			.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
@@ -622,7 +622,8 @@ mod tests {
 
 	#[test]
 	fn test_fluent_api() -> Result<(), anyhow::Error> {
-		let task1 = Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
+		let task1 =
+			Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
 		let task2 = Task::test_from_id(2)?
 			.after(&task1)
 			.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
@@ -657,7 +658,8 @@ mod tests {
 
 	#[test]
 	fn test_spacing_presets() -> Result<(), anyhow::Error> {
-		let task1 = Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
+		let task1 =
+			Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
 		let task2 = Task::test_from_id(2)?
 			.after(&task1)
 			.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
@@ -704,7 +706,8 @@ mod tests {
 
 		// With tasks, validation should pass
 		let mut builder_with_tasks = RoadlineBuilder::new();
-		let task = Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
+		let task =
+			Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
 		builder_with_tasks.add_task(task)?;
 		assert!(builder_with_tasks.validate().is_ok());
 		Ok(())
@@ -712,7 +715,6 @@ mod tests {
 
 	#[test]
 	fn test_error_wrapping_preserves_information() -> Result<(), anyhow::Error> {
-
 		// Create a cycle: task1 -> task2 -> task1 (circular dependency)
 		let mut builder = RoadlineBuilder::new();
 		let task1 = Task::test_from_id(1)?
@@ -759,7 +761,8 @@ mod tests {
 			.with_trim(Trim::new(ReifiedUnit::new(5)))
 			.with_padding(DownLanePadding::new(ReifiedUnit::new(2)));
 
-		let task1 = Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
+		let task1 =
+			Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
 		let task2 = Task::test_from_id(2)?
 			.after(&task1)
 			.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))
@@ -781,7 +784,8 @@ mod tests {
 	fn test_roadline_access_methods() -> Result<(), anyhow::Error> {
 		let mut builder = RoadlineBuilder::start_of_epoch()?;
 
-		let task1 = Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
+		let task1 =
+			Task::test_from_id(1)?.for_standard_duration(StdDuration::from_secs(10 * 24 * 60 * 60));
 		let task2 = Task::test_from_id(2)?
 			.after(&task1)
 			.offset_start_date(StdDuration::from_secs(5 * 24 * 60 * 60))

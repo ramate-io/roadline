@@ -16,7 +16,10 @@ members = [
   "core/source/*",
 
   # site
-  "site/leptos-bevy"
+  "site/leptos-bevy",
+
+  # cli
+  "cli/roadline"
   
 ]
 
