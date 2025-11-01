@@ -12,7 +12,7 @@ pub struct PixelScale {
 
 impl Default for PixelScale {
 	fn default() -> Self {
-		Self { pixels_per_x_unit: 10.0, pixels_per_y_unit: 75.0 }
+		Self { pixels_per_x_unit: 8.0, pixels_per_y_unit: 40.0 }
 	}
 }
 

@@ -78,6 +78,8 @@ impl DependencyParser {
 	) -> Result<Option<Vec<TaskId>>, MarkdownParseError> {
 		let value = value.trim();
 
+		println!("dependency parser value: {}", value);
+
 		// Handle empty set
 		if value == "$\\emptyset$" || value.is_empty() {
 			return Ok(Some(Vec::new()));

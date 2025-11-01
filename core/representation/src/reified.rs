@@ -42,7 +42,7 @@ impl ReifiedConfig {
 	pub fn default_config() -> Self {
 		Self {
 			connection_trim: Trim::new(ReifiedUnit::new(3)), // 3 units of gutter space
-			inter_lane_padding: DownLanePadding::new(ReifiedUnit::new(0)), // 2 unit between lanes
+			inter_lane_padding: DownLanePadding::new(ReifiedUnit::new(1)), // 2 unit between lanes
 		}
 	}
 
