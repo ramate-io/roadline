@@ -365,8 +365,6 @@ impl RoadlineBuilder {
 			return Err(RoadlineBuilderError::NoTasks);
 		}
 
-		println!("graph: {:#?}", self.graph.facts);
-
 		// Step 1: Build the range algebra (temporal positioning)
 		let range_algebra = PreRangeAlgebra::new(self.graph).compute(self.root_date)?;
 
