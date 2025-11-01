@@ -5296,6 +5296,9 @@ dependencies = [
  "anyhow",
  "clap",
  "clap-markdown-ext",
+ "roadline-bevy-renderer",
+ "roadline-parser-markdown",
+ "roadline-representation-core",
  "thiserror 1.0.69",
  "tokio",
 ]
