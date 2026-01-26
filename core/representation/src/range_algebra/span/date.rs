@@ -10,7 +10,7 @@ impl Date {
         Self(date)
     }
     
-    /// Returns the inner DateTime<Utc> value.
+    /// Returns the inner [DateTime<Utc>] value.
     pub fn inner(&self) -> DateTime<Utc> {
         self.0
     }
